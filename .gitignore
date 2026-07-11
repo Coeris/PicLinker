@@ -1,0 +1,41 @@
+# 依赖
+node_modules/
+
+# 构建产物（main.js 需要提交到仓库，社区市场要求）
+*.js.map
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Obsidian 插件数据（用户个人配置，不应提交）
+data.json
+_hashcache.json
+_webdavmeta.json
+
+# 开发
+.dev-reload
+.hotreload
+.claude/
+
+# 日志
+*.log
+npm-debug.log*
+*.md
+!README.md
+!README.zh.md
+!CONFIG.md
+!DEVELOPMENT.md
+
+# 本地 lint 工具（不随发布提交）
+eslint.config.js
+tsconfig.lint.json
+eslint.config.mjs
+package-lock.json
