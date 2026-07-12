@@ -46,15 +46,17 @@ export class CloudComparator {
 		// ===== 阿里云/腾讯云/其他图床：优先用云端文件列表做文件名匹配（避免 CORS） =====
 		// 只要传入了 cloudFiles 参数就走此路径（包括空数组），绝不回退到 HEAD 请求
 		if ((bedType === ImageBedType.Aliyun || bedType === ImageBedType.Tencent || bedType === ImageBedType.Other) && cloudFiles) {
-			// 构建云端文件名集合（仅文件，排除目录项）
-			// 注意：如果不同路径下有同名文件，后者会覆盖前者（已知限制）
+			// 构建云端文件名集合（仅文件，排除目录项）。
+			// 多路径下同名文件：保留全部 URL（数组），避免后者覆盖前者导致返回错误 URL。
 			const cloudFileNames = new Set<string>();
-			const cloudFileMap = new Map<string, string>(); // fileName → url
+			const cloudFileMap = new Map<string, string[]>(); // fileName → url[]（同名文件可能有多个）
 			for (const f of cloudFiles) {
 				if (!f.isDirectory && f.prefix) {
 					const name = f.prefix.split("/").pop() || f.name;
 					cloudFileNames.add(name);
-					cloudFileMap.set(name, f.url); // 同名文件取最后一个
+					const list = cloudFileMap.get(name) ?? [];
+					if (f.url && !list.includes(f.url)) list.push(f.url);
+					cloudFileMap.set(name, list);
 				}
 			}
 
@@ -72,7 +74,10 @@ export class CloudComparator {
 				const expectedUrl = this.generateExpectedUrl(img.pure, bedType, pathPrefix);
 
 				if (fileName && cloudFileNames.has(fileName)) {
-					result.set(img.pure, { exists: true, url: cloudFileMap.get(fileName) || expectedUrl });
+					const urls = cloudFileMap.get(fileName) ?? [];
+					// 优先返回与 expectedUrl 同路径的精确匹配；否则返回第一个可用 URL
+					const matched = urls.find((u) => u === expectedUrl) || urls[0] || expectedUrl;
+					result.set(img.pure, { exists: true, url: matched });
 				} else {
 					result.set(img.pure, { exists: false, url: expectedUrl });
 				}

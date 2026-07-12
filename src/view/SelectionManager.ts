@@ -78,8 +78,12 @@ export class SelectionManager {
 
 	/** 清空所有 section */
 	clearAll(): void {
-		for (const set of this.selections.values()) {
-			set.clear();
+		for (const [section, set] of this.selections) {
+			if (set.size > 0) {
+				set.clear();
+				// 逐个 section 触发通知，确保各区域 UI 高亮同步清除（避免残留选中态）
+				this.notify(section);
+			}
 		}
 	}
 

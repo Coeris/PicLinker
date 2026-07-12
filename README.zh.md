@@ -8,11 +8,13 @@
 
 ## 快速开始
 
-**手动安装（推荐）**
+**社区插件市场（推荐）**
+
+打开 Obsidian「设置 → 第三方插件 → 浏览」，搜索 **PicLinker**，点击安装并启用即可。
+
+**手动安装**
 
 前往 [Releases](https://github.com/Coeris/PicLinker/releases) 下载 `main.js` + `manifest.json` + `styles.css`，放入 vault 的 `.obsidian/plugins/PicLinker/` 目录，重启启用即可。
-
-**社区插件市场（待上架）**
 
 ## 核心功能
 

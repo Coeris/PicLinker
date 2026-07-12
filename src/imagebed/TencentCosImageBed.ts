@@ -5,7 +5,7 @@
 
 import { ImageBed, CloudFile, PicLinkerSettings } from "../types";
 import { cleanInvisible, parseXml, parseXmlFileList } from "../utils/Common";
-import { signCosV1, hmacSha1, sha1Hex } from "../utils/CosV1Signer";
+import { signCosV1 } from "../utils/CosV1Signer";
 import { directFetch } from "../utils/http";
 
 export class TencentCosImageBed implements ImageBed {
@@ -84,7 +84,7 @@ export class TencentCosImageBed implements ImageBed {
 				}
 
 				const xmlText = await response.text();
-				const { doc, error } = parseXml(xmlText);
+				const { doc, error } = parseXml(xmlText, response.status);
 
 				if (error) {
 					console.error("COS API Error:", error.code, error.message);
@@ -235,32 +235,17 @@ export class TencentCosImageBed implements ImageBed {
 		if (!this.secretId || !this.secretKey) return [];
 
 		try {
-			// GetService 需要 service 域名签名，但请求发到区域域名
-			const now = new Date();
-			const timestamp = Math.floor(now.getTime() / 1000);
-			const keyTime = `${timestamp};${timestamp + 3600}`;
+			// GetService 使用 service 域名签名（host=service.cos.myqcloud.com，path="/"，无 query/headers）
+			const { url, authHeader } = await signCosV1({
+				method: "GET",
+				path: "/",
+				host: "service.cos.myqcloud.com",
+				secretId: this.secretId,
+				secretKey: this.secretKey,
+			});
 
-			const signKey = await hmacSha1(this.secretKey, keyTime);
-
-			// GetService 的 canonical request
-			const canonicalHeaders = "host:service.cos.myqcloud.com\n";
-			const canonicalRequest = ["GET", "/", "", canonicalHeaders, "host", ""].join("\n");
-
-			const canonicalReqHash = await sha1Hex(canonicalRequest);
-			const stringToSign = `sha1\n${keyTime}\n${canonicalReqHash}\n`;
-			const signature = btoa(await hmacSha1(signKey, stringToSign));
-
-			const authorization =
-				`q-sign-algorithm=sha1` +
-				`&q-ak=${this.secretId}` +
-				`&q-sign-time=${keyTime}` +
-				`&q-key-time=${keyTime}` +
-				`&q-header-list=host` +
-				`&q-url-param-list=` +
-				`&q-signature=${signature}`;
-
-			const response = await directFetch("https://service.cos.myqcloud.com/", {
-				headers: { Authorization: authorization },
+			const response = await directFetch(url, {
+				headers: { Authorization: authHeader },
 			});
 
 			if (!response.ok) return [];

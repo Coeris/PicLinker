@@ -112,7 +112,7 @@ export class AliyunOssImageBed implements ImageBed {
 				}
 
 				const xmlText = await response.text();
-				const { doc, error } = parseXml(xmlText);
+				const { doc, error } = parseXml(xmlText, response.status);
 
 				if (error) {
 					console.error("OSS API Error:", error.code, error.message);

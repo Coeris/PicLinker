@@ -56,17 +56,29 @@ export interface ParsedXmlResult {
 /**
  * 解析 XML 文档
  * @param xmlText XML 文本
+ * @param statusCode 可选 HTTP 状态码。提供时优先以状态码判错（非 2xx 才视为错误）；
+ *                  未提供时回退为“同时具备 <Code> 与 <Message>”的 XML 启发式判错。
  * @returns 解析结果，包含文档和可能的错误
  */
-export function parseXml(xmlText: string): ParsedXmlResult {
+export function parseXml(xmlText: string, statusCode?: number): ParsedXmlResult {
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(xmlText, "application/xml");
 
-	// 检查错误
 	const errorCode = doc.querySelector("Code");
-	if (errorCode) {
-		const message = doc.querySelector("Message")?.textContent || "";
-		return { doc, error: { code: errorCode.textContent || "", message } };
+	const errorMessage = doc.querySelector("Message");
+
+	// 仅当同时满足以下条件才视为错误响应：
+	//   1) XML 中同时存在 <Code> 与 <Message>（正常 XML 可能含单独的 <Code> 元素，不能据此误判）；
+	//   2) 若提供了 HTTP 状态码，则必须为非 2xx（响应状态非成功）；
+	//      若未提供状态码，则仅靠上述 XML 启发式判错（保守回退）。
+	// 这样可避免正常 XML（可能含 <Code> 元素）被误判为错误。
+	const statusIsError = statusCode === undefined ? true : (statusCode < 200 || statusCode >= 300);
+	const looksLikeError = errorCode !== null && errorMessage !== null;
+	if (looksLikeError && statusIsError) {
+		return {
+			doc,
+			error: { code: errorCode.textContent || "", message: errorMessage.textContent || "" },
+		};
 	}
 
 	return { doc };
@@ -83,7 +95,15 @@ export function parseXmlFileList(doc: Document, baseUrl: string): Array<{ name: 
 
 	const contents = Array.from(doc.querySelectorAll("Contents"));
 	for (const content of contents) {
-		const key = decodeURIComponent(content.querySelector("Key")?.textContent || "");
+		const rawKey = content.querySelector("Key")?.textContent || "";
+		// 非法百分号编码会导致 decodeURIComponent 抛错；单条失败回退为原始字符串，
+		// 不影响其余条目的解析。
+		let key: string;
+		try {
+			key = rawKey ? decodeURIComponent(rawKey) : rawKey;
+		} catch {
+			key = rawKey;
+		}
 		if (!key || key.endsWith("/")) continue;
 
 		const name = key.split("/").pop() || key;

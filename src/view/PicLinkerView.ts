@@ -1707,6 +1707,9 @@ export class PicLinkerView extends ItemView {
 		// 直接使用选中状态集合，而不是从 DOM 中读取
 		const selectedLocalPaths = new Set<string>();
 		const selectedCloudNames = new Set<string>();
+		// 云端「图片(CloudImages)」区选中项：key 是按 URL 的 pure，不应混入本地集合；
+		// 单独收集供云端哈希循环命中（修复「选中云端图片去重被静默忽略」）。
+		const selectedCloudPures = new Set<string>();
 		if (selectedOnly) {
 
 			// 从 selectedLocalImages 中收集本地图片路径
@@ -1715,10 +1718,10 @@ export class PicLinkerView extends ItemView {
 				selectedLocalPaths.add(path);
 			}
 
-			// 从 selectedCloudImages 中收集云端图片路径
+			// 从 selectedCloudImages 中收集云端图片 URL（走云端哈希路径，不混入本地）
 			const cloudImagesSelected = this.selection.getSelected(SelectionSection.CloudImages);
 			for (const path of cloudImagesSelected) {
-				selectedLocalPaths.add(path);
+				selectedCloudPures.add(path);
 			}
 
 			// 从 selectedLocalUnref 中收集本地未引用图片路径
@@ -1751,7 +1754,7 @@ export class PicLinkerView extends ItemView {
 			}
 
 
-			if (selectedLocalPaths.size === 0 && selectedCloudNames.size === 0) {
+			if (selectedLocalPaths.size === 0 && selectedCloudNames.size === 0 && selectedCloudPures.size === 0) {
 				new Notice("未选中图片，双击「去重」按钮可执行全库去重");
 				return;
 			}
@@ -1810,9 +1813,9 @@ export class PicLinkerView extends ItemView {
 				hash = cached.hash;
 			} else {
 				try {
-					const buffer = await this.app.vault.readBinary(file);
-					const blob = new Blob([buffer]);
-					const newHash = await HashCache.computeHash(blob);
+					// 传入 TFile + app，桌面端改为分块读取以降内存峰值；
+					// 哈希结果与原先 readBinary→Blob 完全一致。
+					const newHash = await HashCache.computeHash(file, this.app);
 					// mtime 变了但内容可能没变（如 touch 命令），对比哈希决定是否更新缓存
 					if (cached && cached.hash === newHash) {
 						// 内容未变，只更新 mtime
@@ -1838,8 +1841,16 @@ export class PicLinkerView extends ItemView {
 		for (const file of this.cloudFiles) {
 			if (file.isDirectory) continue;
 			if (selectedOnly) {
-				if (selectedCloudNames.size === 0 && this.selection.getCount(SelectionSection.CloudFiles) === 0) continue;
-				if (selectedCloudNames.size > 0 && !selectedCloudNames.has(file.name) && !this.selection.isSelected(SelectionSection.CloudFiles,file.prefix || file.name)) continue;
+				// CloudImages 区选中的云端图片 URL 命中本文件？
+				const cloudImgHit = selectedCloudPures.size > 0 && selectedCloudPures.has(file.url);
+				// 进入条件：选了 CloudFiles 区、或 CloudImages 区有选中且本文件命中
+				if (selectedCloudNames.size === 0 && this.selection.getCount(SelectionSection.CloudFiles) === 0 && !cloudImgHit) continue;
+				// 命中判断：用 file.prefix||file.name（避免带路径前缀的 key 永远匹配不到 file.name 的死分支）；
+				// 同时命中 CloudImages 选中 URL 时放行
+				const byCloudFiles = selectedCloudNames.size > 0
+					&& !selectedCloudNames.has(file.prefix || file.name)
+					&& !this.selection.isSelected(SelectionSection.CloudFiles, file.prefix || file.name);
+				if (!cloudImgHit && byCloudFiles) continue;
 			}
 			// 已有缓存的直接使用
 			const cached = this.plugin.dedupCache.get(file.url);
@@ -2118,11 +2129,19 @@ export class PicLinkerView extends ItemView {
 					// 引用更新（独立于文件删除，失败不影响删除结果）
 					if (ok && keepItem) {
 						try {
-							const bestCloud = group.items.find(i => i.source === "cloud");
+							// 保留项在笔记正文中的目标写法：云端优先用 URL，本地用其 pure（原始链接文本）
+							// bestCloud 必须来自“保留集合”(remaining)，避免误用已删除的云端项 URL
+							const bestCloud = remaining.find(i => i.source === "cloud");
 							const keepPath = bestCloud ? bestCloud.path : (keepItem.source === "local" ? (keepItem.img?.pure || keepItem.path) : keepItem.path);
-							// 从 localImages 获取最新的引用文件列表
+							// 从 localImages 获取最新的引用文件列表（用 vault 路径反查）
 							const freshImg = this.localImages.find(i => (i.resolvedPath || i.pure) === item.path);
-							await this.plugin.linkEditor.replaceImageInMdFiles(item.path, keepPath, freshImg?.files);
+							// oldPath 必须是被删除项在笔记正文中真实出现的文本：
+							//   本地项 → 其 ImageLink.pure（item.path 是 vault 解析路径，笔记里匹配不到）
+							//   云端项 → item.path 本身即 URL
+							const oldPath = item.source === "local"
+								? (freshImg?.pure ?? item.img?.pure ?? item.path)
+								: item.path;
+							await this.plugin.linkEditor.replaceImageInMdFiles(oldPath, keepPath, freshImg?.files);
 						} catch (e) {
 							console.warn("[PicLinker] 引用更新失败:", e);
 							new Notice("文件已删除，但引用更新失败，请手动替换");
@@ -2186,7 +2205,7 @@ export class PicLinkerView extends ItemView {
 		if (this.selection.getCount(SelectionSection.SameName) === 0) { new Notice("请先选择要删除的文件"); return; }
 
 		// 构建要删除的项目列表
-		const items: Array<{ key: string; type: 'local' | 'cloud'; path: string; bedType?: ImageBedType }> = [];
+		const items: Array<{ key: string; type: 'local' | 'cloud'; path: string; bedType?: ImageBedType; refText?: string }> = [];
 		for (const itemKey of this.selection.getSelected(SelectionSection.SameName)) {
 			const sepIdx = itemKey.indexOf(":");
 			const source = itemKey.substring(0, sepIdx) as 'local' | 'cloud';
@@ -2201,7 +2220,13 @@ export class PicLinkerView extends ItemView {
 				}
 			}
 
-			items.push({ key: itemKey, type: source, path, bedType });
+			// refText = 该项在笔记正文中真实出现的链接文本（ImageLink.pure），供引用清理匹配。
+			// 本地：path 是 vault 路径（resolvedPath||pure），需反查 pure；云端：path 即 URL，通常就是 pure。
+			const refText = source === 'local'
+				? (this.localImages.find(i => (i.resolvedPath || i.pure) === path)?.pure ?? path)
+				: path;
+
+			items.push({ key: itemKey, type: source, path, bedType, refText });
 		}
 
 		await this.deleteOps.batchDeleteWithCleanup({
@@ -2251,28 +2276,33 @@ export class PicLinkerView extends ItemView {
 		let updateSuccess = 0;
 
 		for (const group of this.dedupGroups) {
-			// 云端优先：优先保留云端版本、删除本地重复以减轻 vault 体积
-			const bestCloud = group.items.find(i => i.source === "cloud");
-			const keepItem = group.items.reduce((best, item) => {
+			const toDelete = group.items.filter(item => this.selection.isSelected(SelectionSection.Dedup,`${item.source}:${item.path}`));
+			if (toDelete.length === 0) continue;
+
+			// 保留项 = 组内【未被选中删除】的项里评分最高者（云端优先 +1000 权重）。
+			// 关键：基于 toDelete 反向推导，而非“永远云端优先”——
+			// 用户选本地项删除 → 保留云端；用户选云端项删除 → 保留本地（修复跨端组删云端项为 no-op）。
+			const remaining = group.items.filter(item => !toDelete.includes(item));
+			const keepItem = remaining.reduce((best, item) => {
 				const bestScore = (best.source === "cloud" ? (best.referenced || 0) + 1000 : 0);
 				const itemScore = (item.source === "cloud" ? (item.referenced || 0) + 1000 : 0);
 				return itemScore > bestScore ? item : best;
-			}, group.items[0]);
-
-			const toDelete = group.items.filter(item => this.selection.isSelected(SelectionSection.Dedup,`${item.source}:${item.path}`));
+			}, remaining[0]);
+			if (!keepItem) {
+				// 整组全部选中删除 → 无保留项，跳过该组以免误删，并提示用户
+				new Notice("某重复组已全部选中，请至少保留一项（或改用全库去重清理）");
+				continue;
+			}
 
 			for (const item of toDelete) {
 				if (item.path === keepItem.path) continue; // 不删除保留项
 
-				// 替换目标优先云端 URL（减轻 vault 体积）
-				let keepPath: string;
-				if (bestCloud) {
-					keepPath = bestCloud.path;
-				} else if (keepItem.source === "local") {
-					keepPath = keepItem.img?.pure || keepItem.path;
-				} else {
-					keepPath = keepItem.path;
-				}
+				// newPath 必须是“保留项 keepItem”在笔记中应写成的文本（且 keepItem 必定存活）：
+				// 保留云端时用云端 URL（keepItem.path）；保留本地时用该本地项的 pure（原始链接文本）
+				// 不再直接用“组内第一个云端项”，避免该云端项本身也被选中删除而重新断链
+				const keepPath = keepItem.source === "local"
+					? (keepItem.img?.pure || keepItem.path)
+					: keepItem.path;
 
 				try {
 					if (item.source === "local") {
@@ -2297,9 +2327,14 @@ export class PicLinkerView extends ItemView {
 						}
 					}
 
-					// 从 localImages 获取最新的引用文件列表
+					// 从 localImages 获取最新的引用文件列表（用 vault 路径反查）
 					const freshImg = this.localImages.find(i => (i.resolvedPath || i.pure) === item.path);
-					const replacedCount = await this.plugin.linkEditor.replaceImageInMdFiles(item.path, keepPath, freshImg?.files);
+					// oldPath 必须是被删除项在笔记正文中真实出现的文本：
+					// 本地项用其 ImageLink.pure（item.path 是 vault 解析路径，正文里匹配不到）；云端项 item.path 即 URL
+					const oldPath = item.source === "local"
+						? (freshImg?.pure ?? item.img?.pure ?? item.path)
+						: item.path;
+					const replacedCount = await this.plugin.linkEditor.replaceImageInMdFiles(oldPath, keepPath, freshImg?.files);
 					updateSuccess += replacedCount;
 				} catch {
 					deleteFail++;
@@ -2454,21 +2489,18 @@ export class PicLinkerView extends ItemView {
 
 	private getLocalUnreferencedImages(): TFile[] {
 		if (this.unreferencedCache !== null && this._unreferencedCacheBuiltAt === this.unreferencedCacheVersion) return this.unreferencedCache;
+		// 基于 path 精确判断是否被引用：按文件名误判会隐藏「同名但未引用」的文件（如
+		// assets/a.png 被引用、assets/backup/b.png 未引用且同名 → b.png 会被错误隐藏）。
 		const referencedPaths = new Set<string>();
-		const referencedFileNames = new Set<string>();
 		for (const img of this.localImages) {
 			if (img.type === "local") {
-				const path = img.resolvedPath || img.pure;
-				referencedPaths.add(path);
-				const fileName = extractFileName(path);
-				if (fileName) referencedFileNames.add(fileName);
+				referencedPaths.add(img.resolvedPath || img.pure);
 			}
 		}
 		this.unreferencedCache = this.app.vault.getFiles().filter((f) => {
 			const ext = f.extension.toLowerCase();
 			if (!IMAGE_EXTENSIONS.has(ext)) return false;
 			if (referencedPaths.has(f.path)) return false;
-			if (referencedFileNames.has(f.name)) return false;
 			return true;
 		});
 		this._unreferencedCacheBuiltAt = this.unreferencedCacheVersion;

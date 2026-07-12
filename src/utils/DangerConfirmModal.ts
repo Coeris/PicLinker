@@ -26,6 +26,7 @@ class ConfirmModal extends Modal {
 	private titleText: string;
 	private confirmText: string;
 	private onResolve: (result: boolean) => void;
+	private resolved = false;
 
 	constructor(
 		app: App,
@@ -38,6 +39,13 @@ class ConfirmModal extends Modal {
 		this.onResolve = options.onResolve;
 	}
 
+	/** 统一的解析入口，确保 Promise 只 resolve 一次（防止重复 resolve / 泄漏）。 */
+	private resolve(result: boolean): void {
+		if (this.resolved) return;
+		this.resolved = true;
+		this.onResolve(result);
+	}
+
 	onOpen(): void {
 		const { contentEl } = this;
 		contentEl.empty();
@@ -48,18 +56,20 @@ class ConfirmModal extends Modal {
 
 		const cancelBtn = btnRow.createEl("button", { text: "取消" });
 		cancelBtn.addEventListener("click", () => {
-			this.onResolve(false);
+			this.resolve(false);
 			this.close();
 		});
 
 		const confirmBtn = btnRow.createEl("button", { text: this.confirmText, cls: "mod-warning" });
 		confirmBtn.addEventListener("click", () => {
-			this.onResolve(true);
+			this.resolve(true);
 			this.close();
 		});
 	}
 
 	onClose(): void {
+		// ESC / 点击背景关闭时，按「取消」语义 resolve(false)，保证调用方 await 不会永久挂起。
+		this.resolve(false);
 		this.contentEl.empty();
 	}
 }

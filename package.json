@@ -1,6 +1,6 @@
 {
   "name": "obsidian-pic-linker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "一款面向 Obsidian 的全库图片资产管理工具，覆盖扫描、去重、比对、批量等操作。",
   "main": "main.js",
   "scripts": {

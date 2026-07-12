@@ -15,6 +15,10 @@ PicLinker is an Obsidian plugin for managing all your image assets across the va
 
 ## Install
 
-Download `main.js`, `manifest.json`, and `styles.css` from [Releases](https://github.com/Coeris/PicLinker/releases), place them in your vault's `.obsidian/plugins/PicLinker/` folder, and enable the plugin.
+**Community plugin store (recommended)**
 
-**Community plugin store (pending)**
+Open Obsidian → **Settings → Community plugins → Browse**, search for **PicLinker**, then install and enable it.
+
+**Manual install**
+
+Download `main.js`, `manifest.json`, and `styles.css` from [Releases](https://github.com/Coeris/PicLinker/releases), place them in your vault's `.obsidian/plugins/PicLinker/` folder, and enable the plugin.

@@ -2,7 +2,7 @@
  * DeleteOperations — 批量删除操作
  * 从 PicLinkerView 提取：
  *   batchDeleteWithCleanup, batchDeleteLocalUnref, batchDeleteLocalFiles,
- *   batchDeleteReferenceLines, batchDeleteNotFoundLines, batchDeleteCloudImages,
+ *   batchDeleteReferenceLines, batchDeleteNotFoundImages, batchDeleteNotFoundTags, batchDeleteCloudImages,
  *   batchDeleteEmptyFolders
  *
  * dedupDeleteSelected / deleteSelectedSameName 留在主类（需直接修改 Group 结构）
@@ -56,7 +56,13 @@ export class DeleteOperations {
 	async batchDeleteWithCleanup(options: {
 		section: SelectionSection;
 		confirmMessage: string;
-		items: Array<{ key: string; type: 'local' | 'cloud'; path: string; bedType?: ImageBedType }>;
+		/**
+		 * key: 删除身份标识（用于 onAfterDelete 的 deletedKeys 集合）
+		 * path: 实际删除目标（本地=vault 路径，云端=URL/fileKey）
+		 * refText: 可选，该项在笔记正文中真实出现的链接文本（即 ImageLink.pure），
+		 *          用于引用清理匹配。未提供时回退到 key（兼容旧调用方，key 即 pure）。
+		 */
+		items: Array<{ key: string; type: 'local' | 'cloud'; path: string; bedType?: ImageBedType; refText?: string }>;
 		deleteReferences: boolean;
 		onDeleteLocal?: (path: string) => Promise<boolean>;
 		onDeleteCloud?: (path: string, bedType: ImageBedType) => Promise<boolean>;
@@ -72,11 +78,45 @@ export class DeleteOperations {
 
 		if (!(await confirmAsync(this.ctx.app, { message: options.confirmMessage }))) return result;
 
-		// 第一步：删除笔记引用
+		// 第一步：删除文件（先删文件，成功后再清引用，避免「引用已删、文件还在」的不一致态）
+		const deletedKeys = new Set<string>(); // 记录成功删除的项 key
+		const total = options.items.length;
+		// 进度反馈：仅在批量较大时提示，避免单条删除刷屏
+		const showProgress = total > 5;
+		if (showProgress) new Notice(`正在删除（文件阶段）：${result.filesDeleted}/${total}`);
+		for (let idx = 0; idx < options.items.length; idx++) {
+			const item = options.items[idx];
+			try {
+				if (item.type === 'local' && options.onDeleteLocal) {
+					const success = await options.onDeleteLocal(item.path);
+					if (success) { result.filesDeleted++; deletedKeys.add(item.key); }
+					else result.filesFailed++;
+				} else if (item.type === 'cloud' && options.onDeleteCloud) {
+					const success = await options.onDeleteCloud(item.path, item.bedType || ImageBedType.Other);
+					if (success) { result.filesDeleted++; deletedKeys.add(item.key); }
+					else result.filesFailed++;
+				}
+			} catch {
+				result.filesFailed++;
+			}
+			// 每 10 个或最后一项更新一次进度（避免频繁刷新 Notice）
+			if (showProgress && ((idx + 1) % 10 === 0 || idx + 1 === total)) {
+				new Notice(`正在删除（文件阶段）：${result.filesDeleted}/${total}`);
+			}
+		}
+
+		// 第二步：仅对「成功删除文件」的项清理笔记引用
+		// 目的：若文件删除失败，保留笔记引用，避免「引用已删、文件还在」的脏态
 		if (options.deleteReferences) {
 			const fileImageMap = new Map<string, string[]>();
 			for (const item of options.items) {
-				const img = localImages().find(i => i.pure === item.key);
+				if (!deletedKeys.has(item.key)) continue; // 仅清理已成功删除的项
+				// 优先用显式传入的正文链接文本 refText 定位图片；
+				// 否则回退到 key（旧调用方 key 即 img.pure）。
+				// 再回退到用 vault 路径 path 反查（resolvedPath 或 pure 匹配），保障本地项也能命中。
+				const refText = item.refText;
+				const img = localImages().find(i => i.pure === (refText ?? item.key))
+					?? localImages().find(i => (i.resolvedPath || i.pure) === item.path);
 				if (img) {
 					for (const fp of img.files) {
 						if (!fileImageMap.has(fp)) fileImageMap.set(fp, []);
@@ -92,23 +132,6 @@ export class DeleteOperations {
 				} catch {
 					result.referencesFailed++;
 				}
-			}
-		}
-
-		// 第二步：删除文件
-		for (const item of options.items) {
-			try {
-				if (item.type === 'local' && options.onDeleteLocal) {
-					const success = await options.onDeleteLocal(item.path);
-					if (success) result.filesDeleted++;
-					else result.filesFailed++;
-				} else if (item.type === 'cloud' && options.onDeleteCloud) {
-					const success = await options.onDeleteCloud(item.path, item.bedType || ImageBedType.Other);
-					if (success) result.filesDeleted++;
-					else result.filesFailed++;
-				}
-			} catch {
-				result.filesFailed++;
 			}
 		}
 

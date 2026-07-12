@@ -18,7 +18,7 @@ import { ImageLink, PicLinkerSettings, ImageBedType, CloudFile } from "./types";
 import { HashCache } from "./utils/HashCache";
 import { DedupCache } from "./utils/DedupCache";
 import { parseFrontmatter } from "./utils/FrontmatterParser";
-import { encryptSensitiveFields, decryptSensitiveFields } from "./utils/SecureStorage";
+import { encryptSensitiveFields, decryptSensitiveFields, migrateLegacyToNewSalt, generateSalt } from "./utils/SecureStorage";
 import { LinkEditor } from "./editor/LinkEditor";
 import { WebDAVSync, WebDAVMeta } from "./sync/WebDAVSync";
 import { IMAGE_EXTENSIONS } from "./utils/Common";
@@ -39,7 +39,6 @@ const DEFAULT_SETTINGS: PicLinkerSettings = {
 	showSameNameFiles: true,
 
 	// WebDAV 同步
-	webdavEnable: false,
 	webdavUrl: "",
 	webdavUsername: "",
 	webdavPassword: "",
@@ -85,6 +84,8 @@ export default class PicLinkerPlugin extends Plugin {
 	linkEditor!: LinkEditor;
 	/** WebDAV 同步服务 */
 	webDAVSync!: WebDAVSync;
+	/** 持久随机加密 salt（Base64），存于 data.json 的 `_encSalt`，替代 vault 名，根除改名清空凭据 */
+	private _encSaltB64?: string;
 	/** 临时存储的 WebDAV 元数据（loadSettings 时暂存，webDAVSync 初始化后恢复） */
 	private _pendingWebdavMeta?: WebDAVMeta;
 
@@ -99,7 +100,7 @@ export default class PicLinkerPlugin extends Plugin {
 		// WebDAV 同步服务（依赖已加载的 settings）
 		this.webDAVSync = new WebDAVSync(
 			this.settings,
-			this.app.vault.getName(),
+			this.getEncSaltB64(),
 			async (updated) => { this.settings = updated; await this.saveSettings(); },
 		);
 		if (this._pendingWebdavMeta) {
@@ -306,40 +307,87 @@ export default class PicLinkerPlugin extends Plugin {
 
 	async loadSettings() {
 		const data = ((await this.loadData()) as unknown as Record<string, unknown>) || {};
-		const { _hashcache, _webdavmeta, _dedupcache, _scancache, ...settingsData } = data;
+		const { _encSalt, _hashcache, _webdavmeta, _dedupcache, _scancache, ...settingsData } = data;
 		// 清理已废弃的旧字段
 		const deprecatedKeys = ["autoRefreshOnOpen", "showUnreferenced", "deleteConfirm", "debounceDelay"];
 		for (const key of deprecatedKeys) {
 			delete settingsData[key];
 		}
 		const raw = Object.assign({}, DEFAULT_SETTINGS, settingsData);
-		// 解密敏感字段（自动兼容旧的明文数据）
-		const salt = `imagelmgr:${this.app.vault.getName()}`;
-		this.settings = await decryptSensitiveFields(raw, salt) as PicLinkerSettings;
-		// 恢复去重缓存
+
+		// 恢复缓存（先恢复，便于后续迁移写回时一并持久化）
 		if (_hashcache && typeof _hashcache === "string") {
 			this.hashCache = new HashCache(_hashcache);
 		}
-		// 恢复去重哈希缓存
 		if (_dedupcache && typeof _dedupcache === "string") {
 			this.dedupCache = new DedupCache(_dedupcache);
 		}
-		// 恢复 WebDAV 同步元数据（延迟到 webDAVSync 初始化后赋值）
-		if (_webdavmeta) {
-			this._pendingWebdavMeta = _webdavmeta;
-		}
-		// 恢复扫描缓存（避免每次启动全量扫描）
 		if (_scancache && typeof _scancache === "string") {
 			this.vaultScanner.loadSerialized(_scancache);
 		}
+		if (_webdavmeta) {
+			this._pendingWebdavMeta = _webdavmeta;
+		}
+
+		// ===== 加密 salt 解析 + 升级迁移（关键：绝不丢失凭据） =====
+		const legacySalt = `imagelmgr:${this.app.vault.getName()}`;
+		let encSaltB64 = typeof _encSalt === "string" && _encSalt ? _encSalt : undefined;
+		let working: Record<string, unknown> = raw;
+		// 是否需要在 loadSettings 末尾把迁移结果写回 data.json
+		let persistMigration = false;
+
+		if (encSaltB64) {
+			// 已是新方案：用持久随机 salt 解密 v2 字段
+			working = await decryptSensitiveFields(raw, encSaltB64);
+		} else {
+			// 老用户（或全新用户）：尝试用旧方案（vault 名 salt）迁移
+			const mig = await migrateLegacyToNewSalt(raw, legacySalt);
+			if (mig.hadLegacy && mig.allDecrypted) {
+				// 路径 A：旧密文全部成功解出 → in-memory 保持明文，用新随机 salt 重新加密后写盘
+				working = mig.settings;
+				encSaltB64 = mig.newSaltB64;
+				persistMigration = true;
+				new Notice("PicLinker：凭据已无缝迁移到更安全的加密方案");
+			} else if (mig.hadLegacy && !mig.allDecrypted) {
+				// 路径 B：改名后升级等导致旧密文无法解密 → 保留原密文，绝不清空
+				working = raw;
+				encSaltB64 = mig.newSaltB64;
+				persistMigration = true;
+				const msg = "PicLinker 警告：部分图床凭据无法自动迁移（可能曾在升级前重命名过 vault），请重新检查并填写图床配置。";
+				console.warn(`[PicLinker] ${msg}`);
+				new Notice(msg, 15000);
+			} else {
+				// 路径 C：无历史密文（全新用户/从未填凭据）→ 仅生成并持久化新 salt
+				working = raw;
+				encSaltB64 = mig.newSaltB64;
+				persistMigration = true;
+			}
+		}
+
+		this._encSaltB64 = encSaltB64;
+		this.settings = working as PicLinkerSettings;
+
+		// 将迁移结果写回 data.json（幂等：仅当 salt 为新生成/迁移时）
+		if (persistMigration && this._encSaltB64) {
+			try {
+				await this.saveData(this.buildSavePayload(this.settings, this._encSaltB64));
+			} catch (e) {
+				console.warn("[PicLinker] 迁移结果持久化失败（下次启动将重试）", e);
+			}
+		}
 	}
 
-	async saveSettings() {
-		// 加密敏感字段后保存
-		const salt = `imagelmgr:${this.app.vault.getName()}`;
-		const encrypted = await encryptSensitiveFields(this.settings, salt);
-		// 将 hash cache、dedup cache 和 webdav meta 合并到主数据对象
-		const savePayload: Record<string, unknown> = { ...encrypted };
+	/** 获取持久随机 salt（Base64），确保已生成 */
+	private getEncSaltB64(): string {
+		if (!this._encSaltB64) {
+			this._encSaltB64 = generateSalt();
+		}
+		return this._encSaltB64;
+	}
+
+	/** 构建完整保存负载（含加密字段、持久 salt 与各类缓存） */
+	private buildSavePayload(encrypted: Record<string, unknown>, encSaltB64: string): Record<string, unknown> {
+		const savePayload: Record<string, unknown> = { ...encrypted, _encSalt: encSaltB64 };
 		if (this.hashCache.isDirty() || this.hashCache.size > 0) {
 			savePayload._hashcache = this.hashCache.serialize();
 			this.hashCache.markClean();
@@ -353,9 +401,17 @@ export default class PicLinkerPlugin extends Plugin {
 			savePayload._webdavmeta = this.webDAVSync.meta;
 		}
 		// 持久化扫描缓存（加速下次启动）
-		try {
+			try {
 			savePayload._scancache = this.vaultScanner.serialize();
 		} catch (e) { console.warn("[PicLinker] 扫描缓存序列化失败，已跳过", e); }
+		return savePayload;
+	}
+
+	async saveSettings() {
+		// 加密敏感字段后保存（新方案：持久随机 salt + 600k）
+		const encSaltB64 = this.getEncSaltB64();
+		const encrypted = await encryptSensitiveFields(this.settings, encSaltB64);
+		const savePayload = this.buildSavePayload(encrypted, encSaltB64);
 		await this.saveData(savePayload);
 		// 更新各图床配置
 		for (const bed of this.imageBedManager.getAll()) {
@@ -364,13 +420,27 @@ export default class PicLinkerPlugin extends Plugin {
 		this.cloudComparator.updateSettings(this.settings);
 		this.webDAVSync?.updateSettings(this.settings);
 		this.refreshView();
+		// 下方 WebDAV 自动上传分支：上传成功会由 WebDAVSync 回写 meta.lastSyncedAt，
+		// 不污染 lastLocalModifiedAt（那是“真实本地编辑”基准）。
 		// #11 WebDAV 自动同步：设置保存时自动上传（需开启开关，且未从远程下载）
-		if (this.settings.webdavEnable && this.settings.webdavAutoSync && this.settings.webdavUrl && this.settings.webdavUsername && this.settings.webdavPassword 
+		// 注意：webdavEnable 已移除，开关由 webdavAutoSync 单一承担。
+		if (this.settings.webdavAutoSync && this.settings.webdavUrl && this.settings.webdavUsername && this.settings.webdavPassword 
 			&& !this.webDAVSync?.skipAutoUpload) {
 			void this.webDAVSync.syncToRemote();
 		}
 		// 重置标记位（单次用途）
 		if (this.webDAVSync) this.webDAVSync.skipAutoUpload = false;
+	}
+
+	/**
+	 * 仅持久化图床连接测试结果（私键 _bedTestResults），不触碰其余 data.json。
+	 * 以当前已保存的 data 为基准做 read-modify-write（而非以内存空对象为基准），
+	 * 避免与 saveSettings / WebDAV 同步的整份保存互相覆盖（修复竞态丢配置）。
+	 */
+	async mergeBedTestResults(results: Record<string, boolean>): Promise<void> {
+		const data = ((await this.loadData()) as Record<string, unknown>) || {};
+		data._bedTestResults = results;
+		await this.saveData(data);
 	}
 
 /**
@@ -512,11 +582,11 @@ export default class PicLinkerPlugin extends Plugin {
 
 		// 5. 加密/解密测试
 		try {
-			const salt = `imagelmgr:${this.app.vault.getName()}`;
+			const salt = this.getEncSaltB64();
 			const testValue = "test-token-12345";
-			const encrypted = await encryptSensitiveFields({ testField: testValue }, salt);
+			const encrypted = await encryptSensitiveFields({ githubToken: testValue }, salt);
 			const decrypted = await decryptSensitiveFields(encrypted, salt);
-			add(decrypted.testField === testValue, "敏感字段加密/解密");
+			add(decrypted.githubToken === testValue, "敏感字段加密/解密");
 		} catch (e) {
 			add(false, `加密/解密异常: ${e}`);
 		}

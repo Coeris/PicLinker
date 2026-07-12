@@ -38,7 +38,7 @@ export class WebDAVSync {
 
 	constructor(
 		private settings: PicLinkerSettings,
-		private vaultName: string,
+		private encSaltB64: string,
 		private onSettingsChanged: (updatedSettings: PicLinkerSettings) => Promise<void>,
 	) {}
 
@@ -52,11 +52,15 @@ export class WebDAVSync {
 	 * 其他设备下载后可以用本地密钥重新加密
 	 */
 	async getDecryptedBedSettings(): Promise<Record<string, string>> {
-		const salt = `imagelmgr:${this.vaultName}`;
-		const decrypted = await decryptSensitiveFields(this.settings, salt);
+		const decrypted = await decryptSensitiveFields(this.settings, this.encSaltB64);
 		const bedData: Record<string, string> = {};
 		for (const k of BED_SETTINGS_KEYS) {
-			bedData[k] = typeof decrypted[k] === "string" ? decrypted[k] : "";
+			const v = typeof decrypted[k] === "string" ? decrypted[k] : "";
+			// 只写入非空字段：未配置的 key 不放进返回对象，
+			// 避免远程存储被空串污染，进而在跨设备合并时清空对端配置。
+			if (v !== "") {
+				bedData[k] = v;
+			}
 		}
 		return bedData;
 	}
@@ -106,6 +110,15 @@ export class WebDAVSync {
 			});
 
 			if (response.ok || response.status === 201 || response.status === 204) {
+				// 上传成功：回写 lastSyncedAt，作为后续三方冲突比较的「基准」。
+				// 注意：不要在此更新 lastLocalModifiedAt（那是“真实本地编辑”基准，仅由 main.ts 在
+				// 用户实际改设置时写入），否则上传后 localModified > lastSyncedAt 恒为真 → 误报冲突。
+				this.meta = {
+					...(this.meta || {}),
+					lastSyncedAt: bedData._syncedAt,
+					lastSyncSource: "upload",
+					lastRemoteModifiedAt: bedData._syncedAt,
+				};
 				return { ok: true, status: response.status };
 			}
 			return { ok: false, status: response.status, message: `HTTP ${response.status}` };
@@ -177,9 +190,12 @@ export class WebDAVSync {
 			}
 
 			// 无冲突，执行合并
+			// 仅覆盖「远程存在且非空」的字段；远程缺失或为空串的 key 保留本地值，
+			// 防止某设备未配置的图床被远程空串清空（跨设备丢配置 bug）。
 			for (const k of BED_SETTINGS_KEYS) {
-				if (k in remoteData && typeof remoteData[k] === "string") {
-					this.settings[k] = remoteData[k];
+				const remoteVal = remoteData[k];
+				if (typeof remoteVal === "string" && remoteVal !== "") {
+					this.settings[k] = remoteVal;
 				}
 			}
 

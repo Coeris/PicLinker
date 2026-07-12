@@ -12,7 +12,7 @@ import { ImageLink } from "../types";
  * 缓存版本号。解析逻辑变更时递增，迫使全量重扫。
  * v2: 支持 [[image.png]] 无 ! 前缀的 wiki 链接
  */
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
 /** 扫描缓存条目 */
 interface ScanCacheEntry {
@@ -76,15 +76,31 @@ export class VaultScanner {
 		const CONCURRENCY = 20;
 		for (let i = 0; i < filesToRead.length; i += CONCURRENCY) {
 			const batch = filesToRead.slice(i, i + CONCURRENCY);
-			const results = await Promise.all(
+			// 用 allSettled：单个文件读取失败（权限/损坏/竞态删除）只跳过该文件，
+			// 不影响其余文件，避免整批扫描结果丢失导致视图空白/旧数据。
+			const settled = await Promise.allSettled(
 				batch.map(async (file) => {
 					const content = await this.app.vault.read(file);
 					return { file, content };
 				})
 			);
-			for (const { file, content } of results) {
+			for (const outcome of settled) {
+				if (outcome.status === "rejected") {
+					console.warn("[PicLinker] VaultScanner: 读取文件失败，已跳过:", outcome.reason as unknown);
+					continue;
+				}
+				const { file, content } = outcome.value;
 				const links = this.parser.parse(content);
-				this.scanCache.set(file.path, { mtime: file.stat.mtime, version: CACHE_VERSION, links });
+				// 补充 frontmatter 中的裸路径图片字段（如 cover: a.png），
+				// 这些值无 ![[...]] 包裹，普通解析器识别不到，单独后置扫描纳入。
+				const fmImages = this.parser.parseFrontmatterImages(content);
+				if (fmImages.length > 0) links.push(...fmImages);
+				// 修复 (a) TOCTOU：vault.read 拿到内容后，重新取一次「读后的当前 mtime」存入缓存。
+				// 否则文件在「读内容」与「存缓存」之间被并发修改，会存下「旧内容 + 新 mtime」，
+				// 导致下次扫描误判为未变化而不重读。重新从 vault 取文件，拿到最新 stat。
+				const currentFile = this.app.vault.getAbstractFileByPath(file.path);
+				const mtime = currentFile instanceof TFile ? currentFile.stat.mtime : file.stat.mtime;
+				this.scanCache.set(file.path, { mtime, version: CACHE_VERSION, links });
 				fileLinksMap.set(file.path, links);
 			}
 		}
@@ -107,14 +123,33 @@ export class VaultScanner {
 						if (tryFile) {
 							resolvedPath = tryPath;
 						} else {
-							// 尝试按文件名在全库中查找（处理相对路径如 ../images/photo.jpg）
+							// 尝试按文件名在全库中查找（仅处理相对路径如 ../images/photo.jpg）
 							const fileName = link.pure.split("/").pop() || link.pure;
-							const matchByName = this.app.vault.getFiles().find(f => f.name === fileName);
-							if (matchByName) {
-								resolvedPath = matchByName.path;
+							// 仅当链接是相对路径（含 /）时才允许全库同名兜底，
+							// 避免同名文件（如多目录下的 photo.jpg）命中错误目标导致引用计数错配 / 误删。
+							// 纯文件名链接（无 /）不做盲目兜底：保持 tryPath，found=false 交由视图判断。
+							const isRelative = link.pure.includes("/");
+							if (isRelative) {
+								const matchByName = this.app.vault.getFiles().find(f => f.name === fileName);
+								if (matchByName) {
+									resolvedPath = matchByName.path;
+								} else {
+									resolvedPath = tryPath;
+									found = false;
+								}
 							} else {
 								resolvedPath = tryPath;
 								found = false;
+							}
+							// 解码 URL 编码的文件名后再尝试解析（如 my%20image.png → my image.png）
+							const decodedPure = this.safeDecode(link.pure);
+							if (decodedPure !== link.pure) {
+								const tryDecodedPath = srcDir ? `${srcDir}/${decodedPure}` : decodedPure;
+								const decodedFile = this.app.vault.getAbstractFileByPath(tryDecodedPath);
+								if (decodedFile) {
+									resolvedPath = tryDecodedPath;
+									found = true;
+								}
 							}
 						}
 					}
@@ -135,7 +170,13 @@ export class VaultScanner {
 					if (!existing.fileLines.has(file.path)) {
 						existing.fileLines.set(file.path, []);
 					}
-					existing.fileLines.get(file.path)!.push(line);
+					// 修复 (b)：同一行多次引用同一图时，行号数组会写入重复行号（如 [N, N]）。
+					// 仅对行号数组去重（保留首次出现顺序），不改动 count，
+					// 以保留「同一行多次引用同一图」的计数语义。
+					const lineArr = existing.fileLines.get(file.path)!;
+					if (!lineArr.includes(line)) {
+						lineArr.push(line);
+					}
 				} else {
 					const fileLines = new Map<string, number[]>();
 					fileLines.set(file.path, [line]);
@@ -198,6 +239,18 @@ export class VaultScanner {
 			if (cached && cached.mtime !== file.stat.mtime) {
 				this.scanCache.delete(file.path);
 			}
+		}
+	}
+
+	/**
+	 * 安全解码 URL 编码的文件名（如 my%20image.png → my image.png）。
+	 * 编码非法时返回原串，不影响正常链接。
+	 */
+	private safeDecode(pure: string): string {
+		try {
+			return decodeURIComponent(pure);
+		} catch {
+			return pure;
 		}
 	}
 
