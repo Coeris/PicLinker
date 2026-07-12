@@ -1,5 +1,5 @@
 import { SelectionSection } from "../SelectionManager";
-import { setSafeHTML, ensureLazyRendered, setLazyRendered } from "../utils/ViewUtils";
+import { setSafeHTML, ensureLazyRendered, setLazyRendered, setLazyRenderFn } from "../utils/ViewUtils";
 
 /** 通用树节点接口 */
 export interface TreeNode<T> {
@@ -212,6 +212,8 @@ export class TreeRenderer {
 				dirContent.setCssStyles({ display: isCollapsed ? "" : "none" });
 				arrow.textContent = isCollapsed ? "▽" : "▶";
 				if (isCollapsed) {
+					// 展开前先触发嵌套子目录的懒渲染，避免折叠态直接同步建全部子孙 DOM
+					ensureLazyRendered(dirContent);
 					dirExpanded.add(dirKey);
 				} else {
 					dirExpanded.delete(dirKey);
@@ -219,7 +221,13 @@ export class TreeRenderer {
 				saveExpandState();
 			});
 
-			this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb);
+			// 嵌套目录懒渲染：折叠时不立即递归渲染子孙，展开时（dirHeader click / checkbox forceRender / section 展开）
+			// 由 ensureLazyRendered 触发。子目录自身也会按各自 expanded 再决定是否继续懒渲染（多层生效）。
+			if (!expanded) {
+				setLazyRenderFn(dirContent, () => this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb));
+			} else {
+				this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb);
+			}
 		}
 	}
 

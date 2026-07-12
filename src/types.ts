@@ -9,8 +9,8 @@ export interface ImageLink {
 	pure: string;
 	/** 显示参数（| 后面的内容，如 500|center） */
 	params: string;
-	/** 类型：local / https / http */
-	type: "local" | "https" | "http";
+	/** 类型：local / https / http / data（data: URI，内联图片非外部引用） */
+	type: "local" | "https" | "http" | "data";
 	/** 全库使用次数 */
 	count: number;
 	/** 使用位置（文件路径列表） */
@@ -49,8 +49,6 @@ export interface PicLinkerSettings {
 	showSameNameFiles: boolean;
 
 	// ========== WebDAV 同步 ==========
-	/** 启用 WebDAV 同步图床配置 */
-	webdavEnable: boolean;
 	/** WebDAV 服务器地址（如 https://example.com/webdav/） */
 	webdavUrl: string;
 	/** WebDAV 用户名 */
@@ -87,8 +85,11 @@ export interface PicLinkerSettings {
 	aliyunPath: string;
 	tencentPath: string;
 
-	// 索引签名（支持动态键访问）
-	[key: string]: string | boolean | ImageBedType;
+	// 索引签名（支持动态键访问）：收窄为 string | boolean，移除 ImageBedType。
+	// 原签名允许 _bedTestResults(object) 混入持久化、且隐藏字段名 typo；
+	// ImageBedType 不参与 settings 持久化，故移除。BED_SETTINGS_KEYS 动态访问
+	// 已在调用处用 as 断言收敛类型。
+	[key: string]: string | boolean;
 }
 
 /** 图床连接测试结果（持久化） */

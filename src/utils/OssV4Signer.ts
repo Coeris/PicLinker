@@ -113,13 +113,31 @@ export async function signOssV4(params: {
 	queryParams.sort();
 
 	// 2. 处理需要签名的 headers
+	// OSS V4 要求 signed headers 至少包含 host，否则返回 AuthorizationArgumentError
+	const headerEntries: Array<[string, string]> = headers
+		? Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v])
+		: [];
+	const hostValue = (() => {
+		try {
+			return new URL(baseUrl).host;
+		} catch {
+			return "";
+		}
+	})();
+	if (hostValue && !headerEntries.some(([k]) => k === "host")) {
+		headerEntries.push(["host", hostValue]);
+	}
 	let canonicalHeaders = "";
 	let signedHeaders = "";
-	if (headers && Object.keys(headers).length > 0) {
-		const sortedKeys = Object.keys(headers).map((k) => k.toLowerCase()).sort();
-		canonicalHeaders = sortedKeys.map((k) => `${k}:${headers[k]}`).join("\n") + "\n";
-		signedHeaders = sortedKeys.join(";");
+	if (headerEntries.length > 0) {
+		headerEntries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+		canonicalHeaders = headerEntries.map(([k, v]) => `${k}:${v}`).join("\n") + "\n";
+		signedHeaders = headerEntries.map(([k]) => k).join(";");
 	}
+
+	// OSS V4 query 签名必须显式携带 x-oss-additional-headers（注意：阿里云用的是 additional-headers 而非 signed-headers），且值须与 canonical request 的 signedHeaders 一致
+	queryParams.set("x-oss-additional-headers", signedHeaders);
+	queryParams.sort();
 
 	// 3. 构造规范请求
 	const canonicalRequest = [

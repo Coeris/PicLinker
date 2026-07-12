@@ -3,6 +3,8 @@
  * 从 Markdown 文件头部提取 YAML 配置
  */
 
+import { IMAGE_EXTENSIONS } from "./Common";
+
 export interface FrontmatterConfig {
 	/** 指定该文件使用的图床（覆盖全局默认） */
 	imageBed?: string;
@@ -95,4 +97,70 @@ export function parseFrontmatter(content: string): FrontmatterConfig | null {
 	}
 	// 未找到闭合的 ---
 	return null;
+}
+
+/**
+ * Frontmatter 中扫描到的裸路径图片引用
+ * （如 `cover: a.png`、`banner: photo.jpg` 这种值为图片路径的标量字段）
+ */
+export interface FrontmatterImageRef {
+	/** 字段名（如 cover / banner） */
+	key: string;
+	/** 字段值（去掉引号后的图片路径） */
+	value: string;
+	/** 该字段在文件中的行号（1-based，frontmatter 位于文件头部） */
+	line: number;
+}
+
+const FRONTMATTER_IMAGE_DENYLIST = new Set([
+	"image-bed", "imagebed", "image_bed",
+	"auto-upload", "autoupload", "auto_upload",
+	"image-path", "imagepath", "image_path",
+]);
+
+/**
+ * 扫描 frontmatter 中的「裸路径图片字段」
+ *
+ * 仅当字段值以已知图片扩展名结尾（见 IMAGE_EXTENSIONS）时才视为图片引用，
+ * 避免仅凭 key 名猜测造成的误报（如 `author: alice.jpg` 之类）。
+ * 同时排除 PicLinker 自身的 frontmatter 配置键（image-bed/auto-upload/image-path 等），
+ * 这些键是图床指令或路径前缀，并非真实图片引用。
+ * 返回的每个引用都带正确的行号，供上层扫描器聚合时使用。
+ *
+ * 注意：仅处理标量字段（按行匹配 `key: value`），嵌套/列表子项不纳入，
+ * 以免与 YAML 复杂结构冲突或重复计数。
+ */
+export function parseFrontmatterImages(content: string): FrontmatterImageRef[] {
+	const result: FrontmatterImageRef[] = [];
+	const lines = content.split("\n");
+	// 必须以 --- 开头（去掉 \r）
+	if (lines.length < 2 || lines[0].replace(/\r$/, "").trim() !== "---") return result;
+
+	// 从第2行开始，逐行扫描直到遇到闭合的 ---
+	for (let i = 1; i < lines.length; i++) {
+		const rawLine = lines[i].replace(/\r$/, "");
+		// 单独的 --- 视为 frontmatter 结束
+		if (rawLine.trim() === "---") break;
+
+		// 匹配标量字段：key: value（value 至少 1 个字符）
+		const m = rawLine.match(/^\s*([A-Za-z0-9_-]+)\s*:\s*(.+?)\s*$/);
+		if (!m) continue;
+
+		const key = m[1];
+		// 排除 PicLinker 自身配置键（非真实图片引用）
+		if (FRONTMATTER_IMAGE_DENYLIST.has(key.toLowerCase())) continue;
+
+		let value = m[2].trim();
+		// 去除包裹的引号
+		value = value.replace(/^["']|["']$/g, "");
+		if (!value) continue;
+
+		// 仅当值以图片扩展名结尾才纳入
+		const ext = value.split(".").pop()?.toLowerCase() || "";
+		if (!IMAGE_EXTENSIONS.has(ext)) continue;
+
+		result.push({ key, value, line: i + 1 });
+	}
+
+	return result;
 }

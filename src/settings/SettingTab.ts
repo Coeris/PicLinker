@@ -365,9 +365,9 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 				toggle
 					.setValue(this.plugin.settings.webdavAutoSync)
 					.onChange((value) => {
-						this.plugin.settings.webdavAutoSync = value;
-						this.plugin.settings.webdavEnable = value;
-						void this.plugin.saveSettings();
+						// webdavEnable 已移除，开关由 webdavAutoSync 单一承担
+					this.plugin.settings.webdavAutoSync = value;
+												void this.plugin.saveSettings();
 					});
 			});
 
@@ -744,11 +744,9 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		await this.saveBedTestResults();
 	}
 
-	/** 持久化图床连接测试结果 */
+	/** 持久化图床连接测试结果（仅写 _bedTestResults，避免覆盖真实设置，修复竞态） */
 	private async saveBedTestResults() {
-		const data = ((await this.plugin.loadData()) as Record<string, unknown>) || {};
-		data._bedTestResults = this.bedTestResults;
-		await this.plugin.saveData(data);
+		await this.plugin.mergeBedTestResults(this.bedTestResults);
 	}
 
 	/** 测试 WebDAV 连接 */

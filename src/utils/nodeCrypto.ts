@@ -25,6 +25,14 @@ export interface NodeCrypto {
 
 interface WindowWithRequire extends Window {
 	require(module: "crypto"): NodeCrypto;
+	require(module: "fs"): NodeFs;
+}
+
+/** 最小化的 Node fs 子集（仅用到的同步接口），用于大文件分块读取 */
+export interface NodeFs {
+	openSync(path: string, flags: string): number;
+	readSync(fd: number, buffer: Buffer, offset: number, length: number, position: number): number;
+	closeSync(fd: number): void;
 }
 
 /** 当前环境是否为桌面端（有可用 require）。 */
@@ -36,4 +44,10 @@ export function hasNodeRequire(): boolean {
 export function getNodeCrypto(): NodeCrypto {
 	const w = window as unknown as WindowWithRequire;
 	return w.require("crypto");
+}
+
+/** 取得 Node.js fs 模块（仅桌面端有效，调用前先 hasNodeRequire()）。 */
+export function getNodeFs(): NodeFs {
+	const w = window as unknown as WindowWithRequire;
+	return w.require("fs");
 }
