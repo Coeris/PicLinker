@@ -131,7 +131,7 @@
 | 配置项 | 说明 | 示例 |
 |--------|------|------|
 | Name | 自定义名称 | `SM.MS` |
-| API URL `*` | 图床上传接口地址 | `https://sm.ms/api/v2` |
+| API URL `*` | 图床上传接口地址 | `https://smms.app/api/v2` |
 | Token | 认证密钥 | `your-token` |
 | Username | 部分图床需要 | `admin` |
 | Password | 部分图床需要 | |

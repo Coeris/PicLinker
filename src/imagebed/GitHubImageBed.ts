@@ -4,7 +4,7 @@
 
 import { ImageBed, CloudFile, PicLinkerSettings } from "../types";
 import { cleanInvisible } from "../utils/Common";
-import { directFetch } from "../utils/http";
+import { directFetch, DirectFetchResponse } from "../utils/http";
 
 export class GitHubImageBed implements ImageBed {
 	private token = "";
@@ -38,7 +38,8 @@ export class GitHubImageBed implements ImageBed {
 	 * 通过 GitHub API Link header 实现分页，自动拉取所有页
 	 */
 	private async fetchDirectoryContents(dirPath: string, files: CloudFile[]): Promise<void> {
-		let pageUrl: string | null = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${dirPath}?ref=${this.branch}`;
+		const encodedDir = dirPath.split("/").map(encodeURIComponent).join("/");
+		let pageUrl: string | null = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${encodedDir}?ref=${this.branch}&per_page=100`;
 
 		while (pageUrl) {
 			try {
@@ -76,14 +77,17 @@ export class GitHubImageBed implements ImageBed {
 	}
 
 	/**
-	 * 从 GitHub API 响应 Link header 解析下一页 URL
-	 * GitHub API 限制每页最多 100 条，超出的数据通过 Link header 分页
+	 * 从 GitHub API 响应 Link header 解析下一页 URL。
+	 * GitHub 列表 API 默认每页 30 条（本插件已通过 per_page=100 提升上限），
+	 * 超出部分通过 Link 头分页。格式示例：
+	 *   Link: <https://api.github.com/.../contents/images?ref=main&page=2>; rel="next", <...>; rel="last"
+	 * 仅当存在 rel="next" 时返回其 URL，否则（已是末页）返回 null。
 	 */
-	private parseNextPageHeader(_response: unknown): string | null {
-		// directFetch 返回的响应对象不直接暴露 headers，
-		// 但 Node.js IncomingMessage 的 headers 可通过底层对象访问
-		// 目前不支持分页 header 解析，后续可通过包装 directFetch 暴露 headers 实现
-		return null;
+	private parseNextPageHeader(response: DirectFetchResponse): string | null {
+		const linkHeader = response.headers?.link;
+		if (!linkHeader) return null;
+		const nextMatch = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
+		return nextMatch ? nextMatch[1] : null;
 	}
 
 	async delete(filename: string): Promise<{ success: boolean; error?: string }> {
@@ -93,7 +97,8 @@ export class GitHubImageBed implements ImageBed {
 
 		const basePath = this.path ? `${this.path}/` : "";
 		const path = `${basePath}${filename}`;
-		const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`;
+		const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+		const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${encodedPath}`;
 
 		try {
 			// 先获取文件 SHA

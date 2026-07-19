@@ -62,6 +62,8 @@ export interface DirectFetchOptions {
 export interface DirectFetchResponse {
 	ok: boolean;
 	status: number;
+	/** 规范化后的响应头（header 名统一小写；同名多值以逗号连接）。调用方可借此读取分页等头信息。 */
+	headers?: Record<string, string>;
 	text: () => Promise<string>;
 	json: <T = unknown>() => Promise<T>;
 	arrayBuffer: () => Promise<ArrayBuffer>;
@@ -85,6 +87,7 @@ async function fallbackRequest(
 	return {
 		ok: resp.status >= 200 && resp.status < 300,
 		status: resp.status,
+		headers: resp.headers,
 		text: async () => text,
 		json: async <T = unknown>() => JSON.parse(text) as T,
 		arrayBuffer: async () => buf,
@@ -189,9 +192,17 @@ function nodeFetch(
 			res.on("end", () => {
 				const buf = Buffer.concat(chunks);
 				const text = buf.toString("utf-8");
+				// 规范化响应头：header 名统一小写，数组值用逗号连接，
+				// 供调用方读取（如 GitHub 的 Link 分页头）。
+				const normalizedHeaders: Record<string, string> = {};
+				for (const [hk, hv] of Object.entries(res.headers)) {
+					if (hv === undefined) continue;
+					normalizedHeaders[hk.toLowerCase()] = Array.isArray(hv) ? hv.join(", ") : hv;
+				}
 				resolve({
 					ok: statusCode >= 200 && statusCode < 300,
 					status: statusCode,
+					headers: normalizedHeaders,
 					text: async () => text,
 					json: async <T = unknown>() => JSON.parse(text) as T,
 					arrayBuffer: async () =>

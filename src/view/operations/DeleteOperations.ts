@@ -43,6 +43,15 @@ export class DeleteOperations {
 		this.ctx = ctx;
 	}
 
+	/** 3) 统一的删除结果汇总 Notice（替代各处零散的“X 行已删除”格式，保持一致） */
+	private showDeleteSummary(label: string, success: number, fail: number) {
+		if (success === 0 && fail === 0) return;
+		const parts: string[] = [];
+		if (success > 0) parts.push(`${success} ${label}已删除`);
+		if (fail > 0) parts.push(`${fail} ${label}失败`);
+		new Notice(parts.join("，"));
+	}
+
 	/**
 	 * 通用批量删除方法
 	 * @param options.section 选中区域
@@ -149,7 +158,7 @@ export class DeleteOperations {
 
 		// 第四步：删除后回调
 		if (options.onAfterDelete) {
-			await options.onAfterDelete(new Set(options.items.map(i => i.key)));
+			await options.onAfterDelete(deletedKeys);
 		}
 
 		// 第五步：刷新视图
@@ -299,10 +308,7 @@ export class DeleteOperations {
 			selection.clear(section);
 		}
 		await refresh();
-		const parts: string[] = [];
-		if (successCount > 0) parts.push(`${successCount} 行已删除`);
-		if (failCount > 0) parts.push(`${failCount} 行失败`);
-		new Notice(`删除引用行完成：${parts.join("，")}`);
+		this.showDeleteSummary("行", successCount, failCount);
 	}
 
 	/** 批量删除未找到图片（图片级选中：删除整条图片的所有引用行） */
@@ -332,10 +338,7 @@ export class DeleteOperations {
 		}
 
 		await refresh();
-		const parts: string[] = [];
-		if (successCount > 0) parts.push(`${successCount} 行已删除`);
-		if (failCount > 0) parts.push(`${failCount} 行失败`);
-		new Notice(`删除完成：${parts.join("，")}`);
+		this.showDeleteSummary("行", successCount, failCount);
 	}
 
 	/** 批量删除未找到图片标签引用行（标签级选中：只删选中的行） */
@@ -395,10 +398,7 @@ export class DeleteOperations {
 
 		selection.clear(SelectionSection.NotFound);
 		await refresh();
-		const parts: string[] = [];
-		if (successCount > 0) parts.push(`${successCount} 行已删除`);
-		if (failCount > 0) parts.push(`${failCount} 行失败`);
-		new Notice(`删除引用行完成：${parts.join("，")}`);
+		this.showDeleteSummary("行", successCount, failCount);
 	}
 
 	/** 批量删除选中的云端图片（删除引用行 + 删除云端文件） */
@@ -444,24 +444,24 @@ export class DeleteOperations {
 
 		let successCount = 0;
 		let failCount = 0;
+		const failedFolders: string[] = [];
 		for (const folderPath of selection.getSelected(SelectionSection.EmptyFolders)) {
 			try {
 				const info = parseEmptyFolder(folderPath);
 				if (info.isCloud && info.bedType) {
 					const result = await deleteCloudFile(info.path, info.bedType);
 					if (result.success) successCount++;
-					else failCount++;
+					else { failCount++; failedFolders.push(folderPath); }
 				} else {
 					try {
 						await app.vault.adapter.rmdir(folderPath, false);
 						successCount++;
 					} catch {
-						new Notice(`无法删除非空文件夹: ${folderPath}`);
-						failCount++;
+						failCount++; failedFolders.push(folderPath);
 					}
 				}
 			} catch {
-				failCount++;
+				failCount++; failedFolders.push(folderPath);
 			}
 		}
 
@@ -469,7 +469,13 @@ export class DeleteOperations {
 		await refresh();
 		const parts: string[] = [];
 		if (successCount > 0) parts.push(`${successCount} 个已删除`);
-		if (failCount > 0) parts.push(`${failCount} 个失败`);
+		if (failCount > 0) parts.push(`${failCount} 个删除失败`);
 		new Notice(`删除完成：${parts.join("，")}`);
-	}
+		// 汇总失败信息，避免循环内逐个 Notice 刷屏
+		if (failedFolders.length > 0) {
+			const names = failedFolders.map(f => f.split("/").pop() || f);
+			console.warn(`[PicLinker] ${failCount} 个文件夹删除失败:`, failedFolders);
+			new Notice(`${failCount} 个文件夹删除失败（如非空文件夹）：${names.join("、")}`, 8000);
+		}
+}
 }
