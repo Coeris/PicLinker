@@ -39,7 +39,7 @@
 
 ### 🌐 四图床接入
 
-支持阿里云 OSS（V4 签名）、腾讯云 COS（V1 签名）、GitHub、SM.MS 四种图床。云端文件列表与实际引用交叉比对，自动识别 frontmatter 路径前缀。
+支持阿里云 OSS（V4 签名）、腾讯云 COS（V1 签名）、GitHub、SM.MS 四种图床。云端文件列表与实际引用交叉比对，自动识别 frontmatter 路径前缀与裸路径图片字段（cover / banner 等）。
 
 ### 🔬 智能去重
 
@@ -127,6 +127,8 @@ image-bed: aliyun       # 图床（GitHub / aliyun / tencent / other）
 image-path: blog/2026/  # 云端路径前缀
 ---
 ```
+
+除 `image-bed` / `image-path` 等配置键外，位于 frontmatter 顶层的**裸路径图片字段**（如 `cover`、`banner`、`thumbnail`，值为以图片扩展名结尾的本地或远程路径）也会被自动识别，纳入引用统计与去重比对。配置类键不计入扫描结果。
 
 ## 命令
 

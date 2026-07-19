@@ -129,15 +129,14 @@ function nodeFetch(
 		// 仅在调用方未显式提供 Content-Length 时补充，避免覆盖既有值。
 		if (options.body) {
 			const hasContentLength =
-				"content-length" in (reqOpts.headers as Record<string, string>) ||
-				"Content-Length" in (reqOpts.headers as Record<string, string>);
+				"content-length" in reqOpts.headers ||
+				"Content-Length" in reqOpts.headers;
 			if (!hasContentLength) {
 				const bodyData =
 					typeof options.body === "string"
 						? Buffer.from(options.body, "utf-8")
 						: Buffer.from(options.body);
-				(reqOpts.headers as Record<string, string>)["Content-Length"] =
-					String(bodyData.length);
+				(reqOpts.headers as Record<string, string>)["Content-Length"] = String(bodyData.length);
 			}
 		}
 		const req = client.request(reqOpts, (res: NodeHttpResponse) => {

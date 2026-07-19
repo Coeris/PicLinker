@@ -179,8 +179,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		const data = (await this.plugin.loadData()) as Record<string, unknown>;
 		this.bedTestResults = (data?._bedTestResults as BedTestResults) || {};
 
-		// 主标题（使用 Setting.setHeading 保持 UI 一致）
-		new Setting(containerEl).setName("设置").setHeading();
+		// 直接进入设置项，不再显示顶部主标题
 		this.renderGeneralSettings(containerEl);
 
 		// 功能开关卡片
@@ -223,8 +222,8 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 	// ========== 插件功能 ==========
 
 	private renderSectionVisibilitySettings(container: HTMLElement) {
-		// 标题
-		new Setting(container).setName("功能开关").setHeading();
+		// 卡片容器：与图床/WebDAV 折叠卡片统一的视觉语言，但此处不需要外圈边框与标题
+		const card = container.createDiv({ cls: "pic-settings-card pic-settings-card--bare" });
 
 		// 功能项列表
 		const items = [
@@ -238,8 +237,8 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 			{ key: "showEmptyFolders" as const, name: "空白文件夹" },
 		];
 
-		// 创建表格
-		const table = container.createEl("table", { cls: "pic-settings-table" });
+		// 创建表格（放在 card 内，与标题同处一个卡片容器）
+		const table = card.createEl("table", { cls: "pic-settings-table" });
 
 		for (const item of items) {
 			const row = table.createEl("tr");
@@ -252,15 +251,15 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 			toggleInput.checked = this.plugin.settings[item.key];
 			const slider = toggleWrapper.createEl("span", { cls: "pic-toggle-slider" });
 
-			// 点击滑块切换状态
-			slider.addEventListener("click", () => {
-				toggleInput.checked = !toggleInput.checked;
-				this.plugin.settings[item.key] = toggleInput.checked;
-				this.plugin.refreshView();
-				this.debouncedSaveSettings();
+			// 点击滑块：仅委托给 toggleInput，由浏览器标准地翻转 checked 并触发 change
+			// （保证一次点击只切换一次，避免手动翻转 + change 事件导致的双重执行）
+			slider.addEventListener("click", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				toggleInput.click(); // 浏览器标准翻转 checked 并触发 change
 			});
 
-			// 输入框变化事件
+			// 输入框变化事件（唯一的处理入口：保存 + 刷新视图）
 			toggleInput.addEventListener("change", () => {
 				this.plugin.settings[item.key] = toggleInput.checked;
 				this.plugin.refreshView();
@@ -269,7 +268,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		}
 
 		// 添加分割线
-		container.createDiv({ cls: "pic-section-divider" });
+		card.createDiv({ cls: "pic-section-divider" });
 	}
 
 	// ========== WebDAV 同步 ==========
@@ -289,7 +288,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		header.createSpan({ cls: "pic-collapsible-subtitle", text: "" });
 
 		const content = collapsible.createDiv({ cls: "pic-collapsible-content" });
-		content.setCssStyles({ display: "none" });
+		collapsible.classList.add("is-collapsed");
 
 		// 服务器配置分组
 		content.createDiv({ cls: "pic-setting-category-title", text: "服务器配置" });
@@ -413,12 +412,9 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		// 同步状态显示
 		this.webdavStatusEl = content.createDiv({ cls: "pic-webdav-status" });
 
-		// 折叠/展开事件
-		const arrowEl = titleRow.querySelector(".pic-collapsible-arrow") as HTMLSpanElement;
+		// 折叠/展开事件：统一由 .is-collapsed 类驱动（CSS 控制显隐 + 箭头旋转）
 		header.addEventListener("click", () => {
-			const isOpen = content.style.display !== "none";
-			content.setCssStyles({ display: isOpen ? "none" : "" });
-			if (arrowEl) arrowEl.textContent = isOpen ? "▶" : "▼";
+			collapsible.classList.toggle("is-collapsed");
 		});
 	}
 
@@ -581,7 +577,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 
 		const header = collapsible.createDiv({ cls: "pic-collapsible-header" });
 		const titleRow = header.createDiv({ cls: "pic-collapsible-title-row" });
-		const arrow = titleRow.createSpan({ cls: "pic-collapsible-arrow", text: "▶" });
+		titleRow.createSpan({ cls: "pic-collapsible-arrow", text: "▶" });
 
 		// 图床图标
 		const bedType = BED_NAME_TYPE_MAP[config.name];
@@ -599,7 +595,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		header.createSpan({ cls: "pic-collapsible-subtitle", text: config.desc });
 
 		const content = collapsible.createDiv({ cls: "pic-collapsible-content" });
-		content.setCssStyles({ display: "none" });
+		collapsible.classList.add("is-collapsed");
 
 		for (const field of config.fields) {
 			const setting = new Setting(content)
@@ -708,9 +704,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		this.renderGuide(content, config);
 
 		header.addEventListener("click", () => {
-			const isOpen = content.style.display !== "none";
-			content.setCssStyles({ display: isOpen ? "none" : "" });
-			arrow.textContent = isOpen ? "▶" : "▼";
+			collapsible.classList.toggle("is-collapsed");
 		});
 	}
 
@@ -1144,33 +1138,33 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		const guideHeader = guideWrapper.createDiv({ cls: "pic-guide-header" });
 		guideHeader.createSpan({ cls: "pic-guide-icon", text: "📖" });
 		guideHeader.createSpan({ text: "配置指南" });
-		const guideArrow = guideHeader.createSpan({ cls: "pic-guide-arrow", text: "▶" });
+		guideHeader.createSpan({ cls: "pic-guide-arrow", text: "▶" });
 
 		const guideContent = guideWrapper.createDiv({ cls: "pic-guide-content" });
-		guideContent.setCssStyles({ display: "none" });
 
 		// 格式化指南内容
 		const formattedGuide = this.formatGuideContent(config.guide);
 		setSafeHTML(guideContent, formattedGuide);
 
+		guideWrapper.classList.add("is-collapsed");
 		guideHeader.addEventListener("click", (e) => {
 			// 如果点击的是链接，不切换展开/收起
 			if ((e.target as HTMLElement).tagName === "A") {
 				return;
 			}
 			e.stopPropagation();
-			const isOpen = guideContent.style.display !== "none";
-			guideContent.setCssStyles({ display: isOpen ? "none" : "" });
-			guideArrow.textContent = isOpen ? "▶" : "▼";
+			guideWrapper.classList.toggle("is-collapsed");
 		});
 
 		// 处理指南内容中的链接点击
 		guideContent.addEventListener("click", (e) => {
 			const target = e.target as HTMLElement;
-			if (target.tagName === "A") {
+			// 使用 closest("a") 即使点到链接内部元素也能正确识别，确保冒泡被拦截
+			const link = target.closest("a");
+			if (link) {
 				e.preventDefault();
-				e.stopPropagation();
-				const url = target.getAttribute("href");
+				e.stopPropagation(); // 阻止冒泡到卡片 header，避免图床卡片意外折叠
+				const url = link.getAttribute("href");
 				if (url) {
 					window.open(url, "_blank");
 				}

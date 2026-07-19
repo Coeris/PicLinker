@@ -35,6 +35,17 @@ export class ActionsRenderer {
 		this.ctx = ctx;
 	}
 
+	/**
+	 * 判断某个分区当前是否处于折叠态。
+	 * createCollapsibleSection 中 content 紧跟在 header 之后（互为兄弟），
+	 * 折叠时 content.style.display === "none"，据此推导分区可见性，
+	 * 避免更新按钮时把折叠态下应隐藏的操作区强制 display:"".
+	 */
+	private isSectionCollapsed(header: HTMLElement): boolean {
+		const content = header.nextElementSibling as HTMLElement | null;
+		return !!content && content.style.display === "none";
+	}
+
 	/** 设置删除行按钮引用（按钮在 render 中晚于 ActionsRenderer 创建） */
 	setDeleteLineBtn(btn: HTMLElement | null): void {
 		this.ctx.deleteLineBtn = btn;
@@ -60,7 +71,16 @@ export class ActionsRenderer {
 					count += selection.getCount(SelectionSection.DedupTags);
 				}
 				// NotFound 的标签与文件共用 SelectionSection.NotFound，无需额外加计数
-				clearBtn.setCssStyles({ display: count > 0 ? "" : "none" });
+				const actions = clearBtn.parentElement;
+				const collapsed = this.isSectionCollapsed(header);
+				if (collapsed) {
+					// 折叠态：彻底隐藏整个操作区（含清除按钮），不保留无效 display 赋值
+					clearBtn.setCssStyles({ display: "none" });
+					if (actions) actions.setCssStyles({ display: "none" });
+				} else {
+					clearBtn.setCssStyles({ display: count > 0 ? "" : "none" });
+					if (actions) actions.setCssStyles({ display: "" });
+				}
 			}
 		}
 	}
@@ -78,7 +98,7 @@ export class ActionsRenderer {
 		Array.from(actions.children).forEach(child => {
 			if (child !== clearBtn) child.remove();
 		});
-		actions.setCssStyles({ display: "" });
+		actions.setCssStyles({ display: this.isSectionCollapsed(header) ? "none" : "" });
 		for (const btn of buttons) {
 			const el = actions.createEl("button", { text: btn.text, cls: btn.cls, attr: { title: btn.title } });
 			el.addEventListener("click", (e) => { e.stopPropagation(); btn.onClick(); });

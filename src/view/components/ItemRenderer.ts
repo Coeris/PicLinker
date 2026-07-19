@@ -11,7 +11,7 @@ import { IMAGE_EXTENSIONS } from "../../parser/LinkParser";
 import { detectBedTypeFromUrl } from "../../icons";
 import { showImagePreview } from "../ImagePreview";
 import { SelectionManager, SelectionSection } from "../SelectionManager";
-import { formatDisplayPath, getFileExtension, expandRefs, setSafeHTML, ignoreNextClick } from "../utils/ViewUtils";
+import { formatDisplayPath, getFileExtension, expandRefs, setSafeHTML } from "../utils/ViewUtils";
 import { confirmAsync } from "../../utils/DangerConfirmModal";
 import { onAsyncClick } from "../../utils/AsyncHandler";
 
@@ -42,6 +42,8 @@ export interface ItemRenderContext {
 	refresh: () => Promise<void>;
 	/** 是否显示完整路径 */
 	showPath: boolean;
+	/** 设置“当前条目”（键盘 ↑/↓ 与鼠标点击共用，保证唯一高亮行；不改变勾选选区） */
+	setCurrentItem: (item: HTMLElement) => void;
 	/** 获取本地未引用文件删除回调（由调用方提供） */
 	deleteLocalUnrefFile?: (file: TFile) => Promise<void>;
 }
@@ -53,29 +55,39 @@ export class ItemRenderer {
 		this.ctx = ctx;
 	}
 
+	/** 判断容器是否处于子目录（非顶层）层级：
+	 *  其所在的 .pic-dir-content 之上仍存在 .pic-dir-content 祖先。
+	 *  用于为子目录直接文件追加分组视觉标识（不依赖 styles.css 新增样式）。 */
+	private isSubdirLevel(container: HTMLElement): boolean {
+		const dc = container.closest(".pic-dir-content");
+		if (!dc) return false;
+		return !!(dc.parentElement && dc.parentElement.closest(".pic-dir-content"));
+	}
+
+	/** 为子目录层级的条目追加轻微分组视觉标识（左侧内阴影引导线）。
+	 *  复用主题变量，不使用新增 CSS，且不影响 :hover 背景与折叠/点击逻辑。 */
+	private applySubdirGrouping(item: HTMLElement, container: HTMLElement): void {
+		// 子目录层级不再加 inset 左边阴影引导线：现在每条 item 自身带完整边框，
+		// 再加 inset 左阴影会与 item 左框叠加成更粗的灰边（"多个边框合起来"）。
+		// 层级仅靠文字缩进（render 时传入的 indent）体现，此处无需额外描边。
+		void item;
+		void container;
+	}
+
 	/** 渲染本地引用图片条目 */
 	renderLocalItem(container: HTMLElement, img: ImageLink, selectedSet?: Set<string>) {
 		const { selection, app, copyImagePath, updateLocalActions, updateParentDirCheckboxes } = this.ctx;
-		const item = container.createDiv({ cls: "pic-item" }) as LazyRenderableElement;
+		const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } }) as LazyRenderableElement;
+		this.applySubdirGrouping(item, container);
 
 		if (selectedSet) {
 			item.addEventListener("click", (e) => {
 				const target = e.target as HTMLElement;
 				if (target.closest("input, img, .pic-file-tag, button")) return;
-				if (item._ignoreNextClick) return;
-				const isSelected = selectedSet.has(img.pure);
-				if (isSelected) {
-					selectedSet.delete(img.pure);
-					selection.deselect(SelectionSection.LocalImages, img.pure);
-				} else {
-					selectedSet.add(img.pure);
-					selection.select(SelectionSection.LocalImages, [img.pure]);
-				}
+				// 点击行 = 切换勾选 + 设为当前焦点行（保证后续 ↑/↓ 从此处开始）
+				this.ctx.setCurrentItem(item);
 				const cb = item.querySelector<HTMLInputElement>(".pic-cloud-checkbox");
-				if (cb) cb.checked = !isSelected;
-				item.setCssStyles({ backgroundColor: !isSelected ? "var(--background-modifier-hover)" : "" });
-				updateLocalActions();
-				updateParentDirCheckboxes();
+				if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event("change")); }
 			});
 		}
 
@@ -101,8 +113,6 @@ export class ItemRenderer {
 			checkbox.addEventListener("click", (e) => e.stopPropagation());
 			checkbox.addEventListener("change", (e) => {
 				e.stopPropagation();
-				// 标志位阻断行级 click handler 误触发
-				ignoreNextClick(item);
 				if (checkbox.checked) {
 					selectedSet.add(img.pure);
 					selection.select(SelectionSection.LocalImages, [img.pure]);
@@ -110,7 +120,7 @@ export class ItemRenderer {
 					selectedSet.delete(img.pure);
 					selection.deselect(SelectionSection.LocalImages, img.pure);
 				}
-				item.setCssStyles({ backgroundColor: checkbox.checked ? "var(--background-modifier-hover)" : "" });
+				item.toggleClass("pic-item--selected", checkbox.checked);
 				updateLocalActions();
 				updateParentDirCheckboxes();
 			});
@@ -180,11 +190,15 @@ export class ItemRenderer {
 		}));
 	}
 
-	/** 渲染引用标签 */
+	/** 渲染引用标签（多标签时换行而非横向溢出） */
 	renderTags(container: HTMLElement, img: ImageLink, section: SelectionSection, keyPrefix: string): void {
 		const { selection, jumpToFile } = this.ctx;
 		const expandedRefs = expandRefs(img);
 		if (expandedRefs.length === 0) return;
+		// 用 .pic-tags 包裹容器承载多标签，借助 inline flex-wrap 在标签过多时换行，
+		// 避免 .pic-item 的 overflow:hidden 直接裁剪标签造成溢出无法查看。
+		const tagsWrap = container.createDiv({ cls: "pic-tags" });
+		tagsWrap.setCssStyles({ display: "flex", flexWrap: "wrap", gap: "4px", minWidth: "0" });
 		for (let i = 0; i < expandedRefs.length; i++) {
 			const ref = expandedRefs[i];
 			const tagKey = `${keyPrefix}::${i}`;
@@ -198,6 +212,7 @@ export class ItemRenderer {
 			tag.dataset.tagRef = tagText;
 			tag.title = isSelected ? `再次单击跳转到 ${ref.file}:${ref.line}` : `单击选中`;
 			tag.classList.add("clickable");
+			tagsWrap.appendChild(tag);
 			tag.addEventListener("click", (e) => {
 				e.stopPropagation();
 				if (selection.isSelected(section, tagKey)) {
@@ -214,26 +229,17 @@ export class ItemRenderer {
 	/** 云端引用图片项 */
 	renderCloudReferencedItem(container: HTMLElement, img: ImageLink, selectedSet?: Set<string>) {
 		const { selection, copyImagePath, deleteCloudFile, removeImageFromMdFile, updateLocalActions, updateParentDirCheckboxes } = this.ctx;
-		const item = container.createDiv({ cls: "pic-item" }) as LazyRenderableElement;
+		const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } }) as LazyRenderableElement;
+		this.applySubdirGrouping(item, container);
 
 		if (selectedSet) {
 			item.addEventListener("click", (e) => {
 				const target = e.target as HTMLElement;
 				if (target.closest("input, img, button")) return;
-				if (item._ignoreNextClick) return;
-				const isSelected = selectedSet.has(img.pure);
-				if (isSelected) {
-					selectedSet.delete(img.pure);
-					selection.deselect(SelectionSection.CloudImages, img.pure);
-				} else {
-					selectedSet.add(img.pure);
-					selection.select(SelectionSection.CloudImages, [img.pure]);
-				}
+				// 点击行 = 切换勾选 + 设为当前焦点行（保证后续 ↑/↓ 从此处开始）
+				this.ctx.setCurrentItem(item);
 				const cb = item.querySelector<HTMLInputElement>(".pic-cloud-checkbox");
-				if (cb) cb.checked = !isSelected;
-				item.setCssStyles({ backgroundColor: !isSelected ? "var(--background-modifier-hover)" : "" });
-				updateLocalActions();
-				updateParentDirCheckboxes();
+				if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event("change")); }
 			});
 		}
 
@@ -259,7 +265,6 @@ export class ItemRenderer {
 			checkbox.addEventListener("click", (e) => e.stopPropagation());
 			checkbox.addEventListener("change", (e) => {
 				e.stopPropagation();
-				ignoreNextClick(item);
 				if (checkbox.checked) {
 					selectedSet.add(img.pure);
 					selection.select(SelectionSection.CloudImages, [img.pure]);
@@ -267,7 +272,7 @@ export class ItemRenderer {
 					selectedSet.delete(img.pure);
 					selection.deselect(SelectionSection.CloudImages, img.pure);
 				}
-				item.setCssStyles({ backgroundColor: checkbox.checked ? "var(--background-modifier-hover)" : "" });
+				item.toggleClass("pic-item--selected", checkbox.checked);
 				updateLocalActions();
 				updateParentDirCheckboxes();
 			});
@@ -325,8 +330,9 @@ export class ItemRenderer {
 
 	/** 未找到图片项 */
 	renderNotFoundItem(container: HTMLElement, img: ImageLink, selectedSet?: Set<string>) {
-		const { selection, removeImageFromMdFile, jumpToFile, updateLocalActions, updateParentDirCheckboxes, refresh } = this.ctx;
-		const item = container.createDiv({ cls: "pic-item" }) as LazyRenderableElement;
+		const { selection, removeImageFromMdFile, updateLocalActions, updateParentDirCheckboxes, refresh } = this.ctx;
+		const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } }) as LazyRenderableElement;
+		this.applySubdirGrouping(item, container);
 
 		const isChecked = selectedSet ? selectedSet.has(img.pure) : selection.isSelected(SelectionSection.NotFound, img.pure);
 		const checkbox = item.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
@@ -334,7 +340,6 @@ export class ItemRenderer {
 		checkbox.addEventListener("click", (e) => e.stopPropagation());
 		checkbox.addEventListener("change", (e) => {
 			e.stopPropagation();
-			ignoreNextClick(item);
 			if (checkbox.checked) {
 				if (selectedSet) selectedSet.add(img.pure);
 				else selection.select(SelectionSection.NotFound, [img.pure]);
@@ -342,32 +347,18 @@ export class ItemRenderer {
 				if (selectedSet) selectedSet.delete(img.pure);
 				else selection.deselect(SelectionSection.NotFound, img.pure);
 			}
+			item.toggleClass("pic-item--selected", checkbox.checked);
 			updateLocalActions();
+			updateParentDirCheckboxes();
 		});
 
 		item.addEventListener("click", (e) => {
 			const target = e.target as HTMLElement;
 			if (target.closest(".pic-file-tag, button, input")) return;
-			if (item._ignoreNextClick) return;
-			const isSelected = selectedSet ? selectedSet.has(img.pure) : selection.isSelected(SelectionSection.NotFound, img.pure);
-			if (isSelected) {
-				if (img.files.length > 0) {
-					jumpToFile(img, img.files[0]);
-				} else {
-					// 无引用笔记，取消选中
-					if (selectedSet) selectedSet.delete(img.pure);
-					else selection.deselect(SelectionSection.NotFound, img.pure);
-					checkbox.checked = false;
-					updateLocalActions();
-					updateParentDirCheckboxes();
-				}
-			} else {
-				if (selectedSet) selectedSet.add(img.pure);
-				else selection.select(SelectionSection.NotFound, [img.pure]);
-				checkbox.checked = true;
-				updateLocalActions();
-				updateParentDirCheckboxes();
-			}
+			// 点击行 = 切换勾选 + 设为当前焦点行（保证后续 ↑/↓ 从此处开始）
+			this.ctx.setCurrentItem(item);
+			const cb = item.querySelector<HTMLInputElement>(".pic-cloud-checkbox");
+			if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event("change")); }
 		});
 
 		item.addEventListener("dblclick", (e) => {
@@ -383,7 +374,7 @@ export class ItemRenderer {
 			}
 		});
 
-		const notFoundIcon = `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#EF4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
+		const notFoundIcon = `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--text-danger, #EF4444)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
 		const iconWrapper = item.createSpan();
 		setSafeHTML(iconWrapper, notFoundIcon);
 
@@ -430,25 +421,17 @@ export class ItemRenderer {
 	/** 云端文件项 */
 	renderCloudItem(container: HTMLElement, file: CloudFile, indent: string = "") {
 		const { selection, deleteCloudFile, removeImageFromAllMdFiles, updateLocalUnrefActions, updateLocalActions, updateParentDirCheckboxes, updateDeleteSelectedBtn, showPath } = this.ctx;
-		const item = container.createDiv({ cls: "pic-item" }) as LazyRenderableElement;
+		const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } }) as LazyRenderableElement;
+		this.applySubdirGrouping(item, container);
 		const fileKey = file.prefix || file.name;
 
 		item.addEventListener("click", (e) => {
 			const target = e.target as HTMLElement;
 			if (target.closest("input, img, .pic-file-tag, button")) return;
-			if (item._ignoreNextClick) return;
-			const isSelected = selection.isSelected(SelectionSection.CloudFiles, fileKey);
-			if (isSelected) {
-				selection.deselect(SelectionSection.CloudFiles, fileKey);
-			} else {
-				selection.select(SelectionSection.CloudFiles, [fileKey]);
-			}
+			// 点击行 = 切换勾选 + 设为当前焦点行（保证后续 ↑/↓ 从此处开始）
+			this.ctx.setCurrentItem(item);
 			const cb = item.querySelector<HTMLInputElement>(".pic-cloud-checkbox");
-			if (cb) cb.checked = !isSelected;
-			updateDeleteSelectedBtn?.();
-			updateLocalUnrefActions();
-			updateLocalActions();
-			updateParentDirCheckboxes();
+			if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event("change")); }
 		});
 
 		item.addEventListener("dblclick", (e) => {
@@ -472,14 +455,15 @@ export class ItemRenderer {
 		checkbox.addEventListener("click", (e) => e.stopPropagation());
 		checkbox.addEventListener("change", (e) => {
 			e.stopPropagation();
-			ignoreNextClick(item);
 			if (checkbox.checked) {
 				selection.select(SelectionSection.CloudFiles, [fileKey]);
 			} else {
 				selection.deselect(SelectionSection.CloudFiles, fileKey);
 			}
+			item.toggleClass("pic-item--selected", checkbox.checked);
 			updateDeleteSelectedBtn?.();
 			updateLocalUnrefActions();
+			updateLocalActions();
 			updateParentDirCheckboxes();
 		});
 
@@ -533,23 +517,16 @@ export class ItemRenderer {
 	/** 渲染本地未引用图片项 */
 	renderLocalUnrefItem(container: HTMLElement, file: TFile) {
 		const { selection, app, deleteLocalUnrefFile, updateLocalUnrefActions, updateLocalActions, updateParentDirCheckboxes } = this.ctx;
-		const item = container.createDiv({ cls: "pic-item" }) as LazyRenderableElement;
+		const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } }) as LazyRenderableElement;
+		this.applySubdirGrouping(item, container);
 
 		item.addEventListener("click", (e) => {
 			const target = e.target as HTMLElement;
 			if (target.closest("input, img, .pic-file-tag, button")) return;
-			if (item._ignoreNextClick) return;
-			const isSelected = selection.isSelected(SelectionSection.LocalUnref, file.path);
-			if (isSelected) {
-				selection.deselect(SelectionSection.LocalUnref, file.path);
-			} else {
-				selection.select(SelectionSection.LocalUnref, [file.path]);
-			}
+			// 点击行 = 切换勾选 + 设为当前焦点行（保证后续 ↑/↓ 从此处开始）
+			this.ctx.setCurrentItem(item);
 			const cb = item.querySelector<HTMLInputElement>(".pic-cloud-checkbox");
-			if (cb) cb.checked = !isSelected;
-			updateLocalUnrefActions();
-			updateLocalActions();
-			updateParentDirCheckboxes();
+			if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event("change")); }
 		});
 
 		item.addEventListener("dblclick", (e) => {
@@ -567,10 +544,11 @@ export class ItemRenderer {
 		checkbox.addEventListener("click", (e) => e.stopPropagation());
 		checkbox.addEventListener("change", (e) => {
 			e.stopPropagation();
-			ignoreNextClick(item);
 			if (checkbox.checked) selection.select(SelectionSection.LocalUnref, [file.path]);
 			else selection.deselect(SelectionSection.LocalUnref, file.path);
+			item.toggleClass("pic-item--selected", checkbox.checked);
 			updateLocalUnrefActions();
+			updateLocalActions();
 			updateParentDirCheckboxes();
 		});
 

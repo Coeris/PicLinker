@@ -63,13 +63,14 @@ export class BatchOperations {
 				}
 				const blob = new Blob([resp.arrayBuffer]);
 				const blobUrl = URL.createObjectURL(blob);
-				const a = activeDocument.createElement("a");
+				const a = activeDocument.createEl("a");
 				a.href = blobUrl;
 				a.download = fileName;
 				activeDocument.body.appendChild(a);
 				a.click();
 				activeDocument.body.removeChild(a);
-				URL.revokeObjectURL(blobUrl);
+				// 延迟回收 objectURL：浏览器下载触发是异步的，立即 revoke 可能导致下载文件为空
+				window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 				success++;
 			} catch {
 				fail++;

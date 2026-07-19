@@ -86,7 +86,31 @@ export class DedupService {
 			const raw = this.app.loadLocalStorage(this.getStorageKey("sameName")) as string | null;
 			if (!raw) return [];
 			const parsed = JSON.parse(raw) as unknown;
-			return Array.isArray(parsed) ? (parsed as SameNameGroup[]) : [];
+			if (!Array.isArray(parsed)) return [];
+			// 基本数据结构校验：畸形数据跳过，避免下游渲染 / 类型断言崩溃
+			const result: SameNameGroup[] = [];
+			for (const group of parsed) {
+				if (typeof group !== "object" || group === null) continue;
+				const g = group as Record<string, unknown>;
+				const fileName = g.fileName;
+				const items = g.items;
+				if (typeof fileName !== "string") continue;
+				if (!Array.isArray(items)) continue;
+				const safeItems = items
+					.filter((it): it is Record<string, unknown> => typeof it === "object" && it !== null)
+					.filter((it) => typeof it.path === "string" && (it.source === "local" || it.source === "cloud"))
+					.map((it) => ({
+						source: it.source as "local" | "cloud",
+						path: it.path as string,
+						url: typeof it.url === "string" ? it.url : undefined,
+						bedType: typeof it.bedType === "string" ? (it.bedType as ImageBedType) : undefined,
+						count: typeof it.count === "number" ? it.count : undefined,
+						section: typeof it.section === "string" ? it.section : undefined,
+					}));
+				if (safeItems.length === 0) continue;
+				result.push({ fileName, items: safeItems });
+			}
+			return result;
 		} catch (e) {
 			console.warn("[PicLinker] 加载同名文件数据失败，已重置", e);
 			return [];

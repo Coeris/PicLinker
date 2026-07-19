@@ -4,8 +4,10 @@
 
 .pic-search-box {
 	position: relative;
-	flex: 1;
-	min-width: 100px;
+	/* flex:1 在宽屏占满剩余空间并把按钮推到右侧；
+	   flex-basis 200px + 可收缩，使窄面板下能整行换行而不溢出 */
+	flex: 1 1 200px;
+	min-width: 120px;
 }
 
 /* 搜索图标 — 左 10px 垂直居中 */
@@ -19,11 +21,14 @@
 	line-height: 1;
 }
 
-.pic-search-input {
+.pic-search-box input[type="text"].pic-search-input {
 	width: 100%;
-	padding: 6px 28px 6px 28px;  /* 左 28px 给图标，右 28px 给 ✕ */
+	/* 覆盖 Obsidian 主题对 input[type="text"] 的高特异性样式（如 0,2,1 甚至更高），
+	   否则左 34px（给图标）、右 36px（给 ✕）会被冲掉，文字压在图标上重叠遮挡。
+	   使用属性选择器提升特异性至 0,3,0，无需 !important。 */
+	padding: 6px 36px 6px 34px;
 	border: 1px solid var(--background-modifier-border);
-	border-radius: 6px;
+	border-radius: var(--pic-radius-btn);
 	background: var(--background-primary);
 	color: var(--text-normal);
 	font-size: 13px;
@@ -31,14 +36,15 @@
 	box-sizing: border-box;
 }
 
-.pic-search-input:focus {
+.pic-search-box .pic-search-input:focus {
 	border-color: var(--text-accent);
-	box-shadow: 0 0 0 2px rgba(var(--text-accent-rgb, 88, 166, 255), 0.15);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 15%, transparent);
 }
 
 .pic-search-hint {
 	position: absolute;
-	left: 28px;
+	/* 与 input 左 padding(34px) 对齐，文字不压图标 */
+	left: 34px;
 	top: 50%;
 	transform: translateY(-50%);
 	color: var(--text-muted);
@@ -53,14 +59,15 @@
 
 .pic-search-clear {
 	position: absolute;
-	right: 8px;
+	/* 与 input 右 padding(36px) 配合：✕ 落在右留白内，不被文字压 */
+	right: 10px;
 	top: 50%;
 	transform: translateY(-50%);
 	color: var(--text-muted);
 	font-size: 12px;
 	cursor: pointer;
-	padding: 2px 4px;
-	border-radius: 3px;
+	padding: 4px 8px;
+	border-radius: var(--pic-radius-btn);
 	line-height: 1;
 }
 
@@ -76,37 +83,8 @@
 	font-weight: bold;
 }
 
-/* ========== 存储桶选择器 ========== */
-
-.pic-bucket-select {
-	padding: 4px 8px;
-	font-size: 12px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 6px;
-	background: var(--background-secondary);
-	color: var(--text-normal);
-	cursor: pointer;
-	flex-shrink: 0;
-	max-width: 270px;
-}
-
-.pic-bucket-select:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-
-/* ========== 存储桶获取状态 ========== */
-
-.pic-bucket-fetch-status {
-	padding: 4px 10px;
-	font-size: 12px;
-	color: var(--text-muted);
-}
-
 /* ========== 设置页 ========== */
 
-.pic-settings-title,
-.pic-section-title,
 .pic-collapsible-title,
 .pic-collapsible-subtitle,
 .pic-bed-status,
@@ -118,17 +96,36 @@
 	user-select: text;
 }
 
-.pic-settings-title {
-	font-size: 20px;
-	font-weight: 600;
-	margin-bottom: 16px;
+/* 分组卡片容器：与图床/WebDAV 折叠卡片同款视觉语言（统一卡片化） */
+.pic-settings-card {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--pic-radius-card);
+	margin-bottom: var(--pic-section-gap);
+	overflow: hidden;
+	background: var(--background-primary);
 }
 
-.pic-section-title {
-	font-size: 15px;
-	font-weight: 600;
-	margin: 16px 0 8px 0;
-	color: var(--text-normal);
+.pic-settings-card > .setting-item:first-child,
+.pic-settings-card > .pic-settings-table:first-child {
+	border-top: none;
+}
+
+/* 无边框无标题变体：功能开关分组直接作为设置项列表，不套卡片外壳 */
+.pic-settings-card--bare {
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	margin-bottom: 0;
+	overflow: visible;
+}
+
+.pic-settings-card--bare > .pic-settings-table {
+	margin-top: 0;
+}
+
+/* 折叠卡片 content 内首个设置项：去掉与灰底 header 之间的突兀贯穿线 */
+.pic-collapsible-content > .setting-item:first-child {
+	border-top: none;
 }
 
 .pic-section-divider {
@@ -190,7 +187,7 @@
 	width: 16px;
 	left: 2px;
 	bottom: 2px;
-	background-color: white;
+	background-color: var(--text-on-accent, #ffffff);
 	transition: 0.3s;
 	border-radius: 50%;
 }
@@ -206,9 +203,15 @@
 /* 折叠卡片 */
 .pic-collapsible {
 	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
-	margin-bottom: 8px;
+	border-radius: var(--pic-radius-card);
+	margin-bottom: var(--pic-section-gap);
 	overflow: hidden;
+	background: var(--background-primary);
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pic-collapsible:hover {
+	border-color: var(--background-modifier-border-hover, var(--background-modifier-border));
 }
 
 .pic-collapsible-header {
@@ -218,10 +221,27 @@
 	flex-direction: column;
 	gap: 4px;
 	background: var(--background-secondary);
+	transition: background 0.12s ease;
+	user-select: none;
 }
 
 .pic-collapsible-header:hover {
 	background: var(--background-modifier-hover);
+}
+
+/* 展开动画：用 grid 0fr → 1fr 平滑展开，避免生硬显隐 */
+/* 收起态：由 .is-collapsed 类驱动，避免直接操作 style.display 导致的状态不同步 */
+.pic-collapsible.is-collapsed > .pic-collapsible-content {
+	display: none;
+}
+
+/* 展开态箭头朝下（默认 ▶ 朝右表示可展开），收起态回正朝右 */
+.pic-collapsible:not(.is-collapsed) .pic-collapsible-arrow {
+	transform: rotate(90deg);
+}
+
+.pic-collapsible-arrow {
+	transition: transform 0.22s ease;
 }
 
 .pic-collapsible-title-row {
@@ -236,6 +256,7 @@
 	width: 16px;
 	text-align: center;
 	flex-shrink: 0;
+	transition: transform 0.22s ease;
 }
 
 .pic-collapsible-title {
@@ -251,22 +272,23 @@
 }
 
 .pic-collapsible-content {
-	padding: 0 16px 16px 16px;
+	padding: 4px 16px 16px 16px;
 }
 
 /* 图床状态指示 */
 .pic-bed-status {
 	font-size: 11px;
 	padding: 2px 10px;
-	border-radius: 10px;
+	border-radius: var(--pic-radius-pill);
 	margin-left: auto;
 	font-weight: 500;
 	letter-spacing: 0.3px;
+	white-space: nowrap;
 }
 
 .pic-bed-status-configured {
-	background: rgba(46, 160, 67, 0.15);
-	color: #2ea043;
+	background: color-mix(in srgb, var(--text-success) 18%, transparent);
+	color: var(--text-success);
 }
 
 .pic-bed-status-unconfigured {
@@ -302,7 +324,7 @@
 	min-height: unset;
 	padding: 4px 12px;
 	font-size: 12px;
-	border-radius: 4px;
+	border-radius: var(--pic-radius-btn);
 	cursor: pointer;
 	transition: background 0.12s ease, opacity 0.12s ease;
 }
@@ -327,12 +349,15 @@
 	justify-content: flex-end;
 	gap: 8px;
 	padding: 8px 0;
+	/* P1-6：窄侧边栏下允许换行，避免按钮被挤出可视区 */
+	flex-wrap: wrap;
 }
 
 .pic-test-status {
 	font-size: 12px;
 	margin-right: 8px;
-	white-space: nowrap;
+	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 .pic-testing {
@@ -374,14 +399,25 @@
 	font-size: 10px;
 	width: 16px;
 	text-align: center;
+	transition: transform 0.22s ease;
+}
+
+.pic-guide-wrapper.is-collapsed > .pic-guide-content {
+	display: none;
+}
+
+.pic-guide-wrapper:not(.is-collapsed) > .pic-guide-header .pic-guide-arrow {
+	transform: rotate(90deg);
 }
 
 .pic-guide-content {
 	padding: 8px 12px;
 	background: var(--background-secondary);
-	border-radius: 6px;
+	border-radius: var(--pic-radius-btn);
 	font-size: 12px;
 	line-height: 1.6;
+	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 .pic-guide-section-title {
@@ -426,6 +462,8 @@
 	align-items: center;
 	gap: 8px;
 	padding: 8px 0;
+	/* P1-6：窄侧边栏下允许换行，避免按钮被挤出可视区 */
+	flex-wrap: wrap;
 }
 
 .pic-webdav-actions .pic-test-status {
@@ -440,31 +478,27 @@
 	font-size: 12px;
 	color: var(--text-muted);
 	padding: 4px 0;
+	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 .pic-webdav-header-status {
 	font-size: 11px;
 	padding: 2px 10px;
-	border-radius: 10px;
+	border-radius: var(--pic-radius-pill);
 	margin-left: auto;
 	font-weight: 500;
+	white-space: nowrap;
 }
 
 .pic-webdav-status-enabled {
-	background: rgba(46, 160, 67, 0.15);
-	color: #2ea043;
+	background: color-mix(in srgb, var(--text-success) 18%, transparent);
+	color: var(--text-success);
 }
 
 .pic-webdav-status-disabled {
 	background: var(--background-modifier-border);
 	color: var(--text-muted);
-}
-
-.pic-webdav-test-row {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 8px 0;
 }
 
 /* 存储桶配置区域 */
@@ -473,11 +507,17 @@
 	margin: 8px 0;
 }
 
+/* 分类小标题：做成带左侧色条的小标签，弱化分隔线，突出层级 */
 .pic-setting-category-title {
-	font-size: 13px;
-	font-weight: 500;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.4px;
+	text-transform: uppercase;
 	color: var(--text-muted);
-	margin: 12px 0 8px 0;
+	margin: 16px 0 8px 0;
+	padding-left: 9px;
+	border-left: 3px solid var(--interactive-accent);
+	line-height: 1.4;
 	padding-bottom: 4px;
 	border-bottom: 1px solid var(--background-modifier-border);
 }
@@ -486,6 +526,18 @@
 
 :root {
 	--pic-toolbar-h: 42px;
+	/* 区域间距：所有分区之间的统一垂直间隔（首区靠 .pic-list 的 padding-top，
+	   其余靠 header 的 margin-top；content 不再额外加底部留白，避免双层叠加） */
+	--pic-section-gap: 10px;
+	/* 圆角层级规范：
+	   容器/区域        = 方形(0)        —— 见各处 border-radius:0
+	   控件(按钮/输入框) = btn(4px)
+	   媒体(缩略图/预览) = card(8px)
+	   徽章/药丸        = pill(10px)
+	   全局边框色统一使用 var(--background-modifier-border)，随明/暗主题自适应 */
+	--pic-radius-card: 8px;
+	--pic-radius-btn: 4px;
+	--pic-radius-pill: 10px;
 }
 
 /* 提升 specificity 覆盖 Obsidian 默认 .view-content padding */
@@ -506,17 +558,21 @@
 }
 
 .pic-list {
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
+	/* 仅作分区卡片的容器，不再画外层边框（避免与内部方形分区卡片形成双重边框） */
 	user-select: text;
 	margin-bottom: 4px;
-	overflow: clip;
+	padding-top: var(--pic-section-gap);
+	overflow: visible;
 }
 
 /* 过滤栏 */
 .pic-toolbar {
 	display: flex;
 	gap: 8px;
+	/* 窄侧边栏（视口 >768px 但面板很窄）下允许换行，避免搜索框+按钮横向溢出被裁切；
+	   row-gap 控制换行后的行间距，column-gap 保持 8px */
+	flex-wrap: wrap;
+	row-gap: 4px;
 	align-items: center;
 	padding: 6px 10px;
 	margin-bottom: 0;
@@ -540,6 +596,7 @@
 	padding: 4px 10px;
 	flex-shrink: 0;
 	font-size: 12px;
+	border-radius: var(--pic-radius-btn);
 	transition: background 0.12s ease, opacity 0.12s ease;
 }
 
@@ -548,8 +605,11 @@
 }
 
 .pic-refresh-btn.loading {
-	opacity: 0.5;
+	opacity: 0.6;
 	pointer-events: none;
+	cursor: progress;
+	/* 刷新中给出底色反馈，区别于单纯置灰 */
+	background: var(--background-modifier-hover);
 }
 
 /* 刷新动画 */
@@ -582,6 +642,14 @@
 	font-size: 12px;
 }
 
+/* 2) 搜索无结果提示 */
+.pic-search-noresult {
+	padding: 24px 16px;
+	text-align: center;
+	color: var(--text-muted);
+	font-size: 13px;
+}
+
 .pic-cloud-loading {
 	padding: 12px;
 	text-align: center;
@@ -595,14 +663,10 @@
 	50% { opacity: 0.5; }
 }
 
-/* 分隔线 */
-.pic-divider {
-	border-top: 1px solid var(--background-modifier-border);
-	margin: 2px 0;
-}
-
-/* 区域标题 */
+/* 区域标题（方形卡片：完整 1px 边框，与下方 content 共用中缝分界线，构成一张方形卡片；
+   静止/吸顶态都带底边线，确保分界线不闪现） */
 .pic-part-header {
+	box-sizing: border-box;
 	display: flex;
 	align-items: center;
 	padding: 10px 10px;
@@ -611,16 +675,43 @@
 	top: var(--pic-toolbar-h);
 	z-index: 10;
 	background: var(--background-primary);
-	border-top: 1px solid var(--background-modifier-border);
-	border-bottom: 1px solid var(--background-modifier-border);
+	border: 1px solid var(--background-modifier-border);
+	border-bottom: none;
+	/* 区域最外层圆角：标题条只圆上两个角，底部圆角由 .pic-part-content overflow:hidden 裁剪；
+	   收起时加 .pic-part-header--collapsed 使底两角也圆 */
+	border-radius: var(--pic-radius-card) var(--pic-radius-card) 0 0;
 	white-space: nowrap;
 	flex-wrap: nowrap;
+	min-width: 0;
+	scroll-margin-top: var(--pic-toolbar-h);
+	margin-top: var(--pic-section-gap);
 }
 
 .pic-part-header:first-child {
-	border-top: none;
+	margin-top: 0;
 }
 
+/* 吸顶态：去掉左右上边框（消除吸顶时 toolbar 下方的悬空竖线），
+   保留底边分隔线 + 外投影，保留“边界感”，不显光秃；
+   底边线在静止/吸顶态都存在，分界线一致不闪现 */
+/* 收起态：四边完整边框由 JS 内联 syncHeaderBorder 统一管理（见 ViewUtils）。
+   此处仅描述圆角。边框不得再用 CSS 级联，避免 !important 压制内联导致不刷新。 */
+.pic-part-header--collapsed {
+	border-radius: var(--pic-radius-card);
+}
+
+/* 吸顶态：底边分隔线 + 外投影由 JS 内联 syncHeaderBorder 统一管理（见 ViewUtils）。
+   此处仅保留圆角为 0（吸顶时与 toolbar 贴合）与投影。 */
+.pic-part-header--stuck {
+	border-radius: 0;
+	/* C：吸顶投影改用主题阴影变量，暗色/亮色主题下都比硬编码 rgba(0,0,0,.15) 更自然 */
+	box-shadow: var(--shadow-s);
+}
+
+/* 收起态优先于吸顶态：即使吸顶，收起时仍保持四角圆角（边框由 JS 内联统一设置） */
+.pic-part-header--collapsed.pic-part-header--stuck {
+	border-radius: var(--pic-radius-card);
+}
 
 .pic-part-left {
 	display: flex;
@@ -652,6 +743,10 @@
 	font-size: 13px;
 	font-weight: 500;
 	color: var(--text-normal);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .pic-part-count {
@@ -665,6 +760,7 @@
 	gap: 4px;
 	margin-left: 8px;
 	order: 2;
+	flex-shrink: 0;
 }
 
 .pic-part-clear-btn {
@@ -674,7 +770,7 @@
 	font-size: 12px;
 	color: var(--text-muted);
 	cursor: pointer;
-	border-radius: 4px;
+	border-radius: var(--pic-radius-btn);
 	background: none;
 	border: none;
 	flex-shrink: 0;
@@ -686,21 +782,60 @@
 }
 
 .pic-part-content {
+	box-sizing: border-box;
+	/* 去掉横向 padding，使内部每条 item 的左右边框与分区标题栏左右边对齐（边框连贯）；
+	   不额外加底部留白：区域间的间隔统一由下一个分区 header 的 margin-top(--pic-section-gap) 提供，
+	   避免 content 底留白 + header 上间距双层叠加导致区域间间距比顶/底大一倍 */
 	padding: 0;
+	background: var(--background-primary);
+	/* 容器不画边框，用 overflow:hidden + 底圆角裁剪内部末子项方角，使区域整体四角圆。
+	   标题条 border-bottom 已去掉，首子项的 border-top 直接充当标题与内容的分隔线，
+	   无需负 margin 折叠，overflow:hidden 不会造成双线问题。 */
+	border: none;
+	border-radius: 0 0 var(--pic-radius-card) var(--pic-radius-card);
+	overflow: hidden;
 }
+
+/* 首子项不需要负 margin 折叠（标题条 border-bottom 已去掉，首子项 border-top 直接充当分隔线） */
+
+/* 末子项不需要单独设圆角（由 .pic-part-content overflow:hidden 裁剪） */
 
 /* 目录树 */
 .pic-dir-header {
 	display: flex;
 	align-items: center;
-	padding: 5px 10px;
+	/* D：行内距 5px → 6px，与文件项一致 */
+	padding: 6px 10px;
 	cursor: pointer;
 	gap: 8px;
+	/* 与文件 item 一致的方形边框，区分条目；负 margin 折叠相邻边框为单线 */
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 0;
+	margin-bottom: -1px;
 	transition: background 0.12s ease;
+	/* A：文件夹项用浅底，与下方文件项（透明主背景）一眼区分层级；
+	   与去重组头 .pic-dedup-hash 同用 --background-secondary 规范 */
+	background: var(--background-secondary);
+}
+
+/* 嵌套文件夹：底色再深一档，使父子文件夹也能区分（color-mix 随明暗自适应） */
+.pic-dir-header.pic-dir-nested {
+	background: color-mix(in srgb, var(--background-secondary) 85%, var(--background-modifier-border));
 }
 
 .pic-dir-header:hover {
 	background: var(--background-modifier-hover);
+}
+
+/* 文件夹选中态：与文件项一致的左侧强调色蓝条 + 更深底色（点击/勾选文件夹时显示） */
+.pic-dir-header.pic-dir-header--selected,
+.pic-dir-header.pic-dir-header--selected:hover {
+	background: var(--background-modifier-active-hover);
+	box-shadow: inset 3px 0 0 0 var(--interactive-accent);
+}
+/* 文件夹半选态（部分子项被选中）：仅强调色背景，不加蓝条，与全选态区分 */
+.pic-dir-header.pic-dir-header--partial {
+	background: color-mix(in srgb, var(--interactive-accent) 12%, var(--background-secondary));
 }
 
 .pic-dir-arrow {
@@ -733,25 +868,62 @@
 }
 
 .pic-dir-content {
-	padding: 0 0 0 16px;
+	/* 去掉左缩进：嵌套框与外层框共享同一条左右边线（边框连贯）；
+	   层级仅靠文件夹/文件文字的内缩进（JS 按 depth 设 paddingLeft）体现 */
+	padding: 0;
+}
+
+/* 文件夹展开时，其内部首个子项顶边框与父文件夹底边框折叠为单线 */
+/* dir-content 内部首子项的负 margin 在此保留，因为 dir-header 仍有 border-bottom + margin-bottom:-1px */
+.pic-dir-content > .pic-item:first-child,
+.pic-dir-content > .pic-dir-header:first-child {
+	margin-top: -1px;
 }
 
 /* 列表项 */
 .pic-item {
 	display: flex;
 	align-items: center;
-	padding: 5px 10px;
+	/* D：行内距 5px → 6px，条目更舒展 */
+	padding: 6px 10px;
 	gap: 8px;
-	border-bottom: 1px solid var(--background-modifier-border);
+	/* 每条文件项独立方形边框，区分条目；负 margin 折叠相邻边框为单线，条目间无间距 */
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 0;
+	margin-bottom: -1px;
 	transition: background 0.12s ease;
+	/* 不要 overflow:hidden，否则 hover 缩略图 scale 放大边缘会被裁切 */
 }
 
 .pic-item:last-child {
-	border-bottom: none;
+	margin-bottom: 0;
 }
 
+/* 悬停：轻底色（与原 hover 色一致，区分于选中态） */
 .pic-item:hover {
 	background: var(--background-modifier-hover);
+}
+
+/* 当前项高亮：已废弃，选中态 --selected 提供足够的视觉反馈。
+   保留 :focus-visible 作为键盘 Tab 的 a11y 兜底。 */
+/* 已废弃，保留选择器以防残留引用 */
+.pic-item--focused {
+	display: none;
+}
+
+/* 键盘原生聚焦环（Tab 进入列表时的 a11y 兜底，与 --focused 视觉一致） */
+.pic-item:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+/* 1) 选中态：比 hover 更强的强调——左侧强调色边 + 更深的底色，
+   一眼区分“已选 vs 悬停”（否则两者都是 --background-modifier-hover，无法分辨）。
+   优先级高于 :hover，故悬停已选项也保持选中样式。 */
+.pic-item--selected,
+.pic-item--selected:hover {
+	background: var(--background-modifier-active-hover);
+	box-shadow: inset 3px 0 0 0 var(--interactive-accent);
 }
 
 /* 复选框 */
@@ -759,12 +931,18 @@
 	flex-shrink: 0;
 }
 
+.pic-cloud-checkbox input[type="checkbox"] {
+	width: 15px;
+	height: 15px;
+}
+
 /* 缩略图 */
 .pic-thumb {
 	width: 32px;
 	height: 32px;
 	object-fit: cover;
-	border-radius: 4px;
+	border-radius: var(--pic-radius-card);
+	background: var(--background-secondary);
 	flex-shrink: 0;
 }
 
@@ -802,37 +980,37 @@
 .pic-file-tag {
 	font-size: 10px;
 	padding: 2px 7px;
-	border-radius: 8px;
-	background: var(--background-modifier-border);
-	color: var(--text-muted);
+	border-radius: var(--pic-radius-pill);
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	opacity: 0.85;
 	cursor: pointer;
-	flex-shrink: 0;
-	transition: background 0.12s ease, color 0.12s ease;
+	/* P2-14：允许标签收缩而非撑破容器，避免多标签横向溢出被裁剪 */
+	flex-shrink: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-/* 增强浅色/暗色主题下的标签对比度 */
-.theme-light .pic-file-tag {
-	background: hsl(var(--accent-h), 15%, 90%);
-	color: hsl(var(--accent-h), 18%, 30%);
-}
-.theme-dark .pic-file-tag {
-	background: hsl(var(--accent-h), 12%, 18%);
-	color: hsl(var(--accent-h), 20%, 72%);
-}
+/* 浅灰底统一，不再用 accent 色调，与 hover/选中形成纯灰→蓝的清晰递进 */
 
 .pic-file-tag:hover {
 	background: var(--background-modifier-hover);
 	color: var(--text-normal);
+	transform: scale(1.04);
 }
 
 .pic-file-tag-focus {
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
+	background: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-modifier-hover));
+	color: var(--text-normal);
+
 }
 
 .pic-file-tag-focus:hover {
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
+	background: color-mix(in srgb, var(--interactive-accent) 32%, var(--background-modifier-hover));
+	transform: scale(1.04);
 }
 
 /* 操作按钮（悬浮显示） */
@@ -854,6 +1032,10 @@
 	opacity: 1;
 }
 
+.pic-item:focus-within .pic-actions {
+	opacity: 1;
+}
+
 /* 云端文件图标 */
 .pic-cloud-file-icon {
 	font-size: 16px;
@@ -863,6 +1045,12 @@
 /* 去重/同名区域 */
 .pic-dedup-group {
 	margin-bottom: 0;
+}
+
+/* 去重/同名组之间跨容器相邻，负 margin 不自动折叠，
+   上移 1px 使后一组组头顶边框与前一组末条底边框折叠为单线 */
+.pic-dedup-group + .pic-dedup-group {
+	margin-top: -1px;
 }
 
 .pic-dedup-hash {
@@ -880,27 +1068,11 @@
 	height: 14px;
 }
 
-/* 新建目录栏 */
-.pic-createdir-bar {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 8px 10px;
-	background: var(--background-secondary);
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.pic-createdir-input {
-	flex: 1;
-	padding: 4px 8px;
-	font-size: 12px;
-}
-
 /* 图片预览 */
 .pic-preview-overlay {
 	position: fixed;
 	inset: 0;
-	z-index: 9999;
+	z-index: 1000;
 	background: rgba(0, 0, 0, 0.85);
 	display: flex;
 	align-items: center;
@@ -913,21 +1085,21 @@
 	max-width: 90vw;
 	max-height: 90vh;
 	object-fit: contain;
-	border-radius: 4px;
+	border-radius: var(--pic-radius-card);
 	transition: transform 0.1s ease;
-}
-
-/* 删除选中按钮 */
-.pic-delete-selected-btn {
-	padding: 4px 10px;
-	font-size: 12px;
-	color: var(--text-error);
-	border-radius: 4px;
+	cursor: default;
 }
 
 /* ==================== 移动端适配 ==================== */
 /* 窄屏：断点 768px，覆盖手机竖屏与大屏手机的侧边栏模式 */
 @media (max-width: 768px) {
+	/* P0-7：移动端 toolbar 在 flex-wrap 后实际高度可达 70px+，
+	   给初始 --pic-toolbar-h 一个更大值，缓解 sticky part-header 被遮挡
+	   （JS 的 ResizeObserver 后续会动态校准） */
+	:root {
+		--pic-toolbar-h: 76px;
+	}
+
 	/* ---- 主视图 ---- */
 	.workspace-leaf-content .pic-container {
 		padding: 0 4px 4px;
@@ -1012,17 +1184,23 @@
 		padding: 4px 6px;
 	}
 	.pic-dir-content {
-		padding: 0 0 0 8px;
+		padding: 0;
 	}
-
-	/* ---- 新建目录栏 ---- */
-	.pic-createdir-bar {
-		flex-wrap: wrap;
-		gap: 3px;
-		padding: 4px 6px;
+}
+/* ==================== 设置页移动端响应式 ==================== */
+/* P2-12：窄屏下让 Obsidian Setting 行纵向堆叠，控件占满宽度，避免挤压溢出 */
+@media (max-width: 600px) {
+	.pic-collapsible-content .setting-item,
+	.pic-collapsible-content .setting-item:not(.setting-item-heading) {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 6px;
 	}
-	.pic-createdir-input {
-		flex: 1 1 100%;
+	.pic-collapsible-content .setting-item .setting-item-control {
+		width: 100%;
+	}
+	.pic-collapsible-content .setting-item .setting-item-control > * {
+		margin-right: 0;
 	}
 }
 
@@ -1051,13 +1229,11 @@
 	.pic-search-clear {
 		padding: 2px 7px;
 		font-size: 12px;
-		border-radius: 4px;
 	}
 	.pic-actions button {
 		min-width: 40px;
 		font-size: 12px;
 		padding: 2px 7px;
-		border-radius: 4px;
 	}
 	.pic-item            { padding: 4px 6px; }
 	.pic-dir-header      { padding: 4px 6px; }
@@ -1078,6 +1254,13 @@
 	}
 }
 
+.piclinker-confirm-title {
+	font-size: 18px;
+	font-weight: 600;
+	margin: 0 0 12px 0;
+	color: var(--text-normal);
+}
+
 /* 危险确认弹窗按钮行：用 className 代替内联 style（官方 no-static-styles-assignment） */
 .modal-button-row.piclinker-confirm-actions {
 	display: flex;
@@ -1085,3 +1268,5 @@
 	gap: 8px;
 	margin-top: 16px;
 }
+
+/* hot reload trigger */

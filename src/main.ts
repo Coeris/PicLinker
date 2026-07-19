@@ -88,6 +88,10 @@ export default class PicLinkerPlugin extends Plugin {
 	private _encSaltB64?: string;
 	/** 临时存储的 WebDAV 元数据（loadSettings 时暂存，webDAVSync 初始化后恢复） */
 	private _pendingWebdavMeta?: WebDAVMeta;
+	/** 文件变更防抖定时器 */
+	private fileDebounceTimer: number | null = null;
+	/** 活跃文件切换防抖定时器 */
+	private activeDebounceTimer: number | null = null;
 
 	async onload() {
 		// 初始化核心模块（loadSettings 需要 vaultScanner）
@@ -259,9 +263,6 @@ export default class PicLinkerPlugin extends Plugin {
 		// 活跃文件切换防抖：延迟更新视图
 		this.debounceActiveRefresh();
 	}
-
-	private fileDebounceTimer: number | null = null;
-	private activeDebounceTimer: number | null = null;
 
 	private debounceFileRefresh() {
 		if (this.fileDebounceTimer) window.clearTimeout(this.fileDebounceTimer);
@@ -643,44 +644,44 @@ export default class PicLinkerPlugin extends Plugin {
 
 		// 输出结果
 		const summary = `PicLinker 诊断报告\n${"─".repeat(30)}\n${results.join("\n")}\n${"─".repeat(30)}\n通过: ${results.filter(r => r.startsWith("✅")).length}/${results.length}`;
-		console.info("[PicLinker 诊断]", summary);
+		console.info("[PicLinker] 诊断报告已生成");
 		new Notice(summary, 15000);
 	}
 
-// ==================== 开发模式热加载 ====================
+	/**
+	 * 开发模式：检测 main.js 修改时间变化时自动刷新视图
+	 */
+	private startDevReloadWatch() {
+		// 仅在 Electron 环境下启用
+		if (!("require" in window)) return;
 
-/** 开发模式：检测 main.js 修改时间变化时自动刷新视图 */
-private startDevReloadWatch() {
-	// 仅在 Electron 环境下启用
-	if (!("require" in window)) return;
+		try {
+			const fs = (window as unknown as { require: (m: string) => typeof import("fs") }).require("fs");
+			const path = (window as unknown as { require: (m: string) => typeof import("path") }).require("path");
+			const pluginDir = this.manifest.dir;
+			if (!pluginDir) return;
+			const srcDir = path.join(pluginDir, "src");
+			if (!fs.existsSync(srcDir)) return;
 
-	try {
-		const fs = (window as unknown as { require: (m: string) => typeof import("fs") }).require("fs");
-		const path = (window as unknown as { require: (m: string) => typeof import("path") }).require("path");
-		const pluginDir = this.manifest.dir;
-		if (!pluginDir) return;
-		const srcDir = path.join(pluginDir, "src");
-		if (!fs.existsSync(srcDir)) return;
+			const mainJsPath = path.join(pluginDir, "main.js");
 
-		const mainJsPath = path.join(pluginDir, "main.js");
+			let lastMtime = "";
+			const interval = window.setInterval(() => {
+				try {
+					const stat = fs.statSync(mainJsPath);
+					const mtime = stat.mtimeMs.toString();
+					if (mtime && mtime !== lastMtime) {
+						lastMtime = mtime;
+						this.refreshView?.();
+					}
+				} catch (e) { console.warn("[PicLinker] 文件变化检测异常:", e instanceof Error ? e.message : String(e)); }
+			}, 1000);
 
-		let lastMtime = "";
-		const interval = window.setInterval(() => {
-			try {
-				const stat = fs.statSync(mainJsPath);
-				const mtime = stat.mtimeMs.toString();
-				if (mtime && mtime !== lastMtime) {
-					lastMtime = mtime;
-					this.refreshView?.();
-				}
-			} catch (e) { console.warn("[PicLinker] 文件变化检测异常:", e instanceof Error ? e.message : String(e)); }
-		}, 1000);
-
-		this.register(() => window.clearInterval(interval));
-	} catch {
-		// 非 Electron 环境，跳过
+			this.register(() => window.clearInterval(interval));
+		} catch {
+			// 非 Electron 环境，跳过
+		}
 	}
-}
 }
 
 

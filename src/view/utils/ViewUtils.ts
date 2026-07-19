@@ -1,5 +1,28 @@
 import { sanitizeHTMLToDom, App } from "obsidian";
 import { ImageBedType, LazyRenderableElement } from "../../types";
+
+/**
+ * 统一同步分区标题条的边框（内联样式直接生效，绕过 CSS 级联与 !important 冲突）。
+ * 边框状态只取决于两个 class：
+ *   - pic-part-header--collapsed：收起态，四边完整 1px 边框
+ *   - pic-part-header--stuck：吸顶态（展开时），只留底边分隔线
+ * 之前把边框交给 CSS class + !important 级联，--stuck 的 border:none 没有 !important，
+ * 会被 --collapsed 的 border:1px !important 压掉，且 !important 又压制 JS 内联样式，
+ * 导致展开/收起、吸顶切换时边框视觉不刷新。改为 JS 内联统一管理后彻底解决。
+ * @param header 分区标题条元素
+ * @param content 分区内容元素（当前未直接用于边框计算，保留以备扩展）
+ */
+export function syncHeaderBorder(header: HTMLElement, content: HTMLElement): void {
+	const collapsed = header.classList.contains("pic-part-header--collapsed");
+	const stuck = header.classList.contains("pic-part-header--stuck");
+	if (collapsed) {
+		header.setCssStyles({ border: "1px solid var(--background-modifier-border)", borderBottom: "" });
+	} else if (stuck) {
+		header.setCssStyles({ border: "none", borderBottom: "1px solid var(--background-modifier-border)" });
+	} else {
+		header.setCssStyles({ border: "1px solid var(--background-modifier-border)", borderBottom: "none" });
+	}
+}
 import { extractFileName } from "../../comparator/CloudComparator";
 import { detectBedTypeFromUrl, getBedFaviconSvg } from "../../icons";
 
@@ -74,13 +97,23 @@ export function safeParseObject(app: App, key: string): Record<string, unknown> 
 	}
 }
 
-/** 格式化显示路径（截断过长路径） */
+/** 格式化显示路径（截断过长路径，确保输出不超过 MAX_LEN） */
 export function formatDisplayPath(fullPath: string): string {
 	const MAX_LEN = 60;
 	if (fullPath.length <= MAX_LEN) return fullPath;
 	const parts = fullPath.split("/");
-	if (parts.length <= 2) return "..." + fullPath.slice(-MAX_LEN + 3);
-	return parts[0] + "/.../" + parts.slice(-2).join("/");
+	// 仅一段或两段（无中间目录可折叠）时，直接尾部截断
+	if (parts.length <= 2) {
+		return "..." + fullPath.slice(-(MAX_LEN - 3));
+	}
+	// 优先：「首段 /.../ 末两段」的折叠形态
+	const head = parts[0];
+	const tail = parts.slice(-2).join("/");
+	const candidate = `${head}/.../${tail}`;
+	if (candidate.length <= MAX_LEN) return candidate;
+	// 退化：末两段本身已超长时整体尾部截断，保证不超过 MAX_LEN
+	// （title 仍持有完整路径，本函数仅做长度兜底，不与 CSS ellipsis 重复冲突）
+	return "..." + fullPath.slice(-(MAX_LEN - 3));
 }
 
 /** 获取 URL 列表中最多的图床图标 */

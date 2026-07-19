@@ -6,7 +6,7 @@
 
 ```
 src/
-  main.ts                    — 插件入口（生命周期、模块协调、614 行）
+  main.ts                    — 插件入口（生命周期、模块协调）
   types.ts                   — 核心类型定义
   icons.ts                   — SVG 图标与图床识别
 
@@ -33,10 +33,10 @@ src/
     VaultScanner.ts          — 全库扫描（mtime 增量缓存 + 版本号控制）
 
   settings/
-    SettingTab.ts            — 设置面板（1223 行，折叠式布局）
+    SettingTab.ts            — 设置面板（折叠式布局）
 
   view/
-    PicLinkerView.ts         — 主视图（2594 行，八区布局 + 批量操作）
+    PicLinkerView.ts         — 主视图（八区布局 + 批量操作）
     SelectionManager.ts      — 12 区域统一选中状态管理
     DedupService.ts          — 去重/同名文件 localStorage 持久化
     ImagePreview.ts          — 图片预览 Modal（滚轮缩放）
@@ -98,8 +98,8 @@ npm run build
 
 ### 技术栈
 
-- **语言**：TypeScript（32 个模块，~9,800 行）
-- **构建**：esbuild（产物 ~326KB）
+- **语言**：TypeScript（约 35 个模块）
+- **构建**：esbuild（产物约 360KB）
 - **运行时**：Obsidian API（Plugin / ItemView / Notice / requestUrl）
 - **加密**：Web Crypto API（AES-GCM / PBKDF2 / SHA-256）
 - **网络**：Node.js HTTP/HTTPS（桌面端）+ requestUrl（移动端回退）
@@ -113,8 +113,8 @@ npm run build
 
 ### 添加新图床的步骤
 
-1. 在 `src/types.ts` 的 `ImageBedType` 中添加图床类型
-2. 实现 `BaseImageBed` 接口（`src/types.ts` 中的 `ImageBedProvider`）
+1. 在 `src/types.ts` 的 `ImageBedType` 枚举中新增图床类型（如尚无该枚举，可复用 `string` 字面量联合类型并在调用处收敛）
+2. 在 `src/types.ts` 中定义并实现 `ImageBed` 接口（含 `listFiles` / `delete` / `testConnection` 等方法）
 3. 在 `src/imagebed/` 下创建新的图床文件
 4. 在 `src/imagebed/ImageBedManager.ts` 中注册
 5. 在 `src/settings/SettingTab.ts` 中添加配置项
@@ -122,6 +122,6 @@ npm run build
 
 ### 自定义样式
 
-样式文件为 `styles.css`（~1,077 行），覆盖 Obsidian 的 CSS 变量以实现主题适配。
+样式文件为 `styles.css`，覆盖 Obsidian 的 CSS 变量以实现主题适配。
 
 已包含移动端适配（768px 断点、触屏 `hover:none + pointer:coarse` 适配）。

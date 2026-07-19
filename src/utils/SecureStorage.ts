@@ -147,7 +147,9 @@ export async function encryptSensitiveFields(
  * 解密设置中的敏感字段（新方案）。
  * - ENC_PREFIX(v2) 字段：用随机持久 salt + 600k 解密。
  * - ENC_LEGACY_PREFIX(v1) 字段：本函数不处理（交给迁移流程），保留原密文。
- * - 解密彻底失败：保留原密文 + console.warn，绝不返回 ""。
+ * - 解密彻底失败：内存置空 + console.warn（磁盘 data.json 仍保留原密文防丢失）。
+ *   原因：保留密文会导致下游把密文字面量当明文使用（如 Basic 鉴权发 enc:v2:... 当密码），
+ *   产生难以排查的 401/403 错误。置空后下游拿到空字符串，用户会被提示重填。
  */
 export async function decryptSensitiveFields(
 	settings: Record<string, unknown>,
@@ -163,9 +165,16 @@ export async function decryptSensitiveFields(
 			try {
 				result[field] = await decryptValue(cipher, key);
 			} catch (e) {
-				// 绝不静默清空：保留密文，告警交回调用方处理
-				console.warn(`[PicLinker] 解密字段 ${field} 失败 (v2: ${e})，已保留原密文`);
+				// v2 解密失败：内存置空（磁盘仍保留原密文防丢失）。
+				// 避免下游把密文字面量当明文使用（如 Basic 鉴权发 enc:v2:... 当密码 → 401）。
+				result[field] = "";
+				console.warn(`[PicLinker] 解密字段 ${field} 失败 (v2: ${e})，已置空，请重新填写`);
 			}
+		} else if (typeof value === "string" && value.startsWith(ENC_LEGACY_PREFIX)) {
+			// v1 旧密文在 v2 路径中无法解密（salt 已换）：置空，避免密文当明文发出。
+			// 迁移路径（migrateLegacyToNewSalt）会单独尝试 v1 解密；此处仅兜底。
+			result[field] = "";
+			console.warn(`[PicLinker] 字段 ${field} 仍为旧版密文 (v1)，已置空，请重新填写`);
 		}
 	}
 
