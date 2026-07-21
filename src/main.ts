@@ -3,7 +3,7 @@
  * 全库图片扫描、同名文件检测、图片去重、图床比对
  */
 
-import { Plugin, TFile, Notice } from "obsidian";
+import { Plugin, TFile, TAbstractFile, Notice } from "obsidian";
 import { PicLinkerSettingTab } from "./settings/SettingTab";
 import { PicLinkerView, VIEW_TYPE_PIC_LINKER } from "./view/PicLinkerView";
 import { LinkParser } from "./parser/LinkParser";
@@ -21,6 +21,12 @@ import { parseFrontmatter } from "./utils/FrontmatterParser";
 import { encryptSensitiveFields, decryptSensitiveFields, migrateLegacyToNewSalt, generateSalt } from "./utils/SecureStorage";
 import { LinkEditor } from "./editor/LinkEditor";
 import { WebDAVSync, WebDAVMeta } from "./sync/WebDAVSync";
+
+/** 取文件路径中的文件名（含扩展名） */
+function getBasename(p: string): string {
+	const i = p.lastIndexOf("/");
+	return i >= 0 ? p.substring(i + 1) : p;
+}
 import { IMAGE_EXTENSIONS } from "./utils/Common";
 import { deferAsync } from "./utils/AsyncHandler";
 
@@ -175,8 +181,8 @@ export default class PicLinkerPlugin extends Plugin {
 		);
 
 		this.registerEvent(
-			this.app.vault.on("rename", (file) => {
-				this.onFileChanged(file.path, false);
+			this.app.vault.on("rename", (file, oldPath) => {
+				this.onFileRenamed(file, oldPath);
 			})
 		);
 
@@ -255,6 +261,44 @@ export default class PicLinkerPlugin extends Plugin {
 		// 图片文件变更（delete/create/rename）：仅刷新视图（影响未引用/空白文件夹分区）
 		const ext = filePath.split(".").pop()?.toLowerCase();
 		if (ext && IMAGE_EXTENSIONS.has(ext)) {
+			this.debounceFileRefresh();
+		}
+	}
+
+	/**
+	 * 文件重命名处理。
+	 * - 图片被重命名：扫描全库 markdown 笔记，把引用了旧路径/旧文件名的图片链接
+	 *   更新为新路径/新文件名（覆盖 markdown 链接、wikilink、frontmatter 裸路径字段）。
+	 * - 其余情况（含非图片文件，如 md 笔记改名）：保持原有仅刷新视图的行为，不改动笔记内容。
+	 * @param file 重命名后的文件
+	 * @param oldPath 重命名前的完整路径（vault.on rename 的第二个参数）
+	 */
+	onFileRenamed(file: TAbstractFile, oldPath: string): void {
+		// 仅当「旧路径」是图片时才需要更新引用。
+		const oldExt = oldPath.split(".").pop()?.toLowerCase();
+		if (oldExt && IMAGE_EXTENSIONS.has(oldExt)) {
+			void this.updateImageLinksOnRename(oldPath, file.path);
+		} else {
+			// 非图片文件：维持旧行为
+			this.onFileChanged(file.path, false);
+		}
+	}
+
+	/**
+	 * 图片重命名后更新全库笔记中的图片引用。
+	 * 复用 LinkEditor.replaceImageReferencesOnRename（内部会精确匹配旧路径，避免同名误伤）。
+	 */
+	private async updateImageLinksOnRename(oldPath: string, newPath: string): Promise<void> {
+		try {
+			const count = await this.linkEditor.replaceImageReferencesOnRename(oldPath, newPath);
+			if (count > 0) {
+				new Notice(`PicLinker：已更新 ${count} 个笔记中指向「${getBasename(oldPath)}」的图片引用`);
+			}
+		} catch (e) {
+			console.error("[PicLinker] 重命名更新图片引用失败:", e);
+			new Notice("PicLinker：重命名后更新图片引用失败，详见控制台", 8000);
+		} finally {
+			// 无论如何都刷新视图（未引用/空白文件夹分区等需要更新）
 			this.debounceFileRefresh();
 		}
 	}

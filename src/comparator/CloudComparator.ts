@@ -52,7 +52,7 @@ export class CloudComparator {
 			const cloudFileMap = new Map<string, string[]>(); // fileName → url[]（同名文件可能有多个）
 			for (const f of cloudFiles) {
 				if (!f.isDirectory && f.prefix) {
-					const name = f.prefix.split("/").pop() || f.name;
+					const name = (f.prefix.split("/").pop() || f.name).toLowerCase();
 					cloudFileNames.add(name);
 					const list = cloudFileMap.get(name) ?? [];
 					if (f.url && !list.includes(f.url)) list.push(f.url);
@@ -70,7 +70,7 @@ export class CloudComparator {
 					}
 					continue;
 				}
-				const fileName = extractFileName(img.pure);
+				const fileName = extractFileName(img.pure)?.toLowerCase();
 				const expectedUrl = this.generateExpectedUrl(img.pure, bedType, pathPrefix);
 
 				if (fileName && cloudFileNames.has(fileName)) {

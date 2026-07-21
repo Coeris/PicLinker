@@ -236,7 +236,7 @@ var CloudComparator = class {
    * @param pathPrefix 可选的云端路径前缀（来自 frontmatter image-path）
    */
   async compare(localImages, bedType = "GitHub" /* GitHub */, cloudFiles, pathPrefix) {
-    var _a, _b;
+    var _a, _b, _c;
     const result = /* @__PURE__ */ new Map();
     if (!this.isBedSupported(bedType)) {
       for (const img of localImages) {
@@ -249,7 +249,7 @@ var CloudComparator = class {
       const cloudFileMap = /* @__PURE__ */ new Map();
       for (const f of cloudFiles) {
         if (!f.isDirectory && f.prefix) {
-          const name = f.prefix.split("/").pop() || f.name;
+          const name = (f.prefix.split("/").pop() || f.name).toLowerCase();
           cloudFileNames.add(name);
           const list = (_a = cloudFileMap.get(name)) != null ? _a : [];
           if (f.url && !list.includes(f.url)) list.push(f.url);
@@ -265,10 +265,10 @@ var CloudComparator = class {
           }
           continue;
         }
-        const fileName = extractFileName(img.pure);
+        const fileName = (_b = extractFileName(img.pure)) == null ? void 0 : _b.toLowerCase();
         const expectedUrl = this.generateExpectedUrl(img.pure, bedType, pathPrefix);
         if (fileName && cloudFileNames.has(fileName)) {
-          const urls = (_b = cloudFileMap.get(fileName)) != null ? _b : [];
+          const urls = (_c = cloudFileMap.get(fileName)) != null ? _c : [];
           const matched = urls.find((u) => u === expectedUrl) || urls[0] || expectedUrl;
           result.set(img.pure, { exists: true, url: matched });
         } else {
@@ -7532,6 +7532,18 @@ async function migrateLegacyToNewSalt(settings, legacySalt) {
 
 // src/editor/LinkEditor.ts
 var import_obsidian11 = require("obsidian");
+function stripExt(name) {
+  const i = name.lastIndexOf(".");
+  return i > 0 ? name.substring(0, i) : name;
+}
+function basename(p) {
+  const i = p.lastIndexOf("/");
+  return i >= 0 ? p.substring(i + 1) : p;
+}
+function dirOf(p) {
+  const i = p.lastIndexOf("/");
+  return i >= 0 ? p.substring(0, i) : "";
+}
 var LinkEditor = class {
   constructor(app) {
     this.app = app;
@@ -7550,18 +7562,19 @@ var LinkEditor = class {
       const file = this.app.vault.getAbstractFileByPath(filePath);
       if (!(file instanceof import_obsidian11.TFile)) continue;
       const content = await this.app.vault.read(file);
-      let newContent;
-      if (img.raw.startsWith("![[") && img.raw.endsWith("]]")) {
+      let newContent = content;
+      if (img.raw.startsWith("![[")) {
         const newWikiLink = img.params ? `![[${newPure}|${img.params}]]` : `![[${newPure}]]`;
         const escaped = escapeRegex(img.raw);
         newContent = content.replace(new RegExp(escaped, "g"), newWikiLink);
       } else {
         const escapedPure = escapeRegex(img.pure);
-        const safeReplacement = `$1${newPure.replace(/\$/g, "$$$$")}$2`;
-        newContent = content.replace(
-          new RegExp(`(!\\[[^\\]]*\\]\\()${escapedPure}(\\))`, "g"),
-          safeReplacement
+        const safeNew = newPure.replace(/\$/g, "$$$$");
+        const mdRegex = new RegExp(
+          `(!\\[[^\\]]*\\]\\()${escapedPure}((?:\\s+"[^"]*"|\\s+'[^']*')?)(\\))`,
+          "g"
         );
+        newContent = content.replace(mdRegex, `$1${safeNew}$2$3`);
       }
       if (newContent !== content) {
         await this.app.vault.modify(file, newContent);
@@ -7650,6 +7663,156 @@ var LinkEditor = class {
       ""
     );
     return result;
+  }
+  /**
+   * 图片被重命名后，扫描全库 markdown 笔记，把引用了旧路径/旧文件名的图片链接
+   * 更新为新路径/新文件名。覆盖三种形态：
+   *   - Markdown 标准链接 `![](path)`（含 `./` `../` 相对、绝对 `/`、vault 相对）
+   *   - Wikilink `![[name]]` / `![[name|alias]]`（含无扩展名形态，LinkParser 默认会跳过）
+   *   - Frontmatter 裸路径字段（如 `cover: a.png`，由 FrontmatterParser 解析）
+   * 匹配基于「该引用在重命名前解析到的旧路径」精确比对，避免同名不同路径误伤；
+   * wikilink 无扩展名时若库内存放同名（无扩展名）的其他文件则跳过以消解歧义。
+   * @returns 被修改的笔记文件数量
+   */
+  async replaceImageReferencesOnRename(oldPath, newPath) {
+    const oldName = basename(oldPath);
+    const newName = basename(newPath);
+    const oldNameNoExt = stripExt(oldName);
+    const newNameNoExt = stripExt(newName);
+    const ambiguous = /* @__PURE__ */ new Set();
+    for (const f of this.app.vault.getFiles()) {
+      if (f.path === newPath) continue;
+      const n = stripExt(f.name).toLowerCase();
+      if (n === oldNameNoExt.toLowerCase()) ambiguous.add(n);
+    }
+    let modifiedFiles = 0;
+    const mdFiles = this.app.vault.getMarkdownFiles();
+    for (const mdFile of mdFiles) {
+      const content = await this.app.vault.read(mdFile);
+      if (!content.includes(oldPath) && !content.includes(oldName) && !content.includes(oldNameNoExt)) {
+        continue;
+      }
+      const noteDir = dirOf(mdFile.path);
+      let fileTouched = false;
+      let m;
+      const mdRe = /!\[([^\]]*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g;
+      const mdMatches = [];
+      while ((m = mdRe.exec(content)) !== null) {
+        const full = m[0];
+        const alt = m[1];
+        let pure = m[2];
+        const tm = pure.match(/^(.+?)\s+"([^"]*)"$/);
+        let title = "";
+        let altText = alt;
+        if (tm) {
+          pure = tm[1].trim();
+          title = tm[2];
+        }
+        if (pure.startsWith("<") && pure.endsWith(">")) pure = pure.slice(1, -1);
+        if (!pure) continue;
+        if (/^(https?:)?\/\//i.test(pure) || pure.startsWith("data:")) continue;
+        const newPure = this.resolveMdOrFmNewRef(pure, noteDir, oldPath, newPath);
+        if (newPure === null) continue;
+        mdMatches.push({
+          img: { raw: full, pure, params: title, type: "local", count: 1, files: [mdFile.path] },
+          newPure
+        });
+      }
+      for (const mm of mdMatches) {
+        await this.replaceLink(mm.img, mm.newPure);
+        fileTouched = true;
+      }
+      const wikiRe = /(!?)\[\[([^\]|]+?)(?:\|([^\]]*))?]]/g;
+      const wikiMatches = [];
+      while ((m = wikiRe.exec(content)) !== null) {
+        const name = m[2];
+        const params = m[3] || "";
+        const lastDot = name.lastIndexOf(".");
+        const ext = lastDot >= 0 ? name.substring(lastDot + 1).toLowerCase() : "";
+        const hasExt = lastDot >= 0;
+        const isImage = IMAGE_EXTENSIONS.has(ext) || !hasExt && !!oldNameNoExt && name.toLowerCase() === oldNameNoExt.toLowerCase();
+        if (!isImage) continue;
+        const newPure = this.resolveWikiNewRef(name, oldPath, oldNameNoExt, newPath, newName, newNameNoExt, ambiguous);
+        if (newPure === null) continue;
+        const raw = `![[${name}${params ? "|" + params : ""}]]`;
+        wikiMatches.push({
+          img: { raw, pure: name, params, type: "local", count: 1, files: [mdFile.path] },
+          newPure
+        });
+      }
+      for (const wm of wikiMatches) {
+        await this.replaceLink(wm.img, wm.newPure);
+        fileTouched = true;
+      }
+      const fmRefs = parseFrontmatterImages(content);
+      for (const ref of fmRefs) {
+        const newVal = this.resolveMdOrFmNewRef(ref.value, noteDir, oldPath, newPath);
+        if (newVal === null) continue;
+        await this.replaceFrontmatterImagePath(mdFile.path, ref.line, ref.value, newVal);
+        fileTouched = true;
+      }
+      if (fileTouched) modifiedFiles++;
+    }
+    return modifiedFiles;
+  }
+  /**
+   * 计算 Markdown / Frontmatter 裸路径引用在「重命名前」解析到的目标路径，
+   * 并判定是否指向 oldPath；命中则返回应写入的新引用（vault 相对路径）。
+   * 同时支持：vault 相对（默认）、文件相对（./ ../）、绝对（/ 开头）。
+   */
+  resolveMdOrFmNewRef(pure, noteDir, oldPath, newPath) {
+    let cand;
+    if (pure.startsWith("/")) {
+      cand = (0, import_obsidian11.normalizePath)(pure.slice(1));
+    } else if (pure.startsWith("./") || pure.startsWith("../")) {
+      cand = (0, import_obsidian11.normalizePath)((noteDir ? noteDir + "/" : "") + pure);
+    } else {
+      cand = (0, import_obsidian11.normalizePath)(pure);
+    }
+    if (cand === oldPath) {
+      return (pure.startsWith("/") ? "/" : "") + newPath;
+    }
+    return null;
+  }
+  /**
+   * 计算 Wikilink 引用是否指向 oldPath，返回应写入的新 wikilink 目标名。
+   * - 含路径（`folder/name.png`）：按 vault 路径精确比较 oldPath。
+   * - 仅文件名：按「去扩展名后是否等于旧图名」判定；无扩展名且库内存在同名
+   *   （无扩展名）的其他文件时跳过以消解歧义。
+   */
+  resolveWikiNewRef(name, oldPath, oldNameNoExt, newPath, newName, newNameNoExt, ambiguous) {
+    if (name.includes("/")) {
+      const cand = (0, import_obsidian11.normalizePath)(name.startsWith("/") ? name.slice(1) : name);
+      if (cand === oldPath) return (name.startsWith("/") ? "/" : "") + newPath;
+      return null;
+    }
+    const tNoExt = stripExt(name);
+    if (tNoExt.toLowerCase() !== oldNameNoExt.toLowerCase()) return null;
+    const hasExt = name.includes(".");
+    if (!hasExt && ambiguous.has(tNoExt.toLowerCase())) return null;
+    return hasExt ? newName : newNameNoExt;
+  }
+  /**
+   * 替换单个 markdown 文件 frontmatter 中某个裸路径图片字段的值（保留原有引号风格）。
+   */
+  async replaceFrontmatterImagePath(filePath, line, oldValue, newValue) {
+    const file = this.app.vault.getAbstractFileByPath(filePath);
+    if (!(file instanceof import_obsidian11.TFile)) return;
+    const content = await this.app.vault.read(file);
+    const lines = content.split("\n");
+    const idx = line - 1;
+    if (idx < 0 || idx >= lines.length) return;
+    const l = lines[idx];
+    const keyM = l.match(/^\s*([A-Za-z0-9_-]+)\s*:/);
+    if (!keyM) return;
+    const key = keyM[1];
+    const re = new RegExp(
+      "^(\\s*" + escapeRegex(key) + `\\s*:\\s*["']?)` + escapeRegex(oldValue) + `(["']?\\s*)$`
+    );
+    if (re.test(l)) {
+      lines[idx] = l.replace(re, "$1" + newValue.replace(/\$/g, "$$$$") + "$2");
+      await this.app.vault.modify(file, lines.join("\n"));
+    }
   }
 };
 
@@ -7799,6 +7962,10 @@ var WebDAVSync = class {
 };
 
 // src/main.ts
+function getBasename(p) {
+  const i = p.lastIndexOf("/");
+  return i >= 0 ? p.substring(i + 1) : p;
+}
 var DEFAULT_SETTINGS = {
   // 插件通用设置
   showPath: true,
@@ -7914,8 +8081,8 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
       })
     );
     this.registerEvent(
-      this.app.vault.on("rename", (file) => {
-        this.onFileChanged(file.path, false);
+      this.app.vault.on("rename", (file, oldPath) => {
+        this.onFileRenamed(file, oldPath);
       })
     );
     this.registerEvent(
@@ -7979,6 +8146,40 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
     }
     const ext = (_a = filePath.split(".").pop()) == null ? void 0 : _a.toLowerCase();
     if (ext && IMAGE_EXTENSIONS.has(ext)) {
+      this.debounceFileRefresh();
+    }
+  }
+  /**
+   * 文件重命名处理。
+   * - 图片被重命名：扫描全库 markdown 笔记，把引用了旧路径/旧文件名的图片链接
+   *   更新为新路径/新文件名（覆盖 markdown 链接、wikilink、frontmatter 裸路径字段）。
+   * - 其余情况（含非图片文件，如 md 笔记改名）：保持原有仅刷新视图的行为，不改动笔记内容。
+   * @param file 重命名后的文件
+   * @param oldPath 重命名前的完整路径（vault.on rename 的第二个参数）
+   */
+  onFileRenamed(file, oldPath) {
+    var _a;
+    const oldExt = (_a = oldPath.split(".").pop()) == null ? void 0 : _a.toLowerCase();
+    if (oldExt && IMAGE_EXTENSIONS.has(oldExt)) {
+      void this.updateImageLinksOnRename(oldPath, file.path);
+    } else {
+      this.onFileChanged(file.path, false);
+    }
+  }
+  /**
+   * 图片重命名后更新全库笔记中的图片引用。
+   * 复用 LinkEditor.replaceImageReferencesOnRename（内部会精确匹配旧路径，避免同名误伤）。
+   */
+  async updateImageLinksOnRename(oldPath, newPath) {
+    try {
+      const count = await this.linkEditor.replaceImageReferencesOnRename(oldPath, newPath);
+      if (count > 0) {
+        new import_obsidian12.Notice(`PicLinker\uFF1A\u5DF2\u66F4\u65B0 ${count} \u4E2A\u7B14\u8BB0\u4E2D\u6307\u5411\u300C${getBasename(oldPath)}\u300D\u7684\u56FE\u7247\u5F15\u7528`);
+      }
+    } catch (e) {
+      console.error("[PicLinker] \u91CD\u547D\u540D\u66F4\u65B0\u56FE\u7247\u5F15\u7528\u5931\u8D25:", e);
+      new import_obsidian12.Notice("PicLinker\uFF1A\u91CD\u547D\u540D\u540E\u66F4\u65B0\u56FE\u7247\u5F15\u7528\u5931\u8D25\uFF0C\u8BE6\u89C1\u63A7\u5236\u53F0", 8e3);
+    } finally {
       this.debounceFileRefresh();
     }
   }
