@@ -168,6 +168,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		void (async () => {
 		const { containerEl } = this;
 		containerEl.empty();
+		containerEl.addClass("pic-settings");
 
 		// 清理旧的防抖定时器，防止刷新视图后旧定时器仍触发 saveSettings
 		if (this.settingsSaveTimer) {

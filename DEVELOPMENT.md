@@ -122,6 +122,6 @@ npm run build
 
 ### 自定义样式
 
-样式文件为 `styles.css`，覆盖 Obsidian 的 CSS 变量以实现主题适配。
+样式文件为 `styles.css`。插件自建了一套 `--pic-*` CSS 变量层（背景三档、文字、边框、状态色等），所有组件统一引用该层而非直接依赖 Obsidian 原生变量，并通过 `currentColor` / `var(--pic-*)` 让图标、工具栏、设置页原生控件（开关、输入框、按钮）跟随 Obsidian 浅色 / 深色主题自动切换。
 
 已包含移动端适配（768px 断点、触屏 `hover:none + pointer:coarse` 适配）。

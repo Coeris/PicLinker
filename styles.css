@@ -1,5 +1,148 @@
 /* PicLinker - 图床管家 */
 
+/* ========== 配色体系 ========== */
+/*
+  PicLinker 配色体系 v3 — 莫兰迪风格
+  低饱和灰调，柔和高级
+  浅色：暖灰底 + 雾蓝强调
+  深色：冷灰底 + 月白蓝强调
+*/
+
+:root {
+	/* ---- 背景层次（浅色默认）---- */
+	--pic-bg-primary: #f5f3f0;
+	--pic-bg-secondary: #edeae5;
+	--pic-bg-tertiary: #e3dfd9;
+	--pic-bg-hover: #e8e4de;
+	--pic-bg-active: #ddd8d0;
+
+	/* ---- 边框 ---- */
+	--pic-border: #d4cfc7;
+	--pic-border-hover: #c4bdb2;
+
+	/* ---- 文字 ---- */
+	--pic-text: #4a4642;
+	--pic-text-muted: #8a847d;
+	--pic-text-accent: #6b7f8e;
+
+	/* ---- 强调色（雾蓝）---- */
+	--pic-accent: #6b7f8e;
+	--pic-accent-soft: rgba(107, 127, 142, 0.12);
+	--pic-accent-medium: rgba(107, 127, 142, 0.24);
+
+	/* ---- 状态色（莫兰迪灰调）---- */
+	--pic-success: #7a9b76;
+	--pic-success-bg: rgba(122, 155, 118, 0.15);
+	--pic-error: #a57878;
+	--pic-error-bg: rgba(165, 120, 120, 0.13);
+	--pic-warning: #ab8862;
+	--pic-warning-bg: rgba(171, 136, 98, 0.14);
+	--pic-info: #6b7f8e;
+	--pic-info-bg: rgba(107, 127, 142, 0.15);
+
+	/* ---- 选中态 ---- */
+	--pic-selected-bg: rgba(107, 127, 142, 0.16);
+	--pic-selected-bar: #6b7f8e;
+
+	/* ---- 遮罩 ---- */
+	--pic-overlay: rgba(40, 38, 35, 0.82);
+
+	/* ---- 开关 ---- */
+	--pic-toggle-off: #c4bdb2;
+	--pic-toggle-on: #6b7f8e;
+	--pic-toggle-knob: #f5f3f0;
+
+	/* ---- 阴影 ---- */
+	--pic-shadow: 0 2px 8px rgba(74, 70, 66, 0.06);
+
+	/* ---- 布局 ---- */
+	--pic-toolbar-h: 42px;
+	--pic-section-gap: 10px;
+	--pic-radius-card: 8px;
+	--pic-radius-btn: 4px;
+	--pic-radius-pill: 10px;
+}
+
+/* ---- 深色模式 ---- */
+.theme-dark {
+	--pic-bg-primary: #2a2826;
+	--pic-bg-secondary: #322f2b;
+	--pic-bg-tertiary: #3a3733;
+	--pic-bg-hover: #3e3b37;
+	--pic-bg-active: #46423c;
+
+	--pic-border: #46423c;
+	--pic-border-hover: #57534a;
+
+	--pic-text: #ccc6bd;
+	--pic-text-muted: #8a837a;
+	--pic-text-accent: #a0b4c4;
+
+	--pic-accent: #a0b4c4;
+	--pic-accent-soft: rgba(160, 180, 196, 0.15);
+	--pic-accent-medium: rgba(160, 180, 196, 0.28);
+
+	--pic-success: #94b390;
+	--pic-success-bg: rgba(148, 179, 144, 0.18);
+	--pic-error: #c98a8a;
+	--pic-error-bg: rgba(201, 138, 138, 0.16);
+	--pic-warning: #d0ab7c;
+	--pic-warning-bg: rgba(208, 171, 124, 0.18);
+	--pic-info: #a0b4c4;
+	--pic-info-bg: rgba(160, 180, 196, 0.18);
+
+	--pic-selected-bg: rgba(160, 180, 196, 0.22);
+	--pic-selected-bar: #a0b4c4;
+
+	--pic-overlay: rgba(15, 14, 12, 0.88);
+
+	--pic-toggle-off: #57534a;
+	--pic-toggle-on: #a0b4c4;
+	--pic-toggle-knob: #ede9e3;
+
+	--pic-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ---- 浅色模式（显式声明）---- */
+.theme-light {
+	--pic-bg-primary: #f5f3f0;
+	--pic-bg-secondary: #edeae5;
+	--pic-bg-tertiary: #e3dfd9;
+	--pic-bg-hover: #e8e4de;
+	--pic-bg-active: #ddd8d0;
+
+	--pic-border: #d4cfc7;
+	--pic-border-hover: #c4bdb2;
+
+	--pic-text: #4a4642;
+	--pic-text-muted: #8a847d;
+	--pic-text-accent: #6b7f8e;
+
+	--pic-accent: #6b7f8e;
+	--pic-accent-soft: rgba(107, 127, 142, 0.12);
+	--pic-accent-medium: rgba(107, 127, 142, 0.24);
+
+	--pic-success: #7a9b76;
+	--pic-success-bg: rgba(122, 155, 118, 0.15);
+	--pic-error: #a57878;
+	--pic-error-bg: rgba(165, 120, 120, 0.13);
+	--pic-warning: #ab8862;
+	--pic-warning-bg: rgba(171, 136, 98, 0.14);
+	--pic-info: #6b7f8e;
+	--pic-info-bg: rgba(107, 127, 142, 0.15);
+
+	--pic-selected-bg: rgba(107, 127, 142, 0.16);
+	--pic-selected-bar: #6b7f8e;
+
+	--pic-overlay: rgba(40, 38, 35, 0.82);
+
+	--pic-toggle-off: #c4bdb2;
+	--pic-toggle-on: #6b7f8e;
+	--pic-toggle-knob: #f5f3f0;
+
+	--pic-shadow: 0 2px 8px rgba(74, 70, 66, 0.06);
+}
+
 /* ========== 搜索框 ========== */
 
 .pic-search-box {
@@ -27,18 +170,24 @@
 	   否则左 34px（给图标）、右 36px（给 ✕）会被冲掉，文字压在图标上重叠遮挡。
 	   使用属性选择器提升特异性至 0,3,0，无需 !important。 */
 	padding: 6px 36px 6px 34px;
-	border: 1px solid var(--background-modifier-border);
+	border: 1px solid var(--pic-border);
 	border-radius: var(--pic-radius-btn);
-	background: var(--background-primary);
-	color: var(--text-normal);
+	background: var(--pic-bg-primary);
+	color: var(--pic-text);
 	font-size: 13px;
 	outline: none;
 	box-sizing: border-box;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pic-search-box input[type="text"].pic-search-input::placeholder {
+	color: var(--pic-text-muted);
+	opacity: 0.7;
 }
 
 .pic-search-box .pic-search-input:focus {
-	border-color: var(--text-accent);
-	box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 15%, transparent);
+	border-color: var(--pic-accent);
+	box-shadow: 0 0 0 3px var(--pic-accent-soft);
 }
 
 .pic-search-hint {
@@ -47,7 +196,7 @@
 	left: 34px;
 	top: 50%;
 	transform: translateY(-50%);
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	font-size: 13px;
 	pointer-events: none;
 	/* 确保不换行，溢出隐藏 */
@@ -63,7 +212,7 @@
 	right: 10px;
 	top: 50%;
 	transform: translateY(-50%);
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	font-size: 12px;
 	cursor: pointer;
 	padding: 4px 8px;
@@ -72,14 +221,14 @@
 }
 
 .pic-search-clear:hover {
-	color: var(--text-normal);
-	background: var(--background-modifier-hover);
+	color: var(--pic-text);
+	background: var(--pic-bg-hover);
 }
 
 /* ========== 必填项红色星号 ========== */
 
 .pic-required {
-	color: var(--text-error);
+	color: var(--pic-error);
 	font-weight: bold;
 }
 
@@ -98,11 +247,11 @@
 
 /* 分组卡片容器：与图床/WebDAV 折叠卡片同款视觉语言（统一卡片化） */
 .pic-settings-card {
-	border: 1px solid var(--background-modifier-border);
+	border: 1px solid var(--pic-border);
 	border-radius: var(--pic-radius-card);
 	margin-bottom: var(--pic-section-gap);
 	overflow: hidden;
-	background: var(--background-primary);
+	background: var(--pic-bg-primary);
 }
 
 .pic-settings-card > .setting-item:first-child,
@@ -129,7 +278,7 @@
 }
 
 .pic-section-divider {
-	border-top: 1px solid var(--background-modifier-border);
+	border-top: 1px solid var(--pic-border);
 	margin: 12px 0;
 }
 
@@ -142,7 +291,7 @@
 
 .pic-settings-table td {
 	padding: 6px 8px;
-	border-bottom: 1px solid var(--background-modifier-border);
+	border-bottom: 1px solid var(--pic-border);
 }
 
 .pic-settings-table tr:last-child td {
@@ -175,7 +324,7 @@
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background-color: var(--background-modifier-border);
+	background-color: var(--pic-toggle-off);
 	transition: 0.3s;
 	border-radius: 20px;
 }
@@ -187,13 +336,13 @@
 	width: 16px;
 	left: 2px;
 	bottom: 2px;
-	background-color: var(--text-on-accent, #ffffff);
+	background-color: var(--pic-toggle-knob);
 	transition: 0.3s;
 	border-radius: 50%;
 }
 
 .pic-toggle-switch input:checked + .pic-toggle-slider {
-	background-color: var(--interactive-accent);
+	background-color: var(--pic-toggle-on);
 }
 
 .pic-toggle-switch input:checked + .pic-toggle-slider:before {
@@ -202,16 +351,16 @@
 
 /* 折叠卡片 */
 .pic-collapsible {
-	border: 1px solid var(--background-modifier-border);
+	border: 1px solid var(--pic-border);
 	border-radius: var(--pic-radius-card);
 	margin-bottom: var(--pic-section-gap);
 	overflow: hidden;
-	background: var(--background-primary);
+	background: var(--pic-bg-primary);
 	transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .pic-collapsible:hover {
-	border-color: var(--background-modifier-border-hover, var(--background-modifier-border));
+	border-color: var(--pic-border-hover);
 }
 
 .pic-collapsible-header {
@@ -220,13 +369,13 @@
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
-	background: var(--background-secondary);
+	background: var(--pic-bg-secondary);
 	transition: background 0.12s ease;
 	user-select: none;
 }
 
 .pic-collapsible-header:hover {
-	background: var(--background-modifier-hover);
+	background: var(--pic-bg-hover);
 }
 
 /* 展开动画：用 grid 0fr → 1fr 平滑展开，避免生硬显隐 */
@@ -252,7 +401,7 @@
 
 .pic-collapsible-arrow {
 	font-size: 10px;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	width: 16px;
 	text-align: center;
 	flex-shrink: 0;
@@ -262,12 +411,12 @@
 .pic-collapsible-title {
 	font-size: 14px;
 	font-weight: 500;
-	color: var(--text-normal);
+	color: var(--pic-text);
 }
 
 .pic-collapsible-subtitle {
 	font-size: 12px;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	margin-left: 24px;
 }
 
@@ -287,13 +436,13 @@
 }
 
 .pic-bed-status-configured {
-	background: color-mix(in srgb, var(--text-success) 18%, transparent);
-	color: var(--text-success);
+	background: var(--pic-success-bg);
+	color: var(--pic-success);
 }
 
 .pic-bed-status-unconfigured {
-	background: var(--background-modifier-border);
-	color: var(--text-muted);
+	background: var(--pic-border);
+	color: var(--pic-text-muted);
 }
 
 /* 图床图标 */
@@ -330,15 +479,15 @@
 }
 
 .pic-btn-sm:hover {
-	background: var(--background-modifier-hover);
+	background: var(--pic-bg-hover);
 }
 
 .pic-btn-danger {
-	color: var(--text-error);
+	color: var(--pic-error);
 }
 
 .pic-btn-danger:hover {
-	background: var(--background-modifier-error);
+	background: var(--pic-error-bg);
 }
 
 /* 测试连接 */
@@ -361,15 +510,15 @@
 }
 
 .pic-testing {
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 }
 
 .pic-ok {
-	color: var(--text-success);
+	color: var(--pic-success);
 }
 
 .pic-fail {
-	color: var(--text-error);
+	color: var(--pic-error);
 }
 
 /* 配置指南 */
@@ -383,12 +532,12 @@
 	gap: 6px;
 	padding: 8px 0;
 	cursor: pointer;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	font-size: 12px;
 }
 
 .pic-guide-header:hover {
-	color: var(--text-normal);
+	color: var(--pic-text);
 }
 
 .pic-guide-icon {
@@ -412,7 +561,7 @@
 
 .pic-guide-content {
 	padding: 8px 12px;
-	background: var(--background-secondary);
+	background: var(--pic-bg-secondary);
 	border-radius: var(--pic-radius-btn);
 	font-size: 12px;
 	line-height: 1.6;
@@ -422,7 +571,7 @@
 
 .pic-guide-section-title {
 	font-weight: 600;
-	color: var(--text-normal);
+	color: var(--pic-text);
 	margin: 8px 0 4px 0;
 }
 
@@ -452,7 +601,7 @@
 
 .pic-webdav-path-hint {
 	font-size: 12px;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	padding: 4px 0 8px 0;
 	margin-left: 16px;
 }
@@ -476,7 +625,7 @@
 
 .pic-webdav-status {
 	font-size: 12px;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	padding: 4px 0;
 	word-break: break-word;
 	overflow-wrap: anywhere;
@@ -492,13 +641,13 @@
 }
 
 .pic-webdav-status-enabled {
-	background: color-mix(in srgb, var(--text-success) 18%, transparent);
-	color: var(--text-success);
+	background: var(--pic-success-bg);
+	color: var(--pic-success);
 }
 
 .pic-webdav-status-disabled {
-	background: var(--background-modifier-border);
-	color: var(--text-muted);
+	background: var(--pic-border);
+	color: var(--pic-text-muted);
 }
 
 /* 存储桶配置区域 */
@@ -513,32 +662,16 @@
 	font-weight: 600;
 	letter-spacing: 0.4px;
 	text-transform: uppercase;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	margin: 16px 0 8px 0;
 	padding-left: 9px;
-	border-left: 3px solid var(--interactive-accent);
+	border-left: 3px solid var(--pic-accent);
 	line-height: 1.4;
 	padding-bottom: 4px;
-	border-bottom: 1px solid var(--background-modifier-border);
+	border-bottom: 1px solid var(--pic-border);
 }
 
 /* ========== 主视图 ========== */
-
-:root {
-	--pic-toolbar-h: 42px;
-	/* 区域间距：所有分区之间的统一垂直间隔（首区靠 .pic-list 的 padding-top，
-	   其余靠 header 的 margin-top；content 不再额外加底部留白，避免双层叠加） */
-	--pic-section-gap: 10px;
-	/* 圆角层级规范：
-	   容器/区域        = 方形(0)        —— 见各处 border-radius:0
-	   控件(按钮/输入框) = btn(4px)
-	   媒体(缩略图/预览) = card(8px)
-	   徽章/药丸        = pill(10px)
-	   全局边框色统一使用 var(--background-modifier-border)，随明/暗主题自适应 */
-	--pic-radius-card: 8px;
-	--pic-radius-btn: 4px;
-	--pic-radius-pill: 10px;
-}
 
 /* 提升 specificity 覆盖 Obsidian 默认 .view-content padding */
 .workspace-leaf-content .view-content .pic-container,
@@ -546,7 +679,7 @@
 	padding: 0 12px 12px;
 	margin-top: 0;
 	font-size: 13px;
-	color: var(--text-normal);
+	color: var(--pic-text);
 	user-select: text;
 	-webkit-font-smoothing: antialiased;
 }
@@ -563,6 +696,9 @@
 	margin-bottom: 4px;
 	padding-top: var(--pic-section-gap);
 	overflow: visible;
+	/* 用 Obsidian 原生页面背景色填充，与 .view-content 完全一致，
+	   工具栏与卡片间隙同色，吸顶时零接缝、自动跟随主题 */
+	background: var(--background-primary);
 }
 
 /* 过滤栏 */
@@ -579,6 +715,8 @@
 	position: sticky;
 	top: 0;
 	z-index: 100;
+	/* 吸顶填充用 Obsidian 原生页面背景（--background-primary），与 .view-content 一致，
+	   零接缝且自动跟随主题；不要底部分隔线，避免视觉上像一根悬浮条 */
 	background: var(--background-primary);
 }
 
@@ -601,7 +739,7 @@
 }
 
 .pic-refresh-btn:hover {
-	background: var(--background-modifier-hover);
+	background: var(--pic-bg-hover);
 }
 
 .pic-refresh-btn.loading {
@@ -609,7 +747,7 @@
 	pointer-events: none;
 	cursor: progress;
 	/* 刷新中给出底色反馈，区别于单纯置灰 */
-	background: var(--background-modifier-hover);
+	background: var(--pic-bg-hover);
 }
 
 /* 刷新动画 */
@@ -631,14 +769,14 @@
 .pic-loading {
 	padding: 20px;
 	text-align: center;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	animation: pic-pulse 1.5s ease-in-out infinite;
 }
 
 .pic-empty {
 	padding: 16px;
 	text-align: center;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	font-size: 12px;
 }
 
@@ -646,14 +784,14 @@
 .pic-search-noresult {
 	padding: 24px 16px;
 	text-align: center;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	font-size: 13px;
 }
 
 .pic-cloud-loading {
 	padding: 12px;
 	text-align: center;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	font-size: 12px;
 	animation: pic-pulse 1.5s ease-in-out infinite;
 }
@@ -674,8 +812,8 @@
 	position: sticky;
 	top: var(--pic-toolbar-h);
 	z-index: 10;
-	background: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
+	background: var(--pic-bg-primary);
+	border: 1px solid var(--pic-border);
 	border-bottom: none;
 	/* 区域最外层圆角：标题条只圆上两个角，底部圆角由 .pic-part-content overflow:hidden 裁剪；
 	   收起时加 .pic-part-header--collapsed 使底两角也圆 */
@@ -704,8 +842,7 @@
    此处仅保留圆角为 0（吸顶时与 toolbar 贴合）与投影。 */
 .pic-part-header--stuck {
 	border-radius: 0;
-	/* C：吸顶投影改用主题阴影变量，暗色/亮色主题下都比硬编码 rgba(0,0,0,.15) 更自然 */
-	box-shadow: var(--shadow-s);
+	box-shadow: var(--pic-shadow);
 }
 
 /* 收起态优先于吸顶态：即使吸顶，收起时仍保持四角圆角（边框由 JS 内联统一设置） */
@@ -725,6 +862,7 @@
 .pic-part-icon {
 	display: flex;
 	align-items: center;
+	color: var(--pic-text-muted);
 }
 
 .pic-part-icon svg {
@@ -734,7 +872,7 @@
 
 .pic-part-arrow {
 	font-size: 10px;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	width: 16px;
 	text-align: center;
 }
@@ -742,7 +880,7 @@
 .pic-part-title {
 	font-size: 13px;
 	font-weight: 500;
-	color: var(--text-normal);
+	color: var(--pic-text);
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -751,7 +889,7 @@
 
 .pic-part-count {
 	font-size: 11px;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	margin-left: 4px;
 }
 
@@ -768,7 +906,7 @@
 	min-height: unset;
 	padding: 2px 8px;
 	font-size: 12px;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	cursor: pointer;
 	border-radius: var(--pic-radius-btn);
 	background: none;
@@ -777,8 +915,8 @@
 }
 
 .pic-part-clear-btn:hover {
-	color: var(--text-error);
-	background: var(--background-modifier-hover);
+	color: var(--pic-error);
+	background: var(--pic-bg-hover);
 }
 
 .pic-part-content {
@@ -787,7 +925,7 @@
 	   不额外加底部留白：区域间的间隔统一由下一个分区 header 的 margin-top(--pic-section-gap) 提供，
 	   避免 content 底留白 + header 上间距双层叠加导致区域间间距比顶/底大一倍 */
 	padding: 0;
-	background: var(--background-primary);
+	background: var(--pic-bg-primary);
 	/* 容器不画边框，用 overflow:hidden + 底圆角裁剪内部末子项方角，使区域整体四角圆。
 	   标题条 border-bottom 已去掉，首子项的 border-top 直接充当标题与内容的分隔线，
 	   无需负 margin 折叠，overflow:hidden 不会造成双线问题。 */
@@ -809,38 +947,38 @@
 	cursor: pointer;
 	gap: 8px;
 	/* 与文件 item 一致的方形边框，区分条目；负 margin 折叠相邻边框为单线 */
-	border: 1px solid var(--background-modifier-border);
+	border: 1px solid var(--pic-border);
 	border-radius: 0;
 	margin-bottom: -1px;
 	transition: background 0.12s ease;
 	/* A：文件夹项用浅底，与下方文件项（透明主背景）一眼区分层级；
 	   与去重组头 .pic-dedup-hash 同用 --background-secondary 规范 */
-	background: var(--background-secondary);
+	background: var(--pic-bg-secondary);
 }
 
 /* 嵌套文件夹：底色再深一档，使父子文件夹也能区分（color-mix 随明暗自适应） */
 .pic-dir-header.pic-dir-nested {
-	background: color-mix(in srgb, var(--background-secondary) 85%, var(--background-modifier-border));
+	background: color-mix(in srgb, var(--pic-bg-secondary) 85%, var(--pic-border));
 }
 
 .pic-dir-header:hover {
-	background: var(--background-modifier-hover);
+	background: var(--pic-bg-hover);
 }
 
 /* 文件夹选中态：与文件项一致的左侧强调色蓝条 + 更深底色（点击/勾选文件夹时显示） */
 .pic-dir-header.pic-dir-header--selected,
 .pic-dir-header.pic-dir-header--selected:hover {
-	background: var(--background-modifier-active-hover);
-	box-shadow: inset 3px 0 0 0 var(--interactive-accent);
+	background: var(--pic-selected-bg);
+	box-shadow: inset 3px 0 0 0 var(--pic-accent);
 }
 /* 文件夹半选态（部分子项被选中）：仅强调色背景，不加蓝条，与全选态区分 */
 .pic-dir-header.pic-dir-header--partial {
-	background: color-mix(in srgb, var(--interactive-accent) 12%, var(--background-secondary));
+	background: var(--pic-accent-soft);
 }
 
 .pic-dir-arrow {
 	font-size: 10px;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	width: 16px;
 	text-align: center;
 }
@@ -858,12 +996,12 @@
 .pic-dir-name {
 	font-size: 12px;
 	font-weight: 500;
-	color: var(--text-normal);
+	color: var(--pic-text);
 }
 
 .pic-dir-count {
 	font-size: 11px;
-	color: var(--text-muted);
+	color: var(--pic-text-muted);
 	margin-left: 4px;
 }
 
@@ -888,7 +1026,7 @@
 	padding: 6px 10px;
 	gap: 8px;
 	/* 每条文件项独立方形边框，区分条目；负 margin 折叠相邻边框为单线，条目间无间距 */
-	border: 1px solid var(--background-modifier-border);
+	border: 1px solid var(--pic-border);
 	border-radius: 0;
 	margin-bottom: -1px;
 	transition: background 0.12s ease;
@@ -901,7 +1039,7 @@
 
 /* 悬停：轻底色（与原 hover 色一致，区分于选中态） */
 .pic-item:hover {
-	background: var(--background-modifier-hover);
+	background: var(--pic-bg-hover);
 }
 
 /* 当前项高亮：已废弃，选中态 --selected 提供足够的视觉反馈。
@@ -913,7 +1051,7 @@
 
 /* 键盘原生聚焦环（Tab 进入列表时的 a11y 兜底，与 --focused 视觉一致） */
 .pic-item:focus-visible {
-	outline: 2px solid var(--interactive-accent);
+	outline: 2px solid var(--pic-accent);
 	outline-offset: -2px;
 }
 
@@ -922,8 +1060,8 @@
    优先级高于 :hover，故悬停已选项也保持选中样式。 */
 .pic-item--selected,
 .pic-item--selected:hover {
-	background: var(--background-modifier-active-hover);
-	box-shadow: inset 3px 0 0 0 var(--interactive-accent);
+	background: var(--pic-selected-bg);
+	box-shadow: inset 3px 0 0 0 var(--pic-accent);
 }
 
 /* 复选框 */
@@ -942,7 +1080,8 @@
 	height: 32px;
 	object-fit: cover;
 	border-radius: var(--pic-radius-card);
-	background: var(--background-secondary);
+	background: var(--pic-bg-tertiary);
+	border: 1px solid var(--pic-border);
 	flex-shrink: 0;
 }
 
@@ -959,7 +1098,7 @@
 /* 路径文本 */
 .pic-path {
 	font-size: 12px;
-	color: var(--text-normal);
+	color: var(--pic-text);
 	flex: 1;
 	min-width: 0;
 	overflow: hidden;
@@ -973,7 +1112,7 @@
 }
 
 .pic-path.clickable:hover {
-	color: var(--text-accent);
+	color: var(--pic-text-accent);
 }
 
 /* 标签 */
@@ -981,35 +1120,34 @@
 	font-size: 10px;
 	padding: 2px 7px;
 	border-radius: var(--pic-radius-pill);
-	background: var(--background-secondary);
-	color: var(--text-normal);
-	opacity: 0.85;
-	cursor: pointer;
-	/* P2-14：允许标签收缩而非撑破容器，避免多标签横向溢出被裁剪 */
+	background: var(--pic-bg-tertiary);
+	color: var(--pic-text-muted);
+	border: 1px solid var(--pic-border);
 	flex-shrink: 1;
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
+	transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease, border-color 0.12s ease;
 }
 
 /* 浅灰底统一，不再用 accent 色调，与 hover/选中形成纯灰→蓝的清晰递进 */
 
 .pic-file-tag:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
+	background: var(--pic-bg-hover);
+	color: var(--pic-text);
+	border-color: var(--pic-border-hover);
 	transform: scale(1.04);
 }
 
 .pic-file-tag-focus {
-	background: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-modifier-hover));
-	color: var(--text-normal);
-
+	background: transparent;
+	color: var(--pic-text-accent);
+	border-color: var(--pic-accent);
 }
 
 .pic-file-tag-focus:hover {
-	background: color-mix(in srgb, var(--interactive-accent) 32%, var(--background-modifier-hover));
+	background: var(--pic-accent-soft);
 	transform: scale(1.04);
 }
 
@@ -1054,7 +1192,7 @@
 }
 
 .pic-dedup-hash {
-	background: var(--background-secondary);
+	background: var(--pic-bg-secondary);
 	font-weight: 500;
 }
 
@@ -1073,12 +1211,13 @@
 	position: fixed;
 	inset: 0;
 	z-index: 1000;
-	background: rgba(0, 0, 0, 0.85);
+	background: var(--pic-overlay);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	cursor: pointer;
-	backdrop-filter: blur(4px);
+	backdrop-filter: blur(6px);
+	-webkit-backdrop-filter: blur(6px);
 }
 
 .pic-preview-img {
@@ -1086,6 +1225,7 @@
 	max-height: 90vh;
 	object-fit: contain;
 	border-radius: var(--pic-radius-card);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 	transition: transform 0.1s ease;
 	cursor: default;
 }
@@ -1207,18 +1347,18 @@
 /* 触屏：hover 不可用，行内按钮常驻 + active 反馈 */
 @media (hover: none) {
 	.workspace-leaf-content .pic-item .pic-actions { opacity: 1; }
-	.pic-collapsible-header:active { background: var(--background-modifier-hover); }
-	.pic-btn-sm:active           { background: var(--background-modifier-hover); }
-	.pic-part-clear-btn:active   { color: var(--text-error); background: var(--background-modifier-hover); }
-	.pic-dir-header:active       { background: var(--background-modifier-hover); }
-	.pic-item:active             { background: var(--background-modifier-hover); }
+	.pic-collapsible-header:active { background: var(--pic-bg-hover); }
+	.pic-btn-sm:active           { background: var(--pic-bg-hover); }
+	.pic-part-clear-btn:active   { color: var(--pic-error); background: var(--pic-bg-hover); }
+	.pic-dir-header:active       { background: var(--pic-bg-hover); }
+	.pic-item:active             { background: var(--pic-bg-hover); }
 	.pic-item:active .pic-actions { opacity: 1; }
 	.pic-thumb-clickable:active  { opacity: 0.8; }
-	.pic-path.clickable:active   { color: var(--text-normal); }
-	.pic-file-tag:active         { background: var(--background-modifier-hover); }
-	.pic-refresh-btn:active      { background: var(--background-modifier-hover); }
-	.pic-search-clear:active     { background: var(--background-modifier-hover); }
-	.pic-guide-header:active     { background: var(--background-modifier-hover); }
+	.pic-path.clickable:active   { color: var(--pic-text); }
+	.pic-file-tag:active         { background: var(--pic-bg-hover); }
+	.pic-refresh-btn:active      { background: var(--pic-bg-hover); }
+	.pic-search-clear:active     { background: var(--pic-bg-hover); }
+	.pic-guide-header:active     { background: var(--pic-bg-hover); }
 }
 
 /* 触屏：按钮 + 间距适配 */
@@ -1258,7 +1398,7 @@
 	font-size: 18px;
 	font-weight: 600;
 	margin: 0 0 12px 0;
-	color: var(--text-normal);
+	color: var(--pic-text);
 }
 
 /* 危险确认弹窗按钮行：用 className 代替内联 style（官方 no-static-styles-assignment） */
@@ -1267,6 +1407,113 @@
 	justify-content: flex-end;
 	gap: 8px;
 	margin-top: 16px;
+}
+
+/* ==================== 设置页原生控件适配 ====================
+   设置页内 Obsidian 原生 .setting-item-control 下的 input/select/button
+   未被 pic 类包裹，需覆盖为莫兰迪配色，避免浅色蓝边、深色白底突兀
+   统一用 .pic-settings 根类覆盖（含设置页根容器及其下所有卡片/折叠块） */
+.pic-settings, .pic-settings * {
+	--input-bg: var(--pic-bg-primary);
+	--input-border: var(--pic-border);
+	--input-text: var(--pic-text);
+}
+.pic-settings input[type="text"],
+.pic-settings input[type="password"],
+.pic-settings input[type="number"],
+.pic-settings select {
+	background: var(--pic-bg-primary);
+	border: 1px solid var(--pic-border);
+	color: var(--pic-text);
+	border-radius: var(--pic-radius-btn);
+	padding: 6px 8px;
+	font-size: 13px;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pic-settings input[type="text"]:focus,
+.pic-settings input[type="password"]:focus,
+.pic-settings input[type="number"]:focus,
+.pic-settings select:focus {
+	border-color: var(--pic-accent);
+	box-shadow: 0 0 0 3px var(--pic-accent-soft);
+	outline: none;
+}
+.pic-settings input::placeholder {
+	color: var(--pic-text-muted);
+	opacity: 0.7;
+}
+.pic-settings button {
+	background: var(--pic-bg-primary);
+	border: 1px solid var(--pic-border);
+	color: var(--pic-text);
+	border-radius: var(--pic-radius-btn);
+	padding: 6px 16px;
+	font-size: 13px;
+	cursor: pointer;
+	transition: background 0.12s, border-color 0.12s;
+}
+.pic-settings button:hover {
+	background: var(--pic-bg-hover);
+	border-color: var(--pic-border-hover);
+}
+.pic-settings button.mod-cta {
+	background: var(--pic-accent);
+	border-color: var(--pic-accent);
+	color: #ffffff;
+}
+.pic-settings button.mod-cta:hover {
+	background: var(--pic-text-accent);
+	border-color: var(--pic-text-accent);
+}
+.pic-settings button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* 设置页内 Obsidian 原生开关（addToggle 生成的 .checkbox-container）适配为莫兰迪风格
+   统一尺寸为 36×20，与自定义 .pic-toggle-switch 完全一致
+   关键：不用实体 border（会挤缩内容区导致圆点错位），改用 inset 内阴影画边；
+   显式重置圆点 top:2px 覆盖 Obsidian 默认 top:3px，避免垂直偏移；
+   补 vertical-align/line-height:0 消除行内基线差异，与下方自定义开关严格对齐 */
+.pic-settings .checkbox-container {
+	position: relative;
+	display: inline-block;
+	vertical-align: middle;
+	line-height: 0;
+	width: 36px;
+	height: 20px;
+	border-radius: 20px;
+	padding: 0;
+	border: none;
+	box-sizing: border-box;
+	box-shadow: inset 0 0 0 1px var(--pic-border);
+	background: var(--pic-toggle-off);
+	transition: background 0.3s, box-shadow 0.3s;
+}
+.pic-settings .checkbox-container:after {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	bottom: auto;
+	height: 16px;
+	width: 16px;
+	margin: 0;
+	background: var(--pic-toggle-knob);
+	border-radius: 50%;
+	transition: transform 0.3s;
+	box-sizing: border-box;
+}
+.pic-settings .checkbox-container.is-enabled {
+	background: var(--pic-toggle-on);
+	box-shadow: inset 0 0 0 1px var(--pic-toggle-on);
+}
+.pic-settings .checkbox-container.is-enabled:after {
+	transform: translateX(16px);
+}
+/* 深色模式：关闭态轨道与背景对比偏弱，内阴影边框稍加深强化边界 */
+.theme-dark .pic-settings .checkbox-container:not(.is-enabled) {
+	box-shadow: inset 0 0 0 1px var(--pic-border-hover);
 }
 
 /* hot reload trigger */

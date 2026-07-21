@@ -132,7 +132,7 @@ export function getTopBedIcon(urls: string[], gray = false): string {
 		}
 	}
 	const icon = getBedFaviconSvg(topBed);
-	return gray ? icon.replace(/fill="[^"]*"/g, 'fill="#9CA3AF"') : icon;
+	return gray ? icon.replace(/fill="[^"]*"/g, 'fill="currentColor"') : icon;
 }
 
 /** 获取文件扩展名 */

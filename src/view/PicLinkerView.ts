@@ -1093,7 +1093,7 @@ export class PicLinkerView extends ItemView {
 		}
 		if (localUnreferenced.length === 0) return;
 
-		const grayIcon = LOCAL_ICON_SVG.replace(/#7C3AED/g, "#9CA3AF");
+		const grayIcon = LOCAL_ICON_SVG.replace(/#7C3AED/g, "currentColor");
 		const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "local-unref", grayIcon, "本地未引用图片", localUnreferenced.length, SelectionSection.LocalUnref);
 		const actions = header.querySelector<HTMLElement>(".pic-part-actions");
 		if (actions) {
@@ -1137,8 +1137,8 @@ export class PicLinkerView extends ItemView {
 	private renderNotFoundSection(el: HTMLElement, notFoundImages: ImageLink[]) {
 		if (!this.plugin.settings.showNotFoundImages || notFoundImages.length === 0) return;
 
-		// P2-13: 使用主题危险色变量适配暗色主题（Obsidian 提供 --text-danger，缺失时回退 #EF4444）
-		const notFoundIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--text-danger, #EF4444)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+		// P2-13: 使用主题危险色变量适配暗色主题
+		const notFoundIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--pic-error)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
 		const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "not-found", notFoundIcon, "未找到图片", notFoundImages.length, SelectionSection.NotFound);
 		// 操作按钮由 ActionsRenderer.updateSectionActions 动态管理（来自 getLocalActions[2]）
 		// 清除选中按钮需在此处创建一次，后续 updateSectionActions 会保留它
@@ -1159,7 +1159,7 @@ export class PicLinkerView extends ItemView {
 		if (!this.plugin.settings.showSameNameFiles || filteredSameName.length === 0) return;
 		const totalItems = filteredSameName.reduce((sum, g) => sum + g.items.length, 0);
 
-		const sameNameIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+		const sameNameIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--pic-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
 		const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "same-name", sameNameIcon, "同名文件", totalItems, SelectionSection.SameName);
 		const actions = header.querySelector<HTMLElement>(".pic-part-actions");
 		if (actions) {
@@ -1181,7 +1181,7 @@ export class PicLinkerView extends ItemView {
 			: this.dedupGroups;
 		if (!this.plugin.settings.showDuplicates || filteredDedup.length === 0) return;
 
-		const dedupIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>`;
+		const dedupIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--pic-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>`;
 		const totalItems = filteredDedup.reduce((sum, g) => sum + g.items.length, 0);
 		const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "duplicates", dedupIcon, "重复图片", totalItems, SelectionSection.Dedup);
 		const actions = header.querySelector<HTMLElement>(".pic-part-actions");
@@ -1234,7 +1234,7 @@ export class PicLinkerView extends ItemView {
 			if (count > maxCount) { maxCount = count; topBed = bt; }
 		}
 		const icon = getBedFaviconSvg(topBed);
-		return gray ? icon.replace(/fill="[^"]*"/g, 'fill="#9CA3AF"') : icon;
+		return gray ? icon.replace(/fill="[^"]*"/g, 'fill="currentColor"') : icon;
 	}
 
 	/** 添加云端图片操作按钮 */

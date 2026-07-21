@@ -136,7 +136,7 @@ function nodeFetch(
 					typeof options.body === "string"
 						? Buffer.from(options.body, "utf-8")
 						: Buffer.from(options.body);
-				(reqOpts.headers as Record<string, string>)["Content-Length"] = String(bodyData.length);
+				reqOpts.headers["Content-Length"] = String(bodyData.length);
 			}
 		}
 		const req = client.request(reqOpts, (res: NodeHttpResponse) => {

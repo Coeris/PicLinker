@@ -644,7 +644,7 @@ export default class PicLinkerPlugin extends Plugin {
 
 		// 输出结果
 		const summary = `PicLinker 诊断报告\n${"─".repeat(30)}\n${results.join("\n")}\n${"─".repeat(30)}\n通过: ${results.filter(r => r.startsWith("✅")).length}/${results.length}`;
-		console.info("[PicLinker] 诊断报告已生成");
+		// 诊断结果仅通过 Notice 展示，不输出到 console
 		new Notice(summary, 15000);
 	}
 
