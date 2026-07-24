@@ -291,6 +291,9 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		const content = collapsible.createDiv({ cls: "pic-collapsible-content" });
 		collapsible.classList.add("is-collapsed");
 
+		// 安全提示
+		content.createDiv({ cls: "pic-webdav-security-hint", text: "⚠ 同步数据包含图床凭据，请确保 WebDAV 服务器为你信任的私有服务，勿使用公共服务器。" });
+
 		// 服务器配置分组
 		content.createDiv({ cls: "pic-setting-category-title", text: "服务器配置" });
 

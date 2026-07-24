@@ -1,5 +1,7 @@
 import { sanitizeHTMLToDom, App } from "obsidian";
 import { ImageBedType, LazyRenderableElement } from "../../types";
+import { extractFileName } from "../../comparator/CloudComparator";
+import { detectBedTypeFromUrl, getBedFaviconSvg } from "../../icons";
 
 /**
  * 统一同步分区标题条的边框（内联样式直接生效，绕过 CSS 级联与 !important 冲突）。
@@ -23,8 +25,6 @@ export function syncHeaderBorder(header: HTMLElement, content: HTMLElement): voi
 		header.setCssStyles({ border: "1px solid var(--background-modifier-border)", borderBottom: "none" });
 	}
 }
-import { extractFileName } from "../../comparator/CloudComparator";
-import { detectBedTypeFromUrl, getBedFaviconSvg } from "../../icons";
 
 /**
  * 安全的 HTML 注入：使用 Obsidian 内置 sanitizeHTMLToDom。

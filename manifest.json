@@ -1,7 +1,7 @@
 {
   "id": "piclinker",
   "name": "PicLinker",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "minAppVersion": "1.8.7",
   "description": "A vault-wide image asset manager covering scanning, deduplication, comparison, and batch operations.",
   "author": "Coeris",

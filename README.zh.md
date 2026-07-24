@@ -4,7 +4,9 @@
 
 一款面向 Obsidian 的全库图片资产管理插件，覆盖扫描、去重、比对与批量操作等核心能力。
 
-![主面板](screenshots/01-main-panel.jpg)
+**主面板：八区总览**
+
+![主面板：八区总览](screenshots/01-main-panel.jpg)
 
 ## 快速开始
 
@@ -17,6 +19,10 @@
 前往 [Releases](https://github.com/Coeris/PicLinker/releases) 下载 `main.js` + `manifest.json` + `styles.css`，放入 vault 的 `.obsidian/plugins/PicLinker/` 目录，重启启用即可。
 
 ## 核心功能
+
+**展开视图：目录树与引用标签**
+
+![展开视图：目录树与引用标签](screenshots/02-expanded-view.jpg)
 
 ### 🔍 全库扫描与实时响应
 
@@ -110,6 +116,10 @@ SHA-256 完全相同（不依赖文件名）。去重需手动触发：点击工
 
 ## 配置
 
+**设置面板：显示选项与图床管理**
+
+![设置面板：显示选项与图床管理](screenshots/03-settings.jpg)
+
 详细的图床配置（GitHub / 阿里云 OSS / 腾讯云 COS / SM.MS）、WebDAV 同步及通用设置请参阅 **[`CONFIG.md`](CONFIG.md)**。
 
 ## 支持的图片语法
@@ -141,10 +151,6 @@ image-path: blog/2026/  # 云端路径前缀
 | `打开图床管家` | 打开主界面 |
 | `刷新图片扫描` | 重新扫描全库 |
 | `运行诊断测试` | 运行功能诊断 |
-
-## 面板截图
-
-![空白文件夹清理](screenshots/03-empty-folders.jpg)
 
 ## 开发
 

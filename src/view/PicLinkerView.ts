@@ -25,6 +25,9 @@ import { ActionsRenderer } from "./components/ActionsRenderer";
 
 export const VIEW_TYPE_PIC_LINKER = "pic-linker";
 
+/** 图床类型排序（UI 展示顺序统一用此常量） */
+const BED_TYPE_ORDER: ImageBedType[] = [ImageBedType.GitHub, ImageBedType.Aliyun, ImageBedType.Tencent, ImageBedType.Other];
+
 /** 同名文件条目类型 */
 type SameNameItem = { source: "local" | "cloud"; path: string; url?: string; bedType?: ImageBedType; count?: number; section?: string };
 
@@ -80,6 +83,8 @@ export class PicLinkerView extends ItemView {
 	private cloudReferenced: ImageLink[] = [];
 	/** 去重结果 */
 	private dedupGroups: DedupGroup[] = [];
+	/** 去重执行防重入标志 */
+	private isDedupRunning = false;
 	/** 同名文件数据：按文件名分组，每组包含本地和/或云端条目 */
 	private sameNameGroups: Array<{
 		fileName: string;
@@ -659,6 +664,7 @@ export class PicLinkerView extends ItemView {
 			this.vaultImagesMap = await this.plugin.getVaultImages();
 			this.localImages = Array.from(this.vaultImagesMap.values());
 			this.unreferencedCache = null;
+			this.emptyFoldersCache = null;
 			this.localImages.sort((a, b) => (a.resolvedPath || a.pure).localeCompare(b.resolvedPath || b.pure));
 			this.fileNameRefCount = buildFileNameRefCount(this.localImages);
 			this.cleanupDedupGroups();
@@ -948,6 +954,10 @@ export class PicLinkerView extends ItemView {
 		const el = this.containerEl.querySelector<HTMLElement>("#pic-main-list");
 		if (!el) return;
 
+		// 保存滚动位置（DOM 重建后恢复）
+		const scrollContainer = this.containerEl.parentElement || this.containerEl;
+		const savedScrollTop = scrollContainer.scrollTop;
+
 		// 保存选中状态（DOM 重建后恢复）
 		const savedPaths = savedCheckedPaths || this.collectCheckedPaths();
 
@@ -996,6 +1006,9 @@ export class PicLinkerView extends ItemView {
 		this.restoreSelectionState(savedPaths);
 		this.actions.updateLocalActions();
 		this.setupStickyHeaders();
+
+		// 恢复滚动位置
+		scrollContainer.scrollTop = savedScrollTop;
 	}
 
 	/** 收集当前所有选中的路径（用于 DOM 重建后恢复） */
@@ -1221,22 +1234,6 @@ export class PicLinkerView extends ItemView {
 		if (expanded) _renderEmpty(); else setLazyRenderFn(content, _renderEmpty);
 	}
 
-	/** 获取 URL 列表中最多的图床图标 */
-	private getTopBedIcon(urls: string[], gray = false): string {
-		const bedCounts = new Map<ImageBedType, number>();
-		for (const url of urls) {
-			const bt = detectBedTypeFromUrl(url) || ImageBedType.Other;
-			bedCounts.set(bt, (bedCounts.get(bt) || 0) + 1);
-		}
-		let topBed: ImageBedType = ImageBedType.Other;
-		let maxCount = 0;
-		for (const [bt, count] of bedCounts) {
-			if (count > maxCount) { maxCount = count; topBed = bt; }
-		}
-		const icon = getBedFaviconSvg(topBed);
-		return gray ? icon.replace(/fill="[^"]*"/g, 'fill="currentColor"') : icon;
-	}
-
 	/** 添加云端图片操作按钮 */
 	private addCloudImageActions(actions: HTMLElement, cloudReferenced: ImageLink[]) {
 		const count = this.selection.getCount(SelectionSection.CloudImages);
@@ -1414,7 +1411,7 @@ export class PicLinkerView extends ItemView {
 		}
 
 		// 按图床类型排序：GitHub → 阿里云 → 腾讯云 → 其他
-		const order = [ImageBedType.GitHub, ImageBedType.Aliyun, ImageBedType.Tencent, ImageBedType.Other];
+		const order = BED_TYPE_ORDER;
 		const sorted = Array.from(groups.entries()).sort((a, b) => {
 			const ia = order.indexOf(a[0]);
 			const ib = order.indexOf(b[0]);
@@ -1769,7 +1766,7 @@ export class PicLinkerView extends ItemView {
 		}
 
 		// 按图床类型排序：GitHub → 阿里云 → 腾讯云 → 其他
-		const order = [ImageBedType.GitHub, ImageBedType.Aliyun, ImageBedType.Tencent, ImageBedType.Other];
+		const order = BED_TYPE_ORDER;
 		const sorted = Array.from(groups.entries()).sort((a, b) => {
 			const ia = order.indexOf(a[0]);
 			const ib = order.indexOf(b[0]);
@@ -1843,7 +1840,13 @@ export class PicLinkerView extends ItemView {
 
 	/** 执行去重扫描 */
 	private async runDedup(selectedOnly: boolean) {
+		if (this.isDedupRunning) {
+			new Notice("去重正在执行中，请稍候...");
+			return;
+		}
+		this.isDedupRunning = true;
 
+		try {
 		// 等待云端数据加载完成（如果正在加载中）
 		if (this.cloudLoading) {
 			new Notice("正在等待云端数据加载完成...");
@@ -2143,6 +2146,9 @@ export class PicLinkerView extends ItemView {
 		} else {
 			new Notice(`发现 ${groups.length} 组重复图片`);
 		}
+		} finally {
+			this.isDedupRunning = false;
+		}
 	}
 
 	/** 渲染去重分组列表 */
@@ -2151,31 +2157,8 @@ export class PicLinkerView extends ItemView {
 		for (const group of groups) {
 			const groupEl = content.createDiv({ cls: "pic-dedup-group" });
 
-			// 组标题：与其他区域一致的 .pic-item 布局
+			// 组标题：显示哈希值和数量，不显示缩略图
 			const groupHeader = groupEl.createDiv({ cls: "pic-item pic-dedup-hash" });
-			// 取第一个图片项作为组缩略图
-			const firstItem = group.items[0];
-			const ext = firstItem.path.split(".").pop()?.toLowerCase() || "";
-			if (IMAGE_EXTENSIONS.has(ext)) {
-				let thumbSrc: string | undefined;
-				if (firstItem.source === "local") {
-					const file = this.app.vault.getAbstractFileByPath(firstItem.path);
-					if (file instanceof TFile) thumbSrc = this.app.vault.getResourcePath(file);
-				} else {
-					thumbSrc = firstItem.path;
-				}
-				if (thumbSrc) {
-					const thumb = groupHeader.createEl("img", {
-						cls: "pic-thumb pic-thumb-clickable",
-						attr: { src: thumbSrc, loading: "lazy" },
-					});
-					thumb.addEventListener("error", () => { thumb.setCssStyles({ display: "none" }); });
-					thumb.addEventListener("click", (e) => {
-						e.stopPropagation();
-						showImagePreview(thumbSrc);
-					});
-				}
-			}
 			const hashDisplay = group.hash.length > 16
 				? `${group.hash.substring(0, 8)}···${group.hash.substring(group.hash.length - 8)}`
 				: group.hash;
@@ -2305,6 +2288,7 @@ export class PicLinkerView extends ItemView {
 						group.items = group.items.filter(i => i !== item);
 						this.dedupGroups = this.dedupGroups.filter(g => g.items.length >= 2);
 						this.selection.deselect(SelectionSection.Dedup, itemKey);
+					this.selection.clear(SelectionSection.DedupTags);
 						this.saveDedupGroups();
 						this.renderContent();
 					} else {
@@ -2509,6 +2493,7 @@ export class PicLinkerView extends ItemView {
 		this.dedupGroups = this.dedupGroups.filter(g => g.items.length >= 2);
 
 		this.selection.clear(SelectionSection.Dedup);
+		this.selection.clear(SelectionSection.DedupTags);
 		this.saveDedupGroups();
 		await this.refresh();
 
@@ -2659,14 +2644,11 @@ export class PicLinkerView extends ItemView {
 	/**
 	 * 获取本地未引用的图片（库中存在但未被任何笔记引用的图片文件）
 	 */
-	/** 未引用图片缓存（localImages 变更时失效） */
+	/** 未引用图片缓存（localImages 变更时置 null 失效） */
 	private unreferencedCache: TFile[] | null = null;
-	/** unreferencedCache 版本号，避免两次 refresh 间返回过期数据 */
-	private unreferencedCacheVersion = 0;
-	private _unreferencedCacheBuiltAt = -1;
 
 	private getLocalUnreferencedImages(): TFile[] {
-		if (this.unreferencedCache !== null && this._unreferencedCacheBuiltAt === this.unreferencedCacheVersion) return this.unreferencedCache;
+		if (this.unreferencedCache !== null) return this.unreferencedCache;
 		// 基于 path 精确判断是否被引用：按文件名误判会隐藏「同名但未引用」的文件（如
 		// assets/a.png 被引用、assets/backup/b.png 未引用且同名 → b.png 会被错误隐藏）。
 		const referencedPaths = new Set<string>();
@@ -2681,7 +2663,6 @@ export class PicLinkerView extends ItemView {
 			if (referencedPaths.has(f.path)) return false;
 			return true;
 		});
-		this._unreferencedCacheBuiltAt = this.unreferencedCacheVersion;
 		return this.unreferencedCache;
 	}
 
@@ -2707,11 +2688,27 @@ export class PicLinkerView extends ItemView {
 			(f): f is TFolder => f instanceof TFolder
 		);
 
+		// 预建路径前缀集合，避免 O(n*m) 遍历
+		const filePaths = new Set(allFiles.map(f => f.path));
+		const folderPaths = new Set(allFolders.map(f => f.path));
+		const nonEmptyFolders = new Set<string>();
+		// 任何文件或子文件夹的存在意味着其所有祖先目录都非空
+		for (const fp of filePaths) {
+			const parts = fp.split("/");
+			for (let i = 1; i < parts.length; i++) {
+				nonEmptyFolders.add(parts.slice(0, i).join("/"));
+			}
+		}
+		for (const fp of folderPaths) {
+			const parts = fp.split("/");
+			for (let i = 1; i < parts.length; i++) {
+				nonEmptyFolders.add(parts.slice(0, i).join("/"));
+			}
+		}
+
 		for (const folder of allFolders) {
 			if (!folder.path || folder.path === "/" || folder.path.startsWith(".")) continue;
-			const hasContent = allFiles.some(f => f.path.startsWith(folder.path + "/")) ||
-				allFolders.some(f => f.path.startsWith(folder.path + "/") && f.path !== folder.path);
-			if (!hasContent) {
+			if (!nonEmptyFolders.has(folder.path)) {
 				emptyFolders.push(folder.path);
 			}
 		}

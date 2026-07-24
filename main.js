@@ -802,6 +802,7 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
     header.createSpan({ cls: "pic-collapsible-subtitle", text: "" });
     const content = collapsible.createDiv({ cls: "pic-collapsible-content" });
     collapsible.classList.add("is-collapsed");
+    content.createDiv({ cls: "pic-webdav-security-hint", text: "\u26A0 \u540C\u6B65\u6570\u636E\u5305\u542B\u56FE\u5E8A\u51ED\u636E\uFF0C\u8BF7\u786E\u4FDD WebDAV \u670D\u52A1\u5668\u4E3A\u4F60\u4FE1\u4EFB\u7684\u79C1\u6709\u670D\u52A1\uFF0C\u52FF\u4F7F\u7528\u516C\u5171\u670D\u52A1\u5668\u3002" });
     content.createDiv({ cls: "pic-setting-category-title", text: "\u670D\u52A1\u5668\u914D\u7F6E" });
     new import_obsidian4.Setting(content).setName("\u670D\u52A1\u5668\u5730\u5740").addText((text) => {
       text.inputEl.addClass("pic-webdav-url-input");
@@ -1959,8 +1960,9 @@ var HashCache = class _HashCache {
 
 // src/view/ImagePreview.ts
 function showImagePreview(src) {
-  const overlay = activeDocument.createEl("div", { cls: "pic-preview-overlay" });
-  const img = activeDocument.createEl("img", { cls: "pic-preview-img" });
+  const rootEl = activeDocument.body || document.body;
+  const overlay = rootEl.createEl("div", { cls: "pic-preview-overlay" });
+  const img = rootEl.createEl("img", { cls: "pic-preview-img" });
   img.src = src;
   let scale = 1;
   let tx = 0;
@@ -1997,7 +1999,7 @@ function showImagePreview(src) {
   };
   const onImgError = () => {
     img.setCssStyles({ display: "none" });
-    const tip = activeDocument.createEl("div", { cls: "pic-preview-error", text: "\u26A0 \u56FE\u7247\u65E0\u6CD5\u52A0\u8F7D" });
+    const tip = rootEl.createEl("div", { cls: "pic-preview-error", text: "\u26A0 \u56FE\u7247\u65E0\u6CD5\u52A0\u8F7D" });
     overlay.appendChild(tip);
   };
   const onImgMouseDown = (e) => {
@@ -2042,7 +2044,7 @@ function showImagePreview(src) {
   img.addEventListener("mousedown", onImgMouseDown);
   img.addEventListener("error", onImgError);
   overlay.appendChild(img);
-  activeDocument.body.appendChild(overlay);
+  rootEl.appendChild(overlay);
 }
 
 // src/view/SelectionManager.ts
@@ -3745,6 +3747,7 @@ var ActionsRenderer = class {
 
 // src/view/PicLinkerView.ts
 var VIEW_TYPE_PIC_LINKER = "pic-linker";
+var BED_TYPE_ORDER = ["GitHub" /* GitHub */, "\u963F\u91CC\u4E91 OSS" /* Aliyun */, "\u817E\u8BAF\u4E91 COS" /* Tencent */, "\u5176\u4ED6\u56FE\u5E8A" /* Other */];
 var PicLinkerView = class extends import_obsidian9.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
@@ -3785,6 +3788,8 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     this.cloudReferenced = [];
     /** 去重结果 */
     this.dedupGroups = [];
+    /** 去重执行防重入标志 */
+    this.isDedupRunning = false;
     /** 同名文件数据：按文件名分组，每组包含本地和/或云端条目 */
     this.sameNameGroups = [];
     /** 空白文件夹区域是否被清除（持久化到 app localStorage） */
@@ -3806,11 +3811,8 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     /**
      * 获取本地未引用的图片（库中存在但未被任何笔记引用的图片文件）
      */
-    /** 未引用图片缓存（localImages 变更时失效） */
+    /** 未引用图片缓存（localImages 变更时置 null 失效） */
     this.unreferencedCache = null;
-    /** unreferencedCache 版本号，避免两次 refresh 间返回过期数据 */
-    this.unreferencedCacheVersion = 0;
-    this._unreferencedCacheBuiltAt = -1;
     this.plugin = plugin;
     this.vaultName = plugin.app.vault.getName();
     this.dedupService = new DedupService(this.app, (key) => this.getStorageKey(key));
@@ -4254,6 +4256,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       this.vaultImagesMap = await this.plugin.getVaultImages();
       this.localImages = Array.from(this.vaultImagesMap.values());
       this.unreferencedCache = null;
+      this.emptyFoldersCache = null;
       this.localImages.sort((a, b) => (a.resolvedPath || a.pure).localeCompare(b.resolvedPath || b.pure));
       this.fileNameRefCount = buildFileNameRefCount(this.localImages);
       this.cleanupDedupGroups();
@@ -4500,6 +4503,8 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     if (this.isClosed) return;
     const el = this.containerEl.querySelector("#pic-main-list");
     if (!el) return;
+    const scrollContainer = this.containerEl.parentElement || this.containerEl;
+    const savedScrollTop = scrollContainer.scrollTop;
     const savedPaths = savedCheckedPaths || this.collectCheckedPaths();
     el.empty();
     this.currentItemEl = null;
@@ -4533,6 +4538,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     this.restoreSelectionState(savedPaths);
     this.actions.updateLocalActions();
     this.setupStickyHeaders();
+    scrollContainer.scrollTop = savedScrollTop;
   }
   /** 收集当前所有选中的路径（用于 DOM 重建后恢复） */
   collectCheckedPaths() {
@@ -4755,24 +4761,6 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     if (expanded) _renderEmpty();
     else setLazyRenderFn(content, _renderEmpty);
   }
-  /** 获取 URL 列表中最多的图床图标 */
-  getTopBedIcon(urls, gray = false) {
-    const bedCounts = /* @__PURE__ */ new Map();
-    for (const url of urls) {
-      const bt = detectBedTypeFromUrl(url) || "\u5176\u4ED6\u56FE\u5E8A" /* Other */;
-      bedCounts.set(bt, (bedCounts.get(bt) || 0) + 1);
-    }
-    let topBed = "\u5176\u4ED6\u56FE\u5E8A" /* Other */;
-    let maxCount = 0;
-    for (const [bt, count] of bedCounts) {
-      if (count > maxCount) {
-        maxCount = count;
-        topBed = bt;
-      }
-    }
-    const icon = getBedFaviconSvg(topBed);
-    return gray ? icon.replace(/fill="[^"]*"/g, 'fill="currentColor"') : icon;
-  }
   /** 添加云端图片操作按钮 */
   addCloudImageActions(actions, cloudReferenced) {
     const count = this.selection.getCount("cloudImages" /* CloudImages */);
@@ -4926,7 +4914,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       if (!groups.has(bedType)) groups.set(bedType, []);
       groups.get(bedType).push(img);
     }
-    const order = ["GitHub" /* GitHub */, "\u963F\u91CC\u4E91 OSS" /* Aliyun */, "\u817E\u8BAF\u4E91 COS" /* Tencent */, "\u5176\u4ED6\u56FE\u5E8A" /* Other */];
+    const order = BED_TYPE_ORDER;
     const sorted = Array.from(groups.entries()).sort((a, b) => {
       const ia = order.indexOf(a[0]);
       const ib = order.indexOf(b[0]);
@@ -5221,7 +5209,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       if (!groups.has(bt)) groups.set(bt, []);
       groups.get(bt).push(file);
     }
-    const order = ["GitHub" /* GitHub */, "\u963F\u91CC\u4E91 OSS" /* Aliyun */, "\u817E\u8BAF\u4E91 COS" /* Tencent */, "\u5176\u4ED6\u56FE\u5E8A" /* Other */];
+    const order = BED_TYPE_ORDER;
     const sorted = Array.from(groups.entries()).sort((a, b) => {
       const ia = order.indexOf(a[0]);
       const ib = order.indexOf(b[0]);
@@ -5281,263 +5269,247 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   // ==================== 去重功能 ====================
   /** 执行去重扫描 */
   async runDedup(selectedOnly) {
-    if (this.cloudLoading) {
-      new import_obsidian9.Notice("\u6B63\u5728\u7B49\u5F85\u4E91\u7AEF\u6570\u636E\u52A0\u8F7D\u5B8C\u6210...");
-      const loaded = await this.waitForCloudData(3e4);
-      if (!loaded) {
-        new import_obsidian9.Notice("\u4E91\u7AEF\u6570\u636E\u52A0\u8F7D\u8D85\u65F6\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5");
-        return;
-      }
+    if (this.isDedupRunning) {
+      new import_obsidian9.Notice("\u53BB\u91CD\u6B63\u5728\u6267\u884C\u4E2D\uFF0C\u8BF7\u7A0D\u5019...");
+      return;
     }
-    const selectedLocalPaths = /* @__PURE__ */ new Set();
-    const selectedCloudNames = /* @__PURE__ */ new Set();
-    const selectedCloudPures = /* @__PURE__ */ new Set();
-    if (selectedOnly) {
-      const localImagesSelected = this.selection.getSelected("localImages" /* LocalImages */);
-      for (const path of localImagesSelected) {
-        selectedLocalPaths.add(path);
-      }
-      const cloudImagesSelected = this.selection.getSelected("cloudImages" /* CloudImages */);
-      for (const path of cloudImagesSelected) {
-        selectedCloudPures.add(path);
-      }
-      const localUnrefSelected = this.selection.getSelected("localUnref" /* LocalUnref */);
-      for (const path of localUnrefSelected) {
-        selectedLocalPaths.add(path);
-      }
-      const cloudFilesSelected = this.selection.getSelected("cloudFiles" /* CloudFiles */);
-      for (const path of cloudFilesSelected) {
-        selectedCloudNames.add(path);
-      }
-      const notFoundSelected = this.selection.getSelected("notFound" /* NotFound */);
-      for (const path of notFoundSelected) {
-        selectedLocalPaths.add(path);
-      }
-      const localTagsSelected = this.selection.getSelected("localTags" /* LocalTags */);
-      const cloudTagsSelected = this.selection.getSelected("cloudTags" /* CloudTags */);
-      const sameNameTagsSelected = this.selection.getSelected("sameNameTags" /* SameNameTags */);
-      const dedupTagsSelected = this.selection.getSelected("dedupTags" /* DedupTags */);
-      for (const tagKey of [...localTagsSelected, ...cloudTagsSelected, ...sameNameTagsSelected, ...dedupTagsSelected]) {
-        const parsed = parseTagKey(tagKey);
-        if (parsed) selectedLocalPaths.add(parsed.keyPrefix);
-      }
-      if (selectedLocalPaths.size === 0 && selectedCloudNames.size === 0 && selectedCloudPures.size === 0) {
-        new import_obsidian9.Notice("\u672A\u9009\u4E2D\u56FE\u7247\uFF0C\u53CC\u51FB\u300C\u53BB\u91CD\u300D\u6309\u94AE\u53EF\u6267\u884C\u5168\u5E93\u53BB\u91CD");
-        return;
-      }
-    } else {
-    }
-    const localHashMap = /* @__PURE__ */ new Map();
-    const allLocalImages = [];
-    const addedPaths = /* @__PURE__ */ new Set();
-    for (const img of this.localImages) {
-      if (img.type !== "local") continue;
-      if (selectedOnly && selectedLocalPaths.size > 0 && !selectedLocalPaths.has(img.pure)) continue;
-      allLocalImages.push(img);
-      addedPaths.add(img.resolvedPath || img.pure);
-    }
-    const unreferenced = this.getLocalUnreferencedImages();
-    for (const file of unreferenced) {
-      if (selectedOnly && selectedLocalPaths.size > 0 && !selectedLocalPaths.has(file.path)) continue;
-      if (addedPaths.has(file.path)) continue;
-      allLocalImages.push({
-        raw: `![[${file.name}]]`,
-        pure: file.path,
-        params: "",
-        type: "local",
-        count: 0,
-        files: [],
-        resolvedPath: file.path,
-        found: true
-      });
-      addedPaths.add(file.path);
-    }
-    for (const img of allLocalImages) {
-      const filePath = img.resolvedPath || img.pure;
-      const file = this.app.vault.getAbstractFileByPath(filePath);
-      if (!(file instanceof import_obsidian9.TFile)) {
-        continue;
-      }
-      let hash = null;
-      const cached = this.plugin.dedupCache.get(filePath);
-      if (cached && cached.mtime === file.stat.mtime) {
-        hash = cached.hash;
-      } else {
-        try {
-          const newHash = await HashCache.computeHash(file, this.app);
-          if (cached && cached.hash === newHash) {
-            this.plugin.dedupCache.set({ ...cached, mtime: file.stat.mtime, computedAt: Date.now() });
-          } else {
-            this.plugin.dedupCache.set({ hash: newHash, source: "local", path: filePath, mtime: file.stat.mtime, computedAt: Date.now() });
-          }
-          hash = newHash;
-        } catch (e) {
-          console.warn("[PicLinker] \u8BA1\u7B97\u54C8\u5E0C\u5931\u8D25:", filePath, e);
-          continue;
+    this.isDedupRunning = true;
+    try {
+      if (this.cloudLoading) {
+        new import_obsidian9.Notice("\u6B63\u5728\u7B49\u5F85\u4E91\u7AEF\u6570\u636E\u52A0\u8F7D\u5B8C\u6210...");
+        const loaded = await this.waitForCloudData(3e4);
+        if (!loaded) {
+          new import_obsidian9.Notice("\u4E91\u7AEF\u6570\u636E\u52A0\u8F7D\u8D85\u65F6\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5");
+          return;
         }
       }
-      if (!localHashMap.has(hash)) localHashMap.set(hash, []);
-      localHashMap.get(hash).push(img);
-    }
-    const cloudHashMap = /* @__PURE__ */ new Map();
-    const cloudFilesToProcess = [];
-    for (const file of this.cloudFiles) {
-      if (file.isDirectory) continue;
+      const selectedLocalPaths = /* @__PURE__ */ new Set();
+      const selectedCloudNames = /* @__PURE__ */ new Set();
+      const selectedCloudPures = /* @__PURE__ */ new Set();
       if (selectedOnly) {
-        const cloudImgHit = selectedCloudPures.size > 0 && selectedCloudPures.has(file.url);
-        if (selectedCloudNames.size === 0 && this.selection.getCount("cloudFiles" /* CloudFiles */) === 0 && !cloudImgHit) continue;
-        const byCloudFiles = selectedCloudNames.size > 0 && !selectedCloudNames.has(file.prefix || file.name) && !this.selection.isSelected("cloudFiles" /* CloudFiles */, file.prefix || file.name);
-        if (!cloudImgHit && byCloudFiles) continue;
-      }
-      const cached = this.plugin.dedupCache.get(file.url);
-      if (cached) {
-        if (!cloudHashMap.has(cached.hash)) cloudHashMap.set(cached.hash, []);
-        cloudHashMap.get(cached.hash).push(file);
-      } else {
-        cloudFilesToProcess.push(file);
-      }
-    }
-    if (cloudFilesToProcess.length > 0) {
-      const sizeMap = /* @__PURE__ */ new Map();
-      for (const file of cloudFilesToProcess) {
-        try {
-          const resp = await (0, import_obsidian9.requestUrl)({ url: file.url, method: "HEAD" });
-          const size = parseInt(resp.headers["content-length"] || "0", 10);
-          if (size > 0) {
-            if (!sizeMap.has(size)) sizeMap.set(size, []);
-            sizeMap.get(size).push(file);
-          }
-        } catch (e) {
-          if (!sizeMap.has(0)) sizeMap.set(0, []);
-          sizeMap.get(0).push(file);
+        const localImagesSelected = this.selection.getSelected("localImages" /* LocalImages */);
+        for (const path of localImagesSelected) {
+          selectedLocalPaths.add(path);
         }
+        const cloudImagesSelected = this.selection.getSelected("cloudImages" /* CloudImages */);
+        for (const path of cloudImagesSelected) {
+          selectedCloudPures.add(path);
+        }
+        const localUnrefSelected = this.selection.getSelected("localUnref" /* LocalUnref */);
+        for (const path of localUnrefSelected) {
+          selectedLocalPaths.add(path);
+        }
+        const cloudFilesSelected = this.selection.getSelected("cloudFiles" /* CloudFiles */);
+        for (const path of cloudFilesSelected) {
+          selectedCloudNames.add(path);
+        }
+        const notFoundSelected = this.selection.getSelected("notFound" /* NotFound */);
+        for (const path of notFoundSelected) {
+          selectedLocalPaths.add(path);
+        }
+        const localTagsSelected = this.selection.getSelected("localTags" /* LocalTags */);
+        const cloudTagsSelected = this.selection.getSelected("cloudTags" /* CloudTags */);
+        const sameNameTagsSelected = this.selection.getSelected("sameNameTags" /* SameNameTags */);
+        const dedupTagsSelected = this.selection.getSelected("dedupTags" /* DedupTags */);
+        for (const tagKey of [...localTagsSelected, ...cloudTagsSelected, ...sameNameTagsSelected, ...dedupTagsSelected]) {
+          const parsed = parseTagKey(tagKey);
+          if (parsed) selectedLocalPaths.add(parsed.keyPrefix);
+        }
+        if (selectedLocalPaths.size === 0 && selectedCloudNames.size === 0 && selectedCloudPures.size === 0) {
+          new import_obsidian9.Notice("\u672A\u9009\u4E2D\u56FE\u7247\uFF0C\u53CC\u51FB\u300C\u53BB\u91CD\u300D\u6309\u94AE\u53EF\u6267\u884C\u5168\u5E93\u53BB\u91CD");
+          return;
+        }
+      } else {
       }
-      const localSizeSet = /* @__PURE__ */ new Set();
+      const localHashMap = /* @__PURE__ */ new Map();
+      const allLocalImages = [];
+      const addedPaths = /* @__PURE__ */ new Set();
+      for (const img of this.localImages) {
+        if (img.type !== "local") continue;
+        if (selectedOnly && selectedLocalPaths.size > 0 && !selectedLocalPaths.has(img.pure)) continue;
+        allLocalImages.push(img);
+        addedPaths.add(img.resolvedPath || img.pure);
+      }
+      const unreferenced = this.getLocalUnreferencedImages();
+      for (const file of unreferenced) {
+        if (selectedOnly && selectedLocalPaths.size > 0 && !selectedLocalPaths.has(file.path)) continue;
+        if (addedPaths.has(file.path)) continue;
+        allLocalImages.push({
+          raw: `![[${file.name}]]`,
+          pure: file.path,
+          params: "",
+          type: "local",
+          count: 0,
+          files: [],
+          resolvedPath: file.path,
+          found: true
+        });
+        addedPaths.add(file.path);
+      }
       for (const img of allLocalImages) {
         const filePath = img.resolvedPath || img.pure;
         const file = this.app.vault.getAbstractFileByPath(filePath);
-        if (file instanceof import_obsidian9.TFile) localSizeSet.add(file.stat.size);
-      }
-      for (const [size, files] of sizeMap) {
-        if (files.length === 1 && !localSizeSet.has(size)) continue;
-        for (const file of files) {
+        if (!(file instanceof import_obsidian9.TFile)) {
+          continue;
+        }
+        let hash = null;
+        const cached = this.plugin.dedupCache.get(filePath);
+        if (cached && cached.mtime === file.stat.mtime) {
+          hash = cached.hash;
+        } else {
           try {
-            const response = await (0, import_obsidian9.requestUrl)({ url: file.url });
-            const buffer = response.arrayBuffer;
-            const hashBytes = await crypto.subtle.digest("SHA-256", buffer);
-            const hash = Array.from(new Uint8Array(hashBytes)).map((b) => b.toString(16).padStart(2, "0")).join("");
-            this.plugin.dedupCache.set({ hash, source: "cloud", path: file.url, bedType: file.bedType, computedAt: Date.now() });
-            if (!cloudHashMap.has(hash)) cloudHashMap.set(hash, []);
-            cloudHashMap.get(hash).push(file);
+            const newHash = await HashCache.computeHash(file, this.app);
+            if (cached && cached.hash === newHash) {
+              this.plugin.dedupCache.set({ ...cached, mtime: file.stat.mtime, computedAt: Date.now() });
+            } else {
+              this.plugin.dedupCache.set({ hash: newHash, source: "local", path: filePath, mtime: file.stat.mtime, computedAt: Date.now() });
+            }
+            hash = newHash;
           } catch (e) {
-            console.warn("[PicLinker] \u4E91\u7AEF\u6587\u4EF6\u4E0B\u8F7D\u5931\u8D25\uFF0C\u8DF3\u8FC7:", file.url, e instanceof Error ? e.message : String(e));
+            console.warn("[PicLinker] \u8BA1\u7B97\u54C8\u5E0C\u5931\u8D25:", filePath, e);
             continue;
           }
         }
+        if (!localHashMap.has(hash)) localHashMap.set(hash, []);
+        localHashMap.get(hash).push(img);
       }
-    }
-    const groups = [];
-    for (const [hash, imgs] of localHashMap) {
-      if (imgs.length > 1) {
-        groups.push({
-          hash,
-          type: "local",
-          items: imgs.map((img) => ({
-            path: img.resolvedPath || img.pure,
-            source: "local",
-            referenced: img.files.length,
-            img
-          }))
-        });
+      const cloudHashMap = /* @__PURE__ */ new Map();
+      const cloudFilesToProcess = [];
+      for (const file of this.cloudFiles) {
+        if (file.isDirectory) continue;
+        if (selectedOnly) {
+          const cloudImgHit = selectedCloudPures.size > 0 && selectedCloudPures.has(file.url);
+          if (selectedCloudNames.size === 0 && this.selection.getCount("cloudFiles" /* CloudFiles */) === 0 && !cloudImgHit) continue;
+          const byCloudFiles = selectedCloudNames.size > 0 && !selectedCloudNames.has(file.prefix || file.name) && !this.selection.isSelected("cloudFiles" /* CloudFiles */, file.prefix || file.name);
+          if (!cloudImgHit && byCloudFiles) continue;
+        }
+        const cached = this.plugin.dedupCache.get(file.url);
+        if (cached) {
+          if (!cloudHashMap.has(cached.hash)) cloudHashMap.set(cached.hash, []);
+          cloudHashMap.get(cached.hash).push(file);
+        } else {
+          cloudFilesToProcess.push(file);
+        }
       }
-    }
-    for (const [hash, files] of cloudHashMap) {
-      if (files.length > 1) {
-        groups.push({
-          hash,
-          type: "cloud",
-          items: files.map((f) => ({
-            path: f.url,
-            source: "cloud",
-            bedType: f.bedType,
-            file: f
-          }))
-        });
+      if (cloudFilesToProcess.length > 0) {
+        const sizeMap = /* @__PURE__ */ new Map();
+        for (const file of cloudFilesToProcess) {
+          try {
+            const resp = await (0, import_obsidian9.requestUrl)({ url: file.url, method: "HEAD" });
+            const size = parseInt(resp.headers["content-length"] || "0", 10);
+            if (size > 0) {
+              if (!sizeMap.has(size)) sizeMap.set(size, []);
+              sizeMap.get(size).push(file);
+            }
+          } catch (e) {
+            if (!sizeMap.has(0)) sizeMap.set(0, []);
+            sizeMap.get(0).push(file);
+          }
+        }
+        const localSizeSet = /* @__PURE__ */ new Set();
+        for (const img of allLocalImages) {
+          const filePath = img.resolvedPath || img.pure;
+          const file = this.app.vault.getAbstractFileByPath(filePath);
+          if (file instanceof import_obsidian9.TFile) localSizeSet.add(file.stat.size);
+        }
+        for (const [size, files] of sizeMap) {
+          if (files.length === 1 && !localSizeSet.has(size)) continue;
+          for (const file of files) {
+            try {
+              const response = await (0, import_obsidian9.requestUrl)({ url: file.url });
+              const buffer = response.arrayBuffer;
+              const hashBytes = await crypto.subtle.digest("SHA-256", buffer);
+              const hash = Array.from(new Uint8Array(hashBytes)).map((b) => b.toString(16).padStart(2, "0")).join("");
+              this.plugin.dedupCache.set({ hash, source: "cloud", path: file.url, bedType: file.bedType, computedAt: Date.now() });
+              if (!cloudHashMap.has(hash)) cloudHashMap.set(hash, []);
+              cloudHashMap.get(hash).push(file);
+            } catch (e) {
+              console.warn("[PicLinker] \u4E91\u7AEF\u6587\u4EF6\u4E0B\u8F7D\u5931\u8D25\uFF0C\u8DF3\u8FC7:", file.url, e instanceof Error ? e.message : String(e));
+              continue;
+            }
+          }
+        }
       }
-    }
-    for (const [hash, imgs] of localHashMap) {
-      const cloudFiles = cloudHashMap.get(hash);
-      if (cloudFiles && cloudFiles.length > 0) {
-        groups.push({
-          hash,
-          type: "cross",
-          items: [
-            ...imgs.map((img) => ({
+      const groups = [];
+      for (const [hash, imgs] of localHashMap) {
+        if (imgs.length > 1) {
+          groups.push({
+            hash,
+            type: "local",
+            items: imgs.map((img) => ({
               path: img.resolvedPath || img.pure,
               source: "local",
               referenced: img.files.length,
               img
-            })),
-            ...cloudFiles.map((f) => ({
+            }))
+          });
+        }
+      }
+      for (const [hash, files] of cloudHashMap) {
+        if (files.length > 1) {
+          groups.push({
+            hash,
+            type: "cloud",
+            items: files.map((f) => ({
               path: f.url,
               source: "cloud",
               bedType: f.bedType,
               file: f
             }))
-          ]
-        });
-      }
-    }
-    if (selectedOnly) {
-      const existingHashes = new Set(this.dedupGroups.map((g) => g.hash));
-      for (const group of groups) {
-        if (!existingHashes.has(group.hash)) {
-          this.dedupGroups.push(group);
+          });
         }
       }
-    } else {
-      this.dedupGroups = groups;
-    }
-    this.selection.clear("dedup" /* Dedup */);
-    await this.plugin.saveSettings();
-    this.saveDedupGroups();
-    this.renderContent();
-    if (groups.length === 0) {
-      new import_obsidian9.Notice(selectedOnly ? "\u9009\u4E2D\u7684\u56FE\u7247\u6CA1\u6709\u91CD\u590D" : "\u6CA1\u6709\u53D1\u73B0\u91CD\u590D\u56FE\u7247");
-    } else {
-      new import_obsidian9.Notice(`\u53D1\u73B0 ${groups.length} \u7EC4\u91CD\u590D\u56FE\u7247`);
+      for (const [hash, imgs] of localHashMap) {
+        const cloudFiles = cloudHashMap.get(hash);
+        if (cloudFiles && cloudFiles.length > 0) {
+          groups.push({
+            hash,
+            type: "cross",
+            items: [
+              ...imgs.map((img) => ({
+                path: img.resolvedPath || img.pure,
+                source: "local",
+                referenced: img.files.length,
+                img
+              })),
+              ...cloudFiles.map((f) => ({
+                path: f.url,
+                source: "cloud",
+                bedType: f.bedType,
+                file: f
+              }))
+            ]
+          });
+        }
+      }
+      if (selectedOnly) {
+        const existingHashes = new Set(this.dedupGroups.map((g) => g.hash));
+        for (const group of groups) {
+          if (!existingHashes.has(group.hash)) {
+            this.dedupGroups.push(group);
+          }
+        }
+      } else {
+        this.dedupGroups = groups;
+      }
+      this.selection.clear("dedup" /* Dedup */);
+      await this.plugin.saveSettings();
+      this.saveDedupGroups();
+      this.renderContent();
+      if (groups.length === 0) {
+        new import_obsidian9.Notice(selectedOnly ? "\u9009\u4E2D\u7684\u56FE\u7247\u6CA1\u6709\u91CD\u590D" : "\u6CA1\u6709\u53D1\u73B0\u91CD\u590D\u56FE\u7247");
+      } else {
+        new import_obsidian9.Notice(`\u53D1\u73B0 ${groups.length} \u7EC4\u91CD\u590D\u56FE\u7247`);
+      }
+    } finally {
+      this.isDedupRunning = false;
     }
   }
   /** 渲染去重分组列表 */
   renderDedupGroups(content, groups = this.dedupGroups) {
-    var _a;
     for (const group of groups) {
       const groupEl = content.createDiv({ cls: "pic-dedup-group" });
       const groupHeader = groupEl.createDiv({ cls: "pic-item pic-dedup-hash" });
-      const firstItem = group.items[0];
-      const ext = ((_a = firstItem.path.split(".").pop()) == null ? void 0 : _a.toLowerCase()) || "";
-      if (IMAGE_EXTENSIONS.has(ext)) {
-        let thumbSrc;
-        if (firstItem.source === "local") {
-          const file = this.app.vault.getAbstractFileByPath(firstItem.path);
-          if (file instanceof import_obsidian9.TFile) thumbSrc = this.app.vault.getResourcePath(file);
-        } else {
-          thumbSrc = firstItem.path;
-        }
-        if (thumbSrc) {
-          const thumb = groupHeader.createEl("img", {
-            cls: "pic-thumb pic-thumb-clickable",
-            attr: { src: thumbSrc, loading: "lazy" }
-          });
-          thumb.addEventListener("error", () => {
-            thumb.setCssStyles({ display: "none" });
-          });
-          thumb.addEventListener("click", (e) => {
-            e.stopPropagation();
-            showImagePreview(thumbSrc);
-          });
-        }
-      }
       const hashDisplay = group.hash.length > 16 ? `${group.hash.substring(0, 8)}\xB7\xB7\xB7${group.hash.substring(group.hash.length - 8)}` : group.hash;
       groupHeader.createSpan({ cls: "pic-path", text: `${hashDisplay}  (${group.items.length} \u9879)` });
       for (const item of group.items) {
@@ -5605,7 +5577,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         const actions = itemEl.createDiv({ cls: "pic-actions" });
         const delBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u6B64\u9879\uFF0C\u5F15\u7528\u5C06\u66F4\u65B0\u4E3A\u4FDD\u7559\u9879" } });
         delBtn.addEventListener("click", onAsyncClick(async (e) => {
-          var _a2, _b, _c, _d;
+          var _a, _b, _c, _d;
           e.stopPropagation();
           const itemName = item.source === "local" ? item.path.split("/").pop() || item.path : extractFileName(item.path) || item.path;
           if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664 "${itemName}" \u5417\uFF1F
@@ -5643,7 +5615,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
           if (ok && keepItem) {
             try {
               const bestCloud = remaining.find((i) => i.source === "cloud");
-              const keepPath = bestCloud ? bestCloud.path : keepItem.source === "local" ? ((_a2 = keepItem.img) == null ? void 0 : _a2.pure) || keepItem.path : keepItem.path;
+              const keepPath = bestCloud ? bestCloud.path : keepItem.source === "local" ? ((_a = keepItem.img) == null ? void 0 : _a.pure) || keepItem.path : keepItem.path;
               const freshImg = this.localImages.find((i) => (i.resolvedPath || i.pure) === item.path);
               const oldPath = item.source === "local" ? (_d = (_c = freshImg == null ? void 0 : freshImg.pure) != null ? _c : (_b = item.img) == null ? void 0 : _b.pure) != null ? _d : item.path : item.path;
               await this.plugin.linkEditor.replaceImageInMdFiles(oldPath, keepPath, freshImg == null ? void 0 : freshImg.files);
@@ -5657,6 +5629,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             group.items = group.items.filter((i) => i !== item);
             this.dedupGroups = this.dedupGroups.filter((g) => g.items.length >= 2);
             this.selection.deselect("dedup" /* Dedup */, itemKey);
+            this.selection.clear("dedupTags" /* DedupTags */);
             this.saveDedupGroups();
             this.renderContent();
           } else {
@@ -5825,6 +5798,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     }
     this.dedupGroups = this.dedupGroups.filter((g) => g.items.length >= 2);
     this.selection.clear("dedup" /* Dedup */);
+    this.selection.clear("dedupTags" /* DedupTags */);
     this.saveDedupGroups();
     await this.refresh();
     const parts = [];
@@ -5943,7 +5917,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     }
   }
   getLocalUnreferencedImages() {
-    if (this.unreferencedCache !== null && this._unreferencedCacheBuiltAt === this.unreferencedCacheVersion) return this.unreferencedCache;
+    if (this.unreferencedCache !== null) return this.unreferencedCache;
     const referencedPaths = /* @__PURE__ */ new Set();
     for (const img of this.localImages) {
       if (img.type === "local") {
@@ -5956,7 +5930,6 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       if (referencedPaths.has(f.path)) return false;
       return true;
     });
-    this._unreferencedCacheBuiltAt = this.unreferencedCacheVersion;
     return this.unreferencedCache;
   }
   /**
@@ -5977,10 +5950,24 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const allFolders = this.app.vault.getAllLoadedFiles().filter(
       (f) => f instanceof import_obsidian9.TFolder
     );
+    const filePaths = new Set(allFiles.map((f) => f.path));
+    const folderPaths = new Set(allFolders.map((f) => f.path));
+    const nonEmptyFolders = /* @__PURE__ */ new Set();
+    for (const fp of filePaths) {
+      const parts = fp.split("/");
+      for (let i = 1; i < parts.length; i++) {
+        nonEmptyFolders.add(parts.slice(0, i).join("/"));
+      }
+    }
+    for (const fp of folderPaths) {
+      const parts = fp.split("/");
+      for (let i = 1; i < parts.length; i++) {
+        nonEmptyFolders.add(parts.slice(0, i).join("/"));
+      }
+    }
     for (const folder of allFolders) {
       if (!folder.path || folder.path === "/" || folder.path.startsWith(".")) continue;
-      const hasContent = allFiles.some((f) => f.path.startsWith(folder.path + "/")) || allFolders.some((f) => f.path.startsWith(folder.path + "/") && f.path !== folder.path);
-      if (!hasContent) {
+      if (!nonEmptyFolders.has(folder.path)) {
         emptyFolders.push(folder.path);
       }
     }
@@ -7567,6 +7554,14 @@ var LinkEditor = class {
         const newWikiLink = img.params ? `![[${newPure}|${img.params}]]` : `![[${newPure}]]`;
         const escaped = escapeRegex(img.raw);
         newContent = content.replace(new RegExp(escaped, "g"), newWikiLink);
+      } else if (img.raw.startsWith("<img")) {
+        const escapedPure = escapeRegex(img.pure);
+        const safeNew = newPure.replace(/\$/g, "$$$$");
+        const htmlRegex = new RegExp(
+          `(<img[^>]*src=["'])${escapedPure}(["'][^>]*/?>)`,
+          "g"
+        );
+        newContent = content.replace(htmlRegex, `$1${safeNew}$2`);
       } else {
         const escapedPure = escapeRegex(img.pure);
         const safeNew = newPure.replace(/\$/g, "$$$$");
@@ -7618,7 +7613,7 @@ var LinkEditor = class {
     const escaped = escapeRegex(oldPath);
     const escapedNew = newPath.replace(/\$/g, "$$$$");
     const mdRegex = new RegExp(`(!\\[[^\\]]*\\]\\()${escaped}(\\))`, "g");
-    const wikiRegex = new RegExp(`(!?\\[\\[)${escaped}(\\|[^\\]]*)?(\\]\\])`, "g");
+    const wikiRegex = new RegExp(`(!?\\[\\[)${escaped}((?:\\|[^\\]]*)?)(\\]\\])`, "g");
     const htmlRegex = new RegExp(`(<img[^>]*src=["'])${escaped}(["'][^>]*/?>)`, "g");
     let count = 0;
     const filesToScan = candidates && candidates.length > 0 ? candidates.map((p) => this.app.vault.getAbstractFileByPath(p)).filter((f) => f instanceof import_obsidian11.TFile) : this.app.vault.getMarkdownFiles();
@@ -7627,7 +7622,7 @@ var LinkEditor = class {
       if (!content.includes(oldPath)) continue;
       let newContent = content;
       newContent = newContent.replace(mdRegex, `$1${escapedNew}$2`);
-      newContent = newContent.replace(wikiRegex, `$1${escapedNew}$2$3`);
+      newContent = newContent.replace(wikiRegex, (_match, p1, p2, p3) => `${p1}${escapedNew}${p2 || ""}${p3}`);
       newContent = newContent.replace(htmlRegex, `$1${escapedNew}$2`);
       if (newContent !== content) {
         await this.app.vault.modify(mdFile, newContent);
@@ -7661,6 +7656,10 @@ var LinkEditor = class {
     result = result.replace(
       new RegExp(`<img[^>]*src=["']${escapeRegex(imgPath)}["'][^>]*/?>`, "g"),
       ""
+    );
+    result = result.replace(
+      new RegExp(`^(s*[A-Za-z0-9_-]+s*:s*["']?)${escapeRegex(imgPath)}(["']?s*)$`, "g"),
+      "$1$2"
     );
     return result;
   }
@@ -8508,6 +8507,8 @@ ${"\u2500".repeat(30)}
       const path = window.require("path");
       const pluginDir = this.manifest.dir;
       if (!pluginDir) return;
+      const hotreloadPath = path.join(pluginDir, ".hotreload");
+      if (!fs.existsSync(hotreloadPath)) return;
       const srcDir = path.join(pluginDir, "src");
       if (!fs.existsSync(srcDir)) return;
       const mainJsPath = path.join(pluginDir, "main.js");

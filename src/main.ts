@@ -21,14 +21,14 @@ import { parseFrontmatter } from "./utils/FrontmatterParser";
 import { encryptSensitiveFields, decryptSensitiveFields, migrateLegacyToNewSalt, generateSalt } from "./utils/SecureStorage";
 import { LinkEditor } from "./editor/LinkEditor";
 import { WebDAVSync, WebDAVMeta } from "./sync/WebDAVSync";
+import { IMAGE_EXTENSIONS } from "./utils/Common";
+import { deferAsync } from "./utils/AsyncHandler";
 
 /** 取文件路径中的文件名（含扩展名） */
 function getBasename(p: string): string {
 	const i = p.lastIndexOf("/");
 	return i >= 0 ? p.substring(i + 1) : p;
 }
-import { IMAGE_EXTENSIONS } from "./utils/Common";
-import { deferAsync } from "./utils/AsyncHandler";
 
 const DEFAULT_SETTINGS: PicLinkerSettings = {
 	// 插件通用设置
@@ -696,7 +696,7 @@ export default class PicLinkerPlugin extends Plugin {
 	 * 开发模式：检测 main.js 修改时间变化时自动刷新视图
 	 */
 	private startDevReloadWatch() {
-		// 仅在 Electron 环境下启用
+		// 仅在开发模式下启用：检测 .hotreload 标记文件
 		if (!("require" in window)) return;
 
 		try {
@@ -704,6 +704,9 @@ export default class PicLinkerPlugin extends Plugin {
 			const path = (window as unknown as { require: (m: string) => typeof import("path") }).require("path");
 			const pluginDir = this.manifest.dir;
 			if (!pluginDir) return;
+			// .hotreload 文件存在才启用热加载，避免生产用户每秒轮询
+			const hotreloadPath = path.join(pluginDir, ".hotreload");
+			if (!fs.existsSync(hotreloadPath)) return;
 			const srcDir = path.join(pluginDir, "src");
 			if (!fs.existsSync(srcDir)) return;
 

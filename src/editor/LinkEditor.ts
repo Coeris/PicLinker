@@ -53,6 +53,15 @@ export class LinkEditor {
 					: `![[${newPure}]]`;
 				const escaped = escapeRegex(img.raw);
 				newContent = content.replace(new RegExp(escaped, "g"), newWikiLink);
+			} else if (img.raw.startsWith("<img")) {
+				// HTML img 标签: <img src="pure"> -> <img src="newPure">
+				const escapedPure = escapeRegex(img.pure);
+				const safeNew = newPure.replace(/\$/g, "$$$$");
+				const htmlRegex = new RegExp(
+					`(<img[^>]*src=["'])${escapedPure}(["'][^>]*/?>)`,
+					"g",
+				);
+				newContent = content.replace(htmlRegex, `$1${safeNew}$2`);
 			} else {
 				// Markdown 链接格式: ![alt](pure) -> ![alt](newPure)
 				// 同时保留可选的 "title"（单/双引号）
@@ -114,7 +123,7 @@ export class LinkEditor {
 		const escapedNew = newPath.replace(/\$/g, "$$$$");
 		// P1#18: 三个独立正则分别处理 Markdown/Wiki/HTML，替代脆弱的多捕获组合并正则
 		const mdRegex = new RegExp(`(!\\[[^\\]]*\\]\\()${escaped}(\\))`, "g");
-		const wikiRegex = new RegExp(`(!?\\[\\[)${escaped}(\\|[^\\]]*)?(\\]\\])`, "g");
+		const wikiRegex = new RegExp(`(!?\\[\\[)${escaped}((?:\\|[^\\]]*)?)(\\]\\])`, "g");
 		const htmlRegex = new RegExp(`(<img[^>]*src=["'])${escaped}(["'][^>]*/?>)`, "g");
 		let count = 0;
 		// 优先使用候选文件列表，避免全库遍历
@@ -126,7 +135,7 @@ export class LinkEditor {
 			if (!content.includes(oldPath)) continue;
 			let newContent = content;
 			newContent = newContent.replace(mdRegex, `$1${escapedNew}$2`);
-			newContent = newContent.replace(wikiRegex, `$1${escapedNew}$2$3`);
+			newContent = newContent.replace(wikiRegex, (_match, p1: string, p2: string, p3: string) => `${p1}${escapedNew}${p2 || ""}${p3}`);
 			newContent = newContent.replace(htmlRegex, `$1${escapedNew}$2`);
 			if (newContent !== content) {
 				await this.app.vault.modify(mdFile, newContent);
@@ -165,6 +174,11 @@ export class LinkEditor {
 		result = result.replace(
 			new RegExp(`<img[^>]*src=["']${escapeRegex(imgPath)}["'][^>]*/?>`, "g"),
 			"",
+		);
+		// Frontmatter 裸路径: key: path → key:（清空值，保留字段名）
+		result = result.replace(
+			new RegExp(`^(\s*[A-Za-z0-9_-]+\s*:\s*["']?)${escapeRegex(imgPath)}(["']?\s*)$`, "g"),
+			"$1$2",
 		);
 		return result;
 	}

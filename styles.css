@@ -606,6 +606,16 @@
 	margin-left: 16px;
 }
 
+.pic-webdav-security-hint {
+	font-size: 12px;
+	color: var(--pic-warning);
+	background: var(--pic-warning-bg);
+	border-radius: var(--pic-radius-sm, 4px);
+	padding: 6px 10px;
+	margin-bottom: 12px;
+	line-height: 1.5;
+}
+
 .pic-webdav-actions {
 	display: flex;
 	align-items: center;

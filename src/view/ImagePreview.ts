@@ -5,8 +5,12 @@
 
 /** 显示图片预览弹窗（支持滚轮缩放、拖拽平移、双击重置、Escape 关闭） */
 export function showImagePreview(src: string): void {
-	const overlay = activeDocument.createEl("div", { cls: "pic-preview-overlay" });
-	const img = activeDocument.createEl("img", { cls: "pic-preview-img" });
+	// 优先使用 activeDocument.body，fallback 到 document.body
+	// 修复某些上下文下 activeDocument 状态异常导致 HierarchyRequestError
+	const rootEl = (activeDocument.body || document.body);
+
+	const overlay = rootEl.createEl("div", { cls: "pic-preview-overlay" });
+	const img = rootEl.createEl("img", { cls: "pic-preview-img" });
 	img.src = src;
 
 	let scale = 1;
@@ -57,7 +61,7 @@ export function showImagePreview(src: string): void {
 	// 图片加载失败提示
 	const onImgError = () => {
 		img.setCssStyles({ display: "none" });
-		const tip = activeDocument.createEl("div", { cls: "pic-preview-error", text: "⚠ 图片无法加载" });
+		const tip = rootEl.createEl("div", { cls: "pic-preview-error", text: "⚠ 图片无法加载" });
 		overlay.appendChild(tip);
 	};
 	// 拖拽平移
@@ -107,5 +111,5 @@ export function showImagePreview(src: string): void {
 	img.addEventListener("error", onImgError);
 
 	overlay.appendChild(img);
-	activeDocument.body.appendChild(overlay);
+	rootEl.appendChild(overlay);
 }
