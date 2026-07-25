@@ -177,7 +177,7 @@ export class LinkEditor {
 		);
 		// Frontmatter 裸路径: key: path → key:（清空值，保留字段名）
 		result = result.replace(
-			new RegExp(`^(\s*[A-Za-z0-9_-]+\s*:\s*["']?)${escapeRegex(imgPath)}(["']?\s*)$`, "g"),
+			new RegExp(`^(\\s*[A-Za-z0-9_-]+\\s*:\\s*["']?)${escapeRegex(imgPath)}(["']?\\s*)$`, "g"),
 			"$1$2",
 		);
 		return result;
@@ -229,7 +229,6 @@ export class LinkEditor {
 				let pure = m[2];
 				const tm = pure.match(/^(.+?)\s+"([^"]*)"$/);
 				let title = "";
-				let altText = alt;
 				if (tm) {
 					pure = tm[1].trim();
 					title = tm[2];

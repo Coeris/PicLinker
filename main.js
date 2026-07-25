@@ -7658,7 +7658,7 @@ var LinkEditor = class {
       ""
     );
     result = result.replace(
-      new RegExp(`^(s*[A-Za-z0-9_-]+s*:s*["']?)${escapeRegex(imgPath)}(["']?s*)$`, "g"),
+      new RegExp(`^(\\s*[A-Za-z0-9_-]+\\s*:\\s*["']?)${escapeRegex(imgPath)}(["']?\\s*)$`, "g"),
       "$1$2"
     );
     return result;
@@ -7702,7 +7702,6 @@ var LinkEditor = class {
         let pure = m[2];
         const tm = pure.match(/^(.+?)\s+"([^"]*)"$/);
         let title = "";
-        let altText = alt;
         if (tm) {
           pure = tm[1].trim();
           title = tm[2];
