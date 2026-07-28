@@ -98,8 +98,8 @@ export class ItemRenderer {
 			const fileName = extractFileName(img.resolvedPath || img.pure);
 			if (fileName) {
 				navigator.clipboard.writeText(fileName).then(
-					() => new Notice(`已复制文件名: ${fileName}`),
-					() => new Notice("复制失败"),
+					() => new Notice(`已复制图片名「${fileName}」`),
+					() => new Notice("PicLinker：复制失败，请重试"),
 				);
 			}
 		});
@@ -169,10 +169,10 @@ export class ItemRenderer {
 		this.renderTags(item, img, SelectionSection.LocalTags, img.pure);
 
 		const actions = item.createDiv({ cls: "pic-actions" });
-		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除文件并清理引用" } });
+		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除图片并清理引用行" } });
 		deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
 			e.stopPropagation();
-			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除 "${img.pure}" 吗？\n将同时清理笔记中的引用行。` }))) return;
+			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除「${img.pure}」吗？\n将同时清理笔记中的引用行。`, title: "删除图片" }))) return;
 			for (const fp of img.files) {
 				await this.ctx.removeImageFromMdFile(fp, [img.pure]);
 			}
@@ -180,7 +180,7 @@ export class ItemRenderer {
 			const file = app.vault.getAbstractFileByPath(filePath);
 			if (file instanceof TFile) {
 				await app.fileManager.trashFile(file);
-				new Notice(`已删除: ${extractFileName(filePath) || filePath}`);
+				new Notice(`已删除「${extractFileName(filePath) || filePath}」`);
 			}
 			selection.deselect(SelectionSection.LocalImages, img.pure);
 			for (const tagKey of selection.getSelected(SelectionSection.LocalTags)) {
@@ -250,8 +250,8 @@ export class ItemRenderer {
 			const fileName = extractFileName(img.pure);
 			if (fileName) {
 				navigator.clipboard.writeText(fileName).then(
-					() => new Notice(`已复制文件名: ${fileName}`),
-					() => new Notice("复制失败"),
+					() => new Notice(`已复制图片名「${fileName}」`),
+					() => new Notice("PicLinker：复制失败，请重试"),
 				);
 			}
 		});
@@ -307,22 +307,30 @@ export class ItemRenderer {
 		this.renderTags(item, img, SelectionSection.CloudTags, img.pure);
 
 		const actions = item.createDiv({ cls: "pic-actions" });
-		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除云端文件并清理引用" } });
+		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除云端图片并清理引用行" } });
 		deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
 			e.stopPropagation();
-			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除 "${img.pure}" 吗？\n将同时清理笔记中的引用行。` }))) return;
+			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除「${img.pure}」吗？\n将同时清理笔记中的引用行。`, title: "删除图片" }))) return;
+
+			// 先识别图床类型：识别不出则直接取消，避免「引用已清理但云端图还在」的脏态
+			const bedType: ImageBedType | undefined = detectBedTypeFromUrl(img.pure) ?? undefined;
+			if (!bedType) {
+				new Notice("无法识别图床类型，已取消删除（笔记引用未清理）");
+				return;
+			}
+			const cloudFile = this.ctx.cloudFiles.find(cf => cf.url === img.pure);
+			const fileKey = cloudFile?.prefix || cloudFile?.name || extractFileName(img.pure) || img.pure;
+
+			// 先删云端图，确认成功后再清理笔记引用（顺序反转，杜绝脏态）
+			const result = await deleteCloudFile(fileKey, bedType);
+			if (!result.success) {
+				new Notice(`云端图片删除失败，已取消清理引用：${result.error ?? "未知错误"}`);
+				return;
+			}
 			for (const fp of img.files) {
 				await removeImageFromMdFile(fp, [img.pure]);
 			}
-			const bedType: ImageBedType | undefined = detectBedTypeFromUrl(img.pure) ?? undefined;
-			const cloudFile = this.ctx.cloudFiles.find(cf => cf.url === img.pure);
-			const fileKey = cloudFile?.prefix || cloudFile?.name || extractFileName(img.pure) || img.pure;
-			if (bedType) {
-				await deleteCloudFile(fileKey, bedType);
-			} else {
-				new Notice("无法识别图床类型，跳过云端文件删除");
-			}
-			new Notice(`已删除: ${extractFileName(img.pure) || img.pure}`);
+			new Notice(`已删除「${extractFileName(img.pure) || img.pure}」`);
 			selection.deselect(SelectionSection.CloudImages, img.pure);
 			await this.ctx.refresh();
 		}));
@@ -368,8 +376,8 @@ export class ItemRenderer {
 			const fileName = extractFileName(img.resolvedPath || img.pure);
 			if (fileName) {
 				navigator.clipboard.writeText(fileName).then(
-					() => new Notice(`已复制文件名: ${fileName}`),
-					() => new Notice("复制失败"),
+					() => new Notice(`已复制图片名「${fileName}」`),
+					() => new Notice("PicLinker：复制失败，请重试"),
 				);
 			}
 		});
@@ -386,8 +394,8 @@ export class ItemRenderer {
 		pathSpan.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
 			navigator.clipboard.writeText(displayPath).then(
-				() => new Notice(`路径已复制`),
-				() => new Notice("复制失败"),
+				() => new Notice(`已复制路径`),
+				() => new Notice("PicLinker：复制失败，请重试"),
 			);
 		});
 
@@ -399,8 +407,8 @@ export class ItemRenderer {
 		deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
 			e.stopPropagation();
 			if (img.files.length === 0) { new Notice("没有找到引用该图片的笔记"); return; }
-			const fileList = img.files.map(f => f.split("/").pop() || f).join("、");
-			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除 "${displayPath}" 在 ${img.files.length} 个笔记（${fileList}）中的所有引用行吗？` }))) return;
+		const fileList = img.files.map(f => f.split("/").pop() || f).join("、");
+			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除「${displayPath}」在 ${img.files.length} 个笔记（${fileList}）中的所有引用行吗？`, title: "删除引用行" }))) return;
 			let successCount = 0;
 			let failCount = 0;
 			for (const fp of img.files) {
@@ -413,7 +421,7 @@ export class ItemRenderer {
 			const parts: string[] = [];
 			if (successCount > 0) parts.push(`${successCount} 行已删除`);
 			if (failCount > 0) parts.push(`${failCount} 行失败`);
-			new Notice(`删除完成：${parts.join("，")}`);
+			new Notice(`批量删除完成：${parts.join("，")}`);
 			await refresh();
 		}));
 	}
@@ -441,8 +449,8 @@ export class ItemRenderer {
 			const fileName = extractFileName(file.name);
 			if (fileName) {
 				navigator.clipboard.writeText(fileName).then(
-					() => new Notice(`已复制文件名: ${fileName}`),
-					() => new Notice("复制失败"),
+					() => new Notice(`已复制图片名「${fileName}」`),
+					() => new Notice("PicLinker：复制失败，请重试"),
 				);
 			}
 		});
@@ -493,23 +501,27 @@ export class ItemRenderer {
 		pathSpan.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
 			navigator.clipboard.writeText(file.url).then(
-				() => new Notice("路径已复制"),
-				() => new Notice("复制失败"),
+				() => new Notice("已复制路径"),
+				() => new Notice("PicLinker：复制失败，请重试"),
 			);
 		});
 
 		const actions = item.createDiv({ cls: "pic-actions" });
-		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除云端文件并清理引用" } });
+		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除云端图片并清理引用行" } });
 		deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
 			e.stopPropagation();
-			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除云端文件 "${file.name}" 吗？\n将同时清理笔记中的引用行。` }))) return;
+			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除云端图片「${file.name}」吗？\n将同时清理笔记中的引用行。`, title: "删除云端图片" }))) return;
 			if (!cloudBedType) {
-				new Notice("云端文件未删除（无法识别图床类型）");
+				new Notice("PicLinker：云端图片未删除：无法识别图床类型");
 				return;
 			}
-			await deleteCloudFile(file.prefix || file.name, cloudBedType);
+			const result = await deleteCloudFile(file.prefix || file.name, cloudBedType);
+			if (!result.success) {
+				new Notice(`云端图片删除失败，已取消清理引用：${result.error ?? "未知错误"}`);
+				return;
+			}
 			await removeImageFromAllMdFiles([file.url]);
-			new Notice(`已删除: ${file.name}`);
+			new Notice(`已删除「${file.name}」`);
 			await this.ctx.refresh();
 		}));
 	}
@@ -534,8 +546,8 @@ export class ItemRenderer {
 			if (target.closest("input, img, .pic-file-tag, button")) return;
 			e.stopPropagation();
 			navigator.clipboard.writeText(file.name).then(
-				() => new Notice(`已复制文件名: ${file.name}`),
-				() => new Notice("复制失败"),
+				() => new Notice(`已复制图片名「${file.name}」`),
+				() => new Notice("PicLinker：复制失败，请重试"),
 			);
 		});
 
@@ -569,8 +581,8 @@ export class ItemRenderer {
 		pathSpan.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
 			navigator.clipboard.writeText(file.path).then(
-				() => new Notice(`路径已复制`),
-				() => new Notice("复制失败"),
+				() => new Notice(`已复制路径`),
+				() => new Notice("PicLinker：复制失败，请重试"),
 			);
 		});
 
@@ -578,12 +590,12 @@ export class ItemRenderer {
 		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: "移入回收站" } });
 		deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
 			e.stopPropagation();
-			if (!(await confirmAsync(this.ctx.app, { message: `确定要将 "${file.name}" 移入回收站吗？` }))) return;
+			if (!(await confirmAsync(this.ctx.app, { message: `确定要将「${file.name}」移入回收站吗？`, title: "移入回收站" }))) return;
 			if (deleteLocalUnrefFile) {
 				await deleteLocalUnrefFile(file);
 			} else {
 				await app.fileManager.trashFile(file);
-				new Notice(`已移入回收站: ${file.name}`);
+				new Notice(`已移入回收站「${file.name}」`);
 			}
 			await this.ctx.refresh();
 		}));

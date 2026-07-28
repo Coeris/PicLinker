@@ -56,6 +56,15 @@ export class VaultScanner {
 		const result = new Map<string, ImageLink>();
 		const mdFiles = this.app.vault.getMarkdownFiles();
 
+		// 预取全库文件并按文件名建索引：避免在下方「聚合」内循环里对每个相对路径链接
+		// 重复调用 getFiles()（O(n) 全库列举），最坏情况 = 链接数 × 文件数（大库卡顿）。
+		const fileByName = new Map<string, TFile[]>();
+		for (const f of this.app.vault.getFiles()) {
+			const arr = fileByName.get(f.name);
+			if (arr) arr.push(f);
+			else fileByName.set(f.name, [f]);
+		}
+
 		// 第一步：收集需要读取的文件（缓存未命中）
 		const filesToRead: TFile[] = [];
 		const fileLinksMap = new Map<string, ImageLink[]>();
@@ -130,7 +139,8 @@ export class VaultScanner {
 							// 纯文件名链接（无 /）不做盲目兜底：保持 tryPath，found=false 交由视图判断。
 							const isRelative = link.pure.includes("/");
 							if (isRelative) {
-								const matchByName = this.app.vault.getFiles().find(f => f.name === fileName);
+								const matches = fileByName.get(fileName);
+							const matchByName = matches && matches.length > 0 ? matches[0] : undefined;
 								if (matchByName) {
 									resolvedPath = matchByName.path;
 								} else {

@@ -10,7 +10,7 @@ import { extractFileName } from "../comparator/CloudComparator";
 import { IMAGE_EXTENSIONS } from "../parser/LinkParser";
 import { HashCache } from "../utils/HashCache";
 import { detectBedTypeFromUrl, getBedFaviconSvg, LOCAL_ICON_SVG } from "../icons";
-import { formatDisplayPath, getTopBedIcon, buildFileNameRefCount, expandRefs, parseTagKey, resolveImageFromTagKey, setSafeHTML, isHidden, ensureLazyRendered, setLazyRenderFn, syncHeaderBorder } from "./utils/ViewUtils";
+import { formatDisplayPath, getTopBedIcon, buildFileNameRefCount, expandRefs, parseTagKey, resolveImageFromTagKey, setSafeHTML, isHidden, ensureLazyRendered, setLazyRenderFn, syncHeaderBorder, bedTypeLabel } from "./utils/ViewUtils";
 
 import { showImagePreview } from "./ImagePreview";
 import { SelectionManager, SelectionSection, SelectionChangeCallback } from "./SelectionManager";
@@ -193,7 +193,7 @@ export class PicLinkerView extends ItemView {
 				}
 			} else {
 				if (!existing.some(i => i.source === "cloud" && i.url === img.pure)) {
-					existing.push({ source: "cloud", path, url: img.pure, section: "云端图片" });
+					existing.push({ source: "cloud", path, url: img.pure, bedType: detectBedTypeFromUrl(img.pure) ?? undefined, section: "云端图片" });
 				}
 			}
 		}
@@ -280,6 +280,23 @@ export class PicLinkerView extends ItemView {
 			}
 		}
 
+		// 去重：同一文件名下可能同时出现「笔记引用的云端项」与「图床列举项」指向同一张图（如 OSS 同 URL），
+		// 之前会重复计入导致显示 3 项（本地 + 未知 + 阿里云OSS）。按 (bedType,url) 合并云端项，每个图床+URL 只留一条。
+		for (const entry of nameMap.values()) {
+			if (entry.items.length <= 1) continue;
+			const seen = new Set<string>();
+			const deduped: SameNameItem[] = [];
+			for (const it of entry.items) {
+				if (it.source !== "cloud") { deduped.push(it); continue; }
+				const u = it.url ?? it.path;
+				const k = `${it.bedType ?? ""}:${u}`;
+				if (seen.has(k)) continue;
+				seen.add(k);
+				deduped.push(it);
+			}
+			entry.items = deduped;
+		}
+
 		// 筛选：至少有 2 个条目
 		const groups: typeof this.sameNameGroups = [];
 		for (const [, entry] of nameMap) {
@@ -355,7 +372,7 @@ export class PicLinkerView extends ItemView {
 						? [{ text: `删除行 (${this.selection.getCount(SelectionSection.LocalTags)})`, cls: "pic-btn-sm pic-btn-danger", title: "删除选中标签的引用行（仅本区域）", onClick: () => this.deleteOps.deleteReferenceLinesForSections([SelectionSection.LocalTags]) }]
 						: []),
 					...(this.selection.getCount(SelectionSection.LocalImages) > 0
-						? [{ text: `删除 (${this.selection.getCount(SelectionSection.LocalImages)})`, cls: "pic-btn-sm pic-btn-danger", title: "删除选中的图片文件", onClick: () => this.deleteOps.batchDeleteLocalFiles(this.localImages) }]
+						? [{ text: `删除 (${this.selection.getCount(SelectionSection.LocalImages)})`, cls: "pic-btn-sm pic-btn-danger", title: "删除选中的图片", onClick: () => this.deleteOps.batchDeleteLocalFiles(this.localImages) }]
 						: []),
 				],
 				// [1] 云端图片
@@ -396,7 +413,7 @@ export class PicLinkerView extends ItemView {
 							{ text: `MD (${this.selection.getCount(SelectionSection.CloudFiles)})`, cls: "pic-btn-sm", title: "复制 Markdown 格式图片链接", onClick: () => { void this.batchOps.genericBatchCopy(SelectionSection.CloudFiles, filteredCloud, (f: CloudFile) => f.prefix || f.name, (f: CloudFile) => f.url, (f: CloudFile) => extractFileName(f.name) || f.name, "markdown"); } },
 							{ text: `HTML (${this.selection.getCount(SelectionSection.CloudFiles)})`, cls: "pic-btn-sm", title: "复制 HTML 格式图片链接", onClick: () => { void this.batchOps.genericBatchCopy(SelectionSection.CloudFiles, filteredCloud, (f: CloudFile) => f.prefix || f.name, (f: CloudFile) => f.url, (f: CloudFile) => extractFileName(f.name) || f.name, "html"); } },
 							{ text: `下载 (${this.selection.getCount(SelectionSection.CloudFiles)})`, cls: "pic-btn-sm", title: "下载选中的云端图片", onClick: () => { void this.batchOps.genericBatchDownload(SelectionSection.CloudFiles, filteredCloud, (f: CloudFile) => f.prefix || f.name, (f: CloudFile) => f.url, (f: CloudFile) => extractFileName(f.name) || "image"); } },
-							{ text: `删除 (${this.selection.getCount(SelectionSection.CloudFiles)})`, cls: "pic-btn-sm pic-btn-danger", title: "从图床中删除选中的文件", onClick: () => { void this.cleanupUnreferenced(filteredCloud.filter(f => this.selection.isSelected(SelectionSection.CloudFiles, f.prefix || f.name))); } },
+							{ text: `删除 (${this.selection.getCount(SelectionSection.CloudFiles)})`, cls: "pic-btn-sm pic-btn-danger", title: "删除选中的云端图片", onClick: () => { void this.cleanupUnreferenced(filteredCloud.filter(f => this.selection.isSelected(SelectionSection.CloudFiles, f.prefix || f.name))); } },
 						];
 					})()
 					: [],
@@ -406,7 +423,7 @@ export class PicLinkerView extends ItemView {
 					? [{ text: `删除行 (${this.selection.getCount(SelectionSection.SameNameTags)})`, cls: "pic-btn-sm pic-btn-danger", title: "删除选中标签的引用行（仅本区域）", onClick: () => this.deleteOps.deleteReferenceLinesForSections([SelectionSection.SameNameTags]) }]
 					: []),
 				...(this.selection.getCount(SelectionSection.SameName) > 0
-					? [{ text: `删除 (${this.selection.getCount(SelectionSection.SameName)})`, cls: "pic-btn-sm pic-btn-danger", title: "删除选中的同名文件", onClick: () => this.deleteSelectedSameName() }]
+					? [{ text: `删除 (${this.selection.getCount(SelectionSection.SameName)})`, cls: "pic-btn-sm pic-btn-danger", title: "删除选中的重复图片", onClick: () => this.deleteSelectedSameName() }]
 					: []),
 			],
 			getDedupActions: () => [
@@ -414,7 +431,7 @@ export class PicLinkerView extends ItemView {
 					? [{ text: `删除行 (${this.selection.getCount(SelectionSection.DedupTags)})`, cls: "pic-btn-sm pic-btn-danger", title: "删除选中标签的引用行（仅本区域）", onClick: () => this.deleteOps.deleteReferenceLinesForSections([SelectionSection.DedupTags]) }]
 					: []),
 				...(this.selection.getCount(SelectionSection.Dedup) > 0
-					? [{ text: `删除 (${this.selection.getCount(SelectionSection.Dedup)})`, cls: "pic-btn-sm pic-btn-danger", title: "删除选中的重复文件，将引用更新为组内第一项", onClick: () => this.dedupDeleteSelected() }]
+					? [{ text: `删除 (${this.selection.getCount(SelectionSection.Dedup)})`, cls: "pic-btn-sm pic-btn-danger", title: "删除选中的重复图片，将引用更新为组内第一项", onClick: () => this.dedupDeleteSelected() }]
 					: []),
 			],
 			getEmptyFolderActions: () => this.selection.getCount(SelectionSection.EmptyFolders) > 0
@@ -633,7 +650,7 @@ export class PicLinkerView extends ItemView {
 			this.renderContent();
 		} catch (e) {
 			console.warn("[PicLinker] 加载云端数据 失败", e instanceof Error ? e.message : String(e));
-			new Notice(`加载云端数据失败: ${e instanceof Error ? e.message : String(e)}`);
+			new Notice(`PicLinker：加载云端数据失败：${e instanceof Error ? e.message : String(e)}`);
 		} finally {
 			this.cloudLoading = false;
 			// 通知所有等待者
@@ -670,7 +687,7 @@ export class PicLinkerView extends ItemView {
 			this.cleanupDedupGroups();
 			this.renderContent();
 		} catch (e) {
-			new Notice(`刷新本地图片失败: ${e instanceof Error ? e.message : String(e)}`);
+			new Notice(`PicLinker：刷新本地图片失败：${e instanceof Error ? e.message : String(e)}`);
 		} finally {
 			this.localLoading = false;
 		}
@@ -785,7 +802,7 @@ export class PicLinkerView extends ItemView {
 				await new Promise(r => window.setTimeout(r, 200));
 				await this.refresh();
 			} catch (e) {
-				new Notice(`刷新失败: ${e instanceof Error ? e.message : String(e)}`);
+				new Notice(`PicLinker：刷新失败：${e instanceof Error ? e.message : String(e)}`);
 			} finally {
 				container2?.classList.remove("refreshing");
 				container2?.classList.add("refreshed");
@@ -1038,14 +1055,16 @@ export class PicLinkerView extends ItemView {
 		const cloudReferenced: ImageLink[] = [];
 		const notFoundImages: ImageLink[] = [];
 		for (const img of filteredLocal) {
-			// 仅在云端数据就绪时做云端分类，避免用旧 compareResult 错分
+			// 远程(http/https/data)图片本身就是外链/云端引用，永远不该进「未找到」：
+			// 即便云端数据未加载，也要归到云端引用区，而不是被当成断链的本地图。
+			if (img.type !== "local") {
+				cloudReferenced.push(img);
+				continue;
+			}
+			// 仅当云端数据就绪时，再按 compareResult 判定本地图是否已上传到云端
 			if (this.cloudLoaded) {
 				const result = this.compareResult.get(img.pure);
 				if (result?.exists) {
-					cloudReferenced.push(img);
-					continue;
-				}
-				if (img.type !== "local") {
 					cloudReferenced.push(img);
 					continue;
 				}
@@ -1066,7 +1085,7 @@ export class PicLinkerView extends ItemView {
 		const actions = header.querySelector<HTMLElement>(".pic-part-actions");
 		if (actions) {
 			if (this.selection.getCount(SelectionSection.LocalImages) > 0) {
-				const btn = actions.createEl("button", { text: `删除 (${this.selection.getCount(SelectionSection.LocalImages)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除选中的图片文件" } });
+				const btn = actions.createEl("button", { text: `删除 (${this.selection.getCount(SelectionSection.LocalImages)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除选中的图片" } });
 				btn.addEventListener("click", (e) => { e.stopPropagation(); void this.deleteOps.batchDeleteLocalFiles(localOnly); });
 			}
 			this.addClearSelectionButton(actions, SelectionSection.LocalImages);
@@ -1178,7 +1197,7 @@ export class PicLinkerView extends ItemView {
 		if (actions) {
 			if (!expanded) actions.setCssStyles({ display: "none" });
 			if (this.selection.getCount(SelectionSection.SameName) > 0) {
-				const delBtn = actions.createEl("button", { text: `删除 (${this.selection.getCount(SelectionSection.SameName)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除选中的同名文件" } });
+				const delBtn = actions.createEl("button", { text: `删除 (${this.selection.getCount(SelectionSection.SameName)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除选中的重复图片" } });
 				delBtn.addEventListener("click", (e) => { e.stopPropagation(); void this.deleteSelectedSameName(); });
 			}
 			this.addClearSelectionButton(actions, SelectionSection.SameName);
@@ -1201,13 +1220,27 @@ export class PicLinkerView extends ItemView {
 		if (actions) {
 			if (!expanded) actions.setCssStyles({ display: "none" });
 			if (this.selection.getCount(SelectionSection.Dedup) > 0) {
-				const delBtn = actions.createEl("button", { text: `删除 (${this.selection.getCount(SelectionSection.Dedup)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除选中的重复文件，将引用更新为组内第一项" } });
+				const delBtn = actions.createEl("button", { text: `删除 (${this.selection.getCount(SelectionSection.Dedup)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除选中的重复图片，将引用更新为组内第一项" } });
 				delBtn.addEventListener("click", (e) => { e.stopPropagation(); void this.dedupDeleteSelected(); });
 			}
 			this.addClearSelectionButton(actions, SelectionSection.Dedup);
+			// 清除哈希缓存：主动失效，下次去重重新计算（解决脏缓存导致云端/本地重复漏判）
+			const clearCacheBtn = actions.createEl("button", { text: "清除缓存", cls: "pic-btn-sm", attr: { title: "清除本地/云端图片哈希缓存，下次去重将重新计算（解决因缓存导致的重复漏判）" } });
+			clearCacheBtn.addEventListener("click", (e) => { e.stopPropagation(); void this.clearDedupHashCache(); });
 		}
 		const _renderDedup = () => this.renderDedupGroups(content, filteredDedup);
 		if (expanded) _renderDedup(); else setLazyRenderFn(content, _renderDedup);
+	}
+
+	/** 主动清除去重哈希缓存（dedupCache + hashCache），并持久化，避免重载后恢复旧缓存 */
+	private async clearDedupHashCache(): Promise<void> {
+		const localCount = this.plugin.dedupCache.size ?? 0;
+		const cloudCount = this.plugin.hashCache.size ?? 0;
+		if (!(await confirmAsync(this.app, { message: `确定清除哈希缓存吗？\n将删除 ${localCount + cloudCount} 条本地/云端图片哈希记录，下次去重会重新计算（耗时稍长但可解决因缓存导致的重复漏判）。`, title: "清除哈希缓存" }))) return;
+		this.plugin.dedupCache.clear();
+		this.plugin.hashCache.clear();
+		await this.plugin.saveSettings();
+		new Notice(`已清除 ${localCount + cloudCount} 条哈希缓存`);
 	}
 
 	// ===== Section 8: 空白文件夹 =====
@@ -1256,7 +1289,7 @@ export class PicLinkerView extends ItemView {
 			.addEventListener("click", (e) => { e.stopPropagation(); void this.batchOps.genericBatchCopy(SelectionSection.CloudFiles, filteredCloud, f => f.prefix || f.name, f => f.url, f => extractFileName(f.name) || f.name, "html"); });
 		actions.createEl("button", { text: `下载 (${count})`, cls: "pic-btn-sm", attr: { title: "下载选中的云端图片" } })
 			.addEventListener("click", (e) => { e.stopPropagation(); void this.batchOps.genericBatchDownload(SelectionSection.CloudFiles, filteredCloud, f => f.prefix || f.name, f => f.url, f => extractFileName(f.name) || "image"); });
-		actions.createEl("button", { text: `删除 (${count})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "从图床中删除选中的文件" } })
+		actions.createEl("button", { text: `删除 (${count})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除选中的云端图片" } })
 			.addEventListener("click", (e) => {
 				e.stopPropagation();
 				const selected = filteredCloud.filter(f => this.selection.isSelected(SelectionSection.CloudFiles, f.prefix || f.name));
@@ -1324,14 +1357,15 @@ export class PicLinkerView extends ItemView {
 		const update = () => {
 			const headers = this.containerEl.querySelectorAll<HTMLElement>(".pic-part-header");
 			if (headers.length === 0) return;
-			const toolbarEl = this.containerEl.querySelector<HTMLElement>(".pic-toolbar");
-			const toolbarH = toolbarEl ? toolbarEl.offsetHeight : 42;
 			const containerTop = scrollContainer.getBoundingClientRect().top;
-			// 标题吸顶时，其视口顶部应等于 滚动容器顶 + toolbar 高度（留 1px 容差）
-			const stuckThreshold = containerTop + toolbarH - 1;
 			headers.forEach((h) => {
+				// 直接读取 header 真实吸附位置（已解析 var(--pic-toolbar-h) 的 computed top），
+				// 与单独测量 toolbar.offsetHeight 解耦，避免二者因 ResizeObserver 时序/取整不一致而误判；
+				// 原逻辑用 `containerTop + toolbarH - 1` 作阈值：header 吸附瞬间其 top 恰等于
+				// containerTop + toolbarH，会被误判为“未吸附”，导致 --stuck 永远不触发（吸顶态卡片不收扁）。
+				const stickyTopPx = parseFloat(getComputedStyle(h).top) || 0;
+				const nowStuck = h.getBoundingClientRect().top <= containerTop + stickyTopPx;
 				const wasStuck = h.classList.contains("pic-part-header--stuck");
-				const nowStuck = h.getBoundingClientRect().top <= stuckThreshold;
 				if (wasStuck !== nowStuck) {
 					h.toggleClass("pic-part-header--stuck", nowStuck);
 					// 同步边框：吸顶态切换时立刻刷新，避免视觉不刷新
@@ -1607,8 +1641,8 @@ export class PicLinkerView extends ItemView {
 					const img: ImageLink = { pure: item.url, type: "https", raw: "", params: "", count: 0, files: [] };
 					this.itemRenderer.addThumbnail(itemEl, img);
 				}
-				const bedLabel = item.bedType || "未知";
-				itemEl.createSpan({ cls: "pic-path", text: `${bedLabel} / ${extractFileName(item.url || item.path) || item.url || item.path}` });
+			const bedLabel = bedTypeLabel(item.bedType, item.url);
+			itemEl.createSpan({ cls: "pic-path", text: `${bedLabel} / ${extractFileName(item.url || item.path) || item.url || item.path}` });
 				itemEl.dataset.purePath = itemKey;
 				// 引用标签
 				const matchedCloudImg = this.localImages.find(i => i.pure === (item.url || item.path));
@@ -1622,7 +1656,7 @@ export class PicLinkerView extends ItemView {
 			delBtn.addEventListener("click", onAsyncClick(async (e) => {
 				e.stopPropagation();
 				const itemName = item.source === "local" ? (item.path.split("/").pop() || item.path) : (item.url || item.path);
-				if (!(await confirmAsync(this.app, { message: `确定要删除 "${itemName}" 吗？` }))) return;
+				if (!(await confirmAsync(this.app, { message: `确定要删除「${itemName}」吗？`, title: "删除图片" }))) return;
 				let ok = false;
 				try {
 					if (item.source === "local") {
@@ -1650,15 +1684,24 @@ export class PicLinkerView extends ItemView {
 					try {
 						const refImg = this.localImages.find(i => (i.resolvedPath || i.pure) === (item.url || item.path));
 						if (refImg) {
+							const failedFiles: string[] = [];
 							for (const fp of refImg.files) {
-								await this.plugin.linkEditor.removeImageFromMdFile(fp, [item.url || item.path]);
+								try {
+									await this.plugin.linkEditor.removeImageFromMdFile(fp, [item.url || item.path]);
+								} catch {
+									failedFiles.push(fp);
+								}
+							}
+							if (failedFiles.length > 0) {
+								const names = failedFiles.map(f => f.split("/").pop() || f).join("、");
+								new Notice(`图片已删除，但引用行清理失败，请手动修改 ${names} 笔记`, 8000);
 							}
 						}
 					} catch (e) {
 						console.warn("[PicLinker] 引用行删除失败:", e);
-						new Notice("文件已删除，但引用行清理失败，请手动删除");
+						new Notice("图片已删除，但引用行清理失败，请手动修改笔记", 8000);
 					}
-					new Notice(`已删除: ${itemName}`);
+					new Notice(`已删除「${itemName}」`);
 					// 从 sameNameGroups 中移除
 					for (const g of this.sameNameGroups) {
 						g.items = g.items.filter(i => !(i.source === item.source && (i.url || i.path) === (item.url || item.path)));
@@ -1728,13 +1771,13 @@ export class PicLinkerView extends ItemView {
 			deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
 				e.stopPropagation();
 				const displayPath = info.isCloud ? info.path : folderPath;
-				if (!(await confirmAsync(this.app, { message: `确定要删除空白文件夹 "${displayPath}" 吗？` }))) return;
+				if (!(await confirmAsync(this.app, { message: `确定要删除文件夹「${displayPath}」吗？`, title: "删除文件夹" }))) return;
 				try {
 					if (info.isCloud && info.bedType) {
 						// 云端文件夹删除
 						const result = await this.plugin.deleteCloudFile(info.path, info.bedType);
 						if (result.success) {
-							new Notice(`已删除: ${displayPath}`);
+							new Notice(`已删除「${displayPath}」`);
 						} else {
 							new Notice(`删除失败: ${result.error}`);
 						}
@@ -1745,7 +1788,7 @@ export class PicLinkerView extends ItemView {
 						} catch {
 							await this.app.vault.adapter.rmdir(folderPath, true);
 						}
-						new Notice(`已删除: ${displayPath}`);
+						new Notice(`已删除「${displayPath}」`);
 					}
 					this.renderContent();
 				} catch (e) {
@@ -2015,46 +2058,37 @@ export class PicLinkerView extends ItemView {
 			}
 		}
 
-		// 对未缓存文件：HEAD 请求获取文件大小，按大小分组，只下载可能重复的文件
+		// 对未缓存文件：下载全文计算哈希，用于与本地图片做内容比对（跨文件名 / 跨格式去重）。
+		// 注意：图片不同格式（webp/png/jpg）内容相同但字节大小不同，按「大小唯一即跳过下载」的
+		// 预筛会漏掉跨格式重复（云端 webp / 本地 png 大小不同必漏 → 云端名A、本地名B 漏判）。
+		// 因此不再按大小预筛跳过，改为全量下载未缓存云端文件；靠 dedupCache 缓存 + 并发限流保护：
+		// 首次较慢，之后命中缓存秒回。
+		let skippedDownload = 0; // 因下载失败被跳过的云端文件数（诊断用）
 		if (cloudFilesToProcess.length > 0) {
-			const sizeMap = new Map<number, CloudFile[]>(); // 文件大小 → 文件列表
-			for (const file of cloudFilesToProcess) {
+			const CONCURRENCY = 12;
+			const total = cloudFilesToProcess.length;
+			let done = 0;
+			const downloadOne = async (file: CloudFile) => {
 				try {
-					const resp = await requestUrl({ url: file.url, method: "HEAD" });
-					const size = parseInt(resp.headers["content-length"] || "0", 10);
-					if (size > 0) {
-						if (!sizeMap.has(size)) sizeMap.set(size, []);
-						sizeMap.get(size)!.push(file);
-					}
-				} catch {
-					// HEAD 失败的文件仍然下载（保守处理）
-					if (!sizeMap.has(0)) sizeMap.set(0, []);
-					sizeMap.get(0)!.push(file);
+					const response = await requestUrl({ url: file.url });
+					const buffer = response.arrayBuffer;
+					const hashBytes = await crypto.subtle.digest("SHA-256", buffer);
+					const hash = Array.from(new Uint8Array(hashBytes)).map(b => b.toString(16).padStart(2, "0")).join("");
+					this.plugin.dedupCache.set({ hash, source: "cloud", path: file.url, bedType: file.bedType, computedAt: Date.now() });
+					if (!cloudHashMap.has(hash)) cloudHashMap.set(hash, []);
+					cloudHashMap.get(hash)!.push(file);
+				} catch (e) {
+					skippedDownload++;
+					console.warn("[PicLinker] 云端文件下载失败，跳过:", file.url, e instanceof Error ? e.message : String(e));
 				}
-			}
-
-			// 只对大小不唯一的文件下载全文计算哈希
-			// 同时收集本地文件的大小，用于跨端预筛
-			const localSizeSet = new Set<number>();
-			for (const img of allLocalImages) {
-				const filePath = img.resolvedPath || img.pure;
-				const file = this.app.vault.getAbstractFileByPath(filePath);
-				if (file instanceof TFile) localSizeSet.add(file.stat.size);
-			}
-
-			for (const [size, files] of sizeMap) {
-				// 大小唯一且不在本地大小集合中的文件，不可能是重复的，跳过下载
-				if (files.length === 1 && !localSizeSet.has(size)) continue;
-				for (const file of files) {
-					try {
-						const response = await requestUrl({ url: file.url });
-						const buffer = response.arrayBuffer;
-						const hashBytes = await crypto.subtle.digest("SHA-256", buffer);
-						const hash = Array.from(new Uint8Array(hashBytes)).map(b => b.toString(16).padStart(2, "0")).join("");
-						this.plugin.dedupCache.set({ hash, source: "cloud", path: file.url, bedType: file.bedType, computedAt: Date.now() });
-						if (!cloudHashMap.has(hash)) cloudHashMap.set(hash, []);
-						cloudHashMap.get(hash)!.push(file);
-					} catch (e) { console.warn("[PicLinker] 云端文件下载失败，跳过:", file.url, e instanceof Error ? e.message : String(e)); continue; }
+			};
+			// 分批并发下载（避免大库瞬间打满请求；Promise.allSettled 不因个别失败中断整体）
+			for (let i = 0; i < cloudFilesToProcess.length; i += CONCURRENCY) {
+				const batch = cloudFilesToProcess.slice(i, i + CONCURRENCY);
+				await Promise.allSettled(batch.map(downloadOne));
+				done += batch.length;
+				if (total > 20 && (done % 60 === 0 || done === total)) {
+					new Notice(`去重中：已处理云端文件 ${done}/${total}`);
 				}
 			}
 		}
@@ -2142,9 +2176,12 @@ export class PicLinkerView extends ItemView {
 
 
 		if (groups.length === 0) {
-			new Notice(selectedOnly ? "选中的图片没有重复" : "没有发现重复图片");
+			new Notice("没有发现重复图片");
 		} else {
 			new Notice(`发现 ${groups.length} 组重复图片`);
+		}
+		if (skippedDownload > 0) {
+			new Notice(`有 ${skippedDownload} 个云端文件因下载失败被跳过（可能为防盗链/CORS/签名过期），可查看控制台了解详情`);
 		}
 		} finally {
 			this.isDedupRunning = false;
@@ -2215,8 +2252,8 @@ export class PicLinkerView extends ItemView {
 					const thumb = itemEl.createEl("img", { cls: "pic-thumb pic-thumb-clickable", attr: { src: thumbSrc, loading: "lazy" } });
 					thumb.addEventListener("error", () => { thumb.setCssStyles({ display: "none" }); });
 					thumb.addEventListener("click", (e) => { e.stopPropagation(); showImagePreview(thumbSrc); });
-					const bedLabel = item.bedType || "未知";
-					itemEl.createSpan({ cls: "pic-path", text: `${bedLabel} / ${extractFileName(item.path) || item.path}` });
+				const bedLabel = bedTypeLabel(item.bedType, item.path);
+				itemEl.createSpan({ cls: "pic-path", text: `${bedLabel} / ${extractFileName(item.path) || item.path}` });
 				}
 				// 引用标签（始终从 localImages 获取最新引用数据）
 				const matchedDedupImg = this.localImages.find(i => (i.resolvedPath || i.pure) === item.path);
@@ -2229,7 +2266,7 @@ export class PicLinkerView extends ItemView {
 				delBtn.addEventListener("click", onAsyncClick(async (e) => {
 					e.stopPropagation();
 					const itemName = item.source === "local" ? (item.path.split("/").pop() || item.path) : (extractFileName(item.path) || item.path);
-					if (!(await confirmAsync(this.app, { message: `确定要删除 "${itemName}" 吗？\n引用将自动更新为组内保留项。` }))) return;
+					if (!(await confirmAsync(this.app, { message: `确定要删除「${itemName}」吗？\n引用将自动更新为组内保留项。`, title: "删除重复项" }))) return;
 					// 确定保留项：排除当前项后，选引用次数最高（云端优先）的
 					const remaining = group.items.filter(i => i !== item);
 					const keepItem = remaining.reduce((best, cur) => {
@@ -2263,13 +2300,14 @@ export class PicLinkerView extends ItemView {
 					}
 					// 引用更新（独立于文件删除，失败不影响删除结果）
 					if (ok && keepItem) {
+						let freshImg: ImageLink | undefined;
 						try {
 							// 保留项在笔记正文中的目标写法：云端优先用 URL，本地用其 pure（原始链接文本）
 							// bestCloud 必须来自“保留集合”(remaining)，避免误用已删除的云端项 URL
 							const bestCloud = remaining.find(i => i.source === "cloud");
 							const keepPath = bestCloud ? bestCloud.path : (keepItem.source === "local" ? (keepItem.img?.pure || keepItem.path) : keepItem.path);
 							// 从 localImages 获取最新的引用文件列表（用 vault 路径反查）
-							const freshImg = this.localImages.find(i => (i.resolvedPath || i.pure) === item.path);
+						freshImg = this.localImages.find(i => (i.resolvedPath || i.pure) === item.path);
 							// oldPath 必须是被删除项在笔记正文中真实出现的文本：
 							//   本地项 → 其 ImageLink.pure（item.path 是 vault 解析路径，笔记里匹配不到）
 							//   云端项 → item.path 本身即 URL
@@ -2279,11 +2317,15 @@ export class PicLinkerView extends ItemView {
 							await this.plugin.linkEditor.replaceImageInMdFiles(oldPath, keepPath, freshImg?.files);
 						} catch (e) {
 							console.warn("[PicLinker] 引用更新失败:", e);
-							new Notice("文件已删除，但引用更新失败，请手动替换");
+							const names = (freshImg?.files ?? []).map(f => f.split("/").pop() || f).join("、");
+							new Notice(
+								names ? `图片已删除，但引用更新失败，请手动修改 ${names} 笔记` : "图片已删除，但引用更新失败，请手动修改笔记",
+								8000
+							);
 						}
 					}
 					if (ok) {
-						new Notice(`已删除: ${itemName}`);
+						new Notice(`已删除「${itemName}」`);
 						// 从 dedupGroups 中移除
 						group.items = group.items.filter(i => i !== item);
 						this.dedupGroups = this.dedupGroups.filter(g => g.items.length >= 2);
@@ -2338,7 +2380,7 @@ export class PicLinkerView extends ItemView {
 
 	/** 删除选中的同名文件 */
 	private async deleteSelectedSameName() {
-		if (this.selection.getCount(SelectionSection.SameName) === 0) { new Notice("请先选择要删除的文件"); return; }
+		if (this.selection.getCount(SelectionSection.SameName) === 0) { new Notice("请先选择要删除的重复图片"); return; }
 
 		// 构建要删除的项目列表
 		const items: Array<{ key: string; type: 'local' | 'cloud'; path: string; bedType?: ImageBedType; refText?: string }> = [];
@@ -2367,7 +2409,7 @@ export class PicLinkerView extends ItemView {
 
 		await this.deleteOps.batchDeleteWithCleanup({
 			section: SelectionSection.SameName,
-			confirmMessage: `确定要删除选中的 ${items.length} 个文件吗？`,
+			confirmMessage: `确定要删除选中的 ${items.length} 个重复图片吗？`,
 			items,
 			deleteReferences: true,
 			onDeleteLocal: async (path: string) => {
@@ -2399,11 +2441,11 @@ export class PicLinkerView extends ItemView {
 	/** 删除选中的重复项，引用更新为组内引用次数最多的项 */
 	private async dedupDeleteSelected() {
 		if (this.selection.getCount(SelectionSection.Dedup) === 0) {
-			new Notice("请先选择要删除的重复文件");
+			new Notice("请先选择要删除的重复图片");
 			return;
 		}
 
-		if (!(await confirmAsync(this.app, { message: `确定要删除选中的 ${this.selection.getCount(SelectionSection.Dedup)} 个重复文件吗？\n引用将自动切换为组内云端版本。` }))) {
+		if (!(await confirmAsync(this.app, { message: `确定要删除选中的 ${this.selection.getCount(SelectionSection.Dedup)} 个重复图片吗？\n引用将切换为组内保留项。`, title: "删除重复图片" }))) {
 			return;
 		}
 
@@ -2498,7 +2540,7 @@ export class PicLinkerView extends ItemView {
 		await this.refresh();
 
 		const parts: string[] = [];
-		if (deleteSuccess > 0) parts.push(`${deleteSuccess} 个文件已删除`);
+		if (deleteSuccess > 0) parts.push(`${deleteSuccess} 个图片已删除`);
 		if (updateSuccess > 0) parts.push(`${updateSuccess} 处引用已更新`);
 		if (deleteFail > 0) parts.push(`${deleteFail} 个失败`);
 		new Notice(`去重完成：${parts.join("，")}`);
@@ -2536,9 +2578,9 @@ export class PicLinkerView extends ItemView {
 		const copyTarget = displayPath; // 后续可通过设置改为只取 fileName
 
 		navigator.clipboard.writeText(copyTarget).then(() => {
-			new Notice(`已复制: ${copyTarget}`);
+			new Notice(`已复制路径「${copyTarget}」`);
 		}).catch(() => {
-			new Notice("复制失败");
+			new Notice("PicLinker：复制失败，请重试");
 		});
 	}
 
@@ -2608,7 +2650,7 @@ export class PicLinkerView extends ItemView {
 	private async jumpToFile(img: ImageLink, filePath: string, lineNumber?: number) {
 		const abstractFile = this.plugin.app.vault.getAbstractFileByPath(filePath);
 		if (!abstractFile || !(abstractFile instanceof TFile)) {
-			new Notice(`文件不存在: ${filePath}`);
+			new Notice(`笔记不存在：${filePath}`);
 			return;
 		}
 
@@ -2637,7 +2679,7 @@ export class PicLinkerView extends ItemView {
 				}
 			}
 		} catch {
-			new Notice(`无法打开文件: ${filePath}`);
+			new Notice(`无法打开笔记：${filePath}`);
 		}
 	}
 
@@ -2754,7 +2796,7 @@ export class PicLinkerView extends ItemView {
 
 	private async cleanupUnreferenced(files: CloudFile[]) {
 		const count = files.length;
-		if (!(await confirmAsync(this.app, { message: `确定要删除选中的 ${count} 个文件吗？` }))) return;
+		if (!(await confirmAsync(this.app, { message: `确定要删除选中的 ${count} 个云端图片吗？`, title: "删除云端图片" }))) return;
 
 		let success = 0;
 		let failed = 0;
@@ -2765,7 +2807,7 @@ export class PicLinkerView extends ItemView {
 		}
 
 		this.selection.clear(SelectionSection.CloudFiles);
-		new Notice(`删除完成：成功 ${success} 个，失败 ${failed} 个`);
+		new Notice(`批量删除完成：成功 ${success} 个，失败 ${failed} 个`);
 		await this.refresh();
 	}
 

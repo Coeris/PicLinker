@@ -839,24 +839,27 @@
 	margin-top: 0;
 }
 
-/* 吸顶态：去掉左右上边框（消除吸顶时 toolbar 下方的悬空竖线），
-   保留底边分隔线 + 外投影，保留“边界感”，不显光秃；
-   底边线在静止/吸顶态都存在，分界线一致不闪现 */
-/* 收起态：四边完整边框由 JS 内联 syncHeaderBorder 统一管理（见 ViewUtils）。
-   此处仅描述圆角。边框不得再用 CSS 级联，避免 !important 压制内联导致不刷新。 */
+/* 边框统一由 CSS class 驱动，JS 只 toggle class，绝不写内联 border（避免折叠滚动竞态残留）。
+   基础态（展开、未吸顶）：顶+左右边框，底边无（由内容区首行分隔线承担）。
+   见 .pic-part-header base 规则已设 border:1px / border-bottom:none。 */
+
+/* 收起态：四边完整边框（含底边），四角圆角 */
 .pic-part-header--collapsed {
+	border: 1px solid var(--pic-border);
 	border-radius: var(--pic-radius-card);
 }
 
-/* 吸顶态：底边分隔线 + 外投影由 JS 内联 syncHeaderBorder 统一管理（见 ViewUtils）。
-   此处仅保留圆角为 0（吸顶时与 toolbar 贴合）与投影。 */
+/* 吸顶态（展开时）：去掉左右上边框，仅留底边分隔线 + 外投影 */
 .pic-part-header--stuck {
+	border: none;
+	border-bottom: 1px solid var(--pic-border);
 	border-radius: 0;
 	box-shadow: var(--pic-shadow);
 }
 
-/* 收起态优先于吸顶态：即使吸顶，收起时仍保持四角圆角（边框由 JS 内联统一设置） */
+/* 收起态优先于吸顶态：即使吸顶，收起时仍保持四角圆角 + 四边完整边框 */
 .pic-part-header--collapsed.pic-part-header--stuck {
+	border: 1px solid var(--pic-border);
 	border-radius: var(--pic-radius-card);
 }
 
@@ -931,20 +934,24 @@
 
 .pic-part-content {
 	box-sizing: border-box;
-	/* 去掉横向 padding，使内部每条 item 的左右边框与分区标题栏左右边对齐（边框连贯）；
-	   不额外加底部留白：区域间的间隔统一由下一个分区 header 的 margin-top(--pic-section-gap) 提供，
-	   避免 content 底留白 + header 上间距双层叠加导致区域间间距比顶/底大一倍 */
 	padding: 0;
 	background: var(--pic-bg-primary);
-	/* 容器不画边框，用 overflow:hidden + 底圆角裁剪内部末子项方角，使区域整体四角圆。
-	   标题条 border-bottom 已去掉，首子项的 border-top 直接充当标题与内容的分隔线，
-	   无需负 margin 折叠，overflow:hidden 不会造成双线问题。 */
-	border: none;
+	/* 外框：左+右+底边框，与标题条的顶+左+右边框合围为一张完整卡片；
+	   不画顶边框——标题条已无 border-bottom，内容区顶部敞开与标题条无缝衔接 */
+	border-left: 1px solid var(--pic-border);
+	border-right: 1px solid var(--pic-border);
+	border-bottom: 1px solid var(--pic-border);
 	border-radius: 0 0 var(--pic-radius-card) var(--pic-radius-card);
 	overflow: hidden;
 }
 
-/* 首子项不需要负 margin 折叠（标题条 border-bottom 已去掉，首子项 border-top 直接充当分隔线） */
+/* 首子项不画顶边（标题条无 border-bottom，首项顶部与标题条底部无缝衔接） */
+
+/* 末子项去掉底边框（由 .pic-part-content 的 border-bottom 统一提供外框底边，避免双线） */
+.pic-part-content > :last-child,
+.pic-dir-content > :last-child {
+	border-bottom: none;
+}
 
 /* 末子项不需要单独设圆角（由 .pic-part-content overflow:hidden 裁剪） */
 
@@ -952,14 +959,15 @@
 .pic-dir-header {
 	display: flex;
 	align-items: center;
-	/* D：行内距 5px → 6px，与文件项一致 */
 	padding: 6px 10px;
 	cursor: pointer;
 	gap: 8px;
-	/* 与文件 item 一致的方形边框，区分条目；负 margin 折叠相邻边框为单线 */
-	border: 1px solid var(--pic-border);
+	/* 只画底边作为行间分隔线；左/右边框由 .pic-part-content 容器统一提供；
+	   不画顶边（首行顶部与标题条底部无缝衔接，不出现双线） */
+	border: none;
+	border-bottom: 1px solid var(--pic-border);
 	border-radius: 0;
-	margin-bottom: -1px;
+	margin-bottom: 0;
 	transition: background 0.12s ease;
 	/* A：文件夹项用浅底，与下方文件项（透明主背景）一眼区分层级；
 	   与去重组头 .pic-dedup-hash 同用 --background-secondary 规范 */
@@ -1032,13 +1040,14 @@
 .pic-item {
 	display: flex;
 	align-items: center;
-	/* D：行内距 5px → 6px，条目更舒展 */
 	padding: 6px 10px;
 	gap: 8px;
-	/* 每条文件项独立方形边框，区分条目；负 margin 折叠相邻边框为单线，条目间无间距 */
-	border: 1px solid var(--pic-border);
+	/* 只画底边作为行间分隔线；左/右边框由 .pic-part-content 容器统一提供；
+	   不画顶边（首行顶部与标题条底部无缝衔接） */
+	border: none;
+	border-bottom: 1px solid var(--pic-border);
 	border-radius: 0;
-	margin-bottom: -1px;
+	margin-bottom: 0;
 	transition: background 0.12s ease;
 	/* 不要 overflow:hidden，否则 hover 缩略图 scale 放大边缘会被裁切 */
 }

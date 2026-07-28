@@ -28,7 +28,7 @@ export class BatchOperations {
 	) {
 		const { selection } = this.ctx;
 		const selected = items.filter(item => selection.isSelected(section, getKey(item)));
-		if (selected.length === 0) { new Notice("请先选择要复制的项目"); return; }
+		if (selected.length === 0) { new Notice("请先选择要复制的图片"); return; }
 		const lines = selected.map(item => {
 			const name = getName(item);
 			const url = getUrl(item);
@@ -49,7 +49,7 @@ export class BatchOperations {
 	) {
 		const { selection } = this.ctx;
 		const selected = items.filter(item => selection.isSelected(section, getKey(item)));
-		if (selected.length === 0) { new Notice("请先选择要下载的文件"); return; }
+		if (selected.length === 0) { new Notice("请先选择要下载的图片"); return; }
 		let success = 0;
 		let fail = 0;
 		for (const item of selected) {

@@ -86,24 +86,35 @@ export class CloudComparator {
 		}
 
 		// ===== GitHub 或无云端列表时：回退到 HTTP HEAD 请求 =====
-		const checks = localImages.map(async (img) => {
+		// 将每个图片的存在性探测封装为「延迟执行的任务」：必须是函数而非已启动的 Promise，
+		// 否则下方分批执行时所有 HEAD 请求会同时发出，并发上限形同虚设。
+		const tasks = localImages.map((img) => async () => {
 			if (img.type !== "local") {
 				// 远程 URL：检查是否已指向当前图床
 				if (this.isUrlFromBed(img.pure, bedType)) {
 					return { key: img.pure, value: { exists: true, url: img.pure } };
 				}
 				return { key: img.pure, value: { exists: false } };
-		}
-		const expectedUrl = this.generateExpectedUrl(img.pure, bedType, pathPrefix);
-		if (!expectedUrl) {
-			return { key: img.pure, value: { exists: false } };
-		}
+			}
+			const expectedUrl = this.generateExpectedUrl(img.pure, bedType, pathPrefix);
+			if (!expectedUrl) {
+				return { key: img.pure, value: { exists: false } };
+			}
 
-		const exists = await this.checkUrlExists(expectedUrl);
-		return { key: img.pure, value: { exists, url: expectedUrl } };
-	});
-		const results = await Promise.allSettled(checks);
-		for (const r of results) {
+			const exists = await this.checkUrlExists(expectedUrl);
+			return { key: img.pure, value: { exists, url: expectedUrl } };
+		});
+
+		// 限制并发数：避免对 raw.githubusercontent.com 同时发起上千个 HEAD 请求触发限流，
+		// 限流失败会被误判为「不在云端」，导致云端图片区缺漏。
+		const CONCURRENCY = 12;
+		const settledResults: PromiseSettledResult<{ key: string; value: { exists: boolean; url?: string } }>[] = [];
+		for (let i = 0; i < tasks.length; i += CONCURRENCY) {
+			const batch = tasks.slice(i, i + CONCURRENCY).map((fn) => fn());
+			const settled = await Promise.allSettled(batch);
+			settledResults.push(...settled);
+		}
+		for (const r of settledResults) {
 			if (r.status === "fulfilled") {
 				result.set(r.value.key, r.value.value);
 			} else {
@@ -196,7 +207,9 @@ export class CloudComparator {
 
 	private async checkUrlExists(url: string): Promise<boolean> {
 		try {
-			const response = await directFetch(url, { method: "HEAD" });
+			// 存在性探测：短超时 + 不回退。被墙域名（如 raw.githubusercontent.com）回退 requestUrl 也必然超时，
+			// 直接快速失败，避免每个图卡 30s（15s Node + 15s requestUrl）拖垮视图加载。
+			const response = await directFetch(url, { method: "HEAD", timeout: 8000, noFallback: true });
 			return response.ok;
 		} catch (e) { console.warn("[PicLinker] HEAD 请求失败:", e instanceof Error ? e.message : String(e)); return false; }
 	}

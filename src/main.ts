@@ -98,6 +98,8 @@ export default class PicLinkerPlugin extends Plugin {
 	private fileDebounceTimer: number | null = null;
 	/** 活跃文件切换防抖定时器 */
 	private activeDebounceTimer: number | null = null;
+	/** 云端刷新后补充刷新的延迟定时器（防止插件卸载时操作已销毁视图） */
+	private cloudRefreshTimer: number | null = null;
 
 	async onload() {
 		// 初始化核心模块（loadSettings 需要 vaultScanner）
@@ -213,6 +215,10 @@ export default class PicLinkerPlugin extends Plugin {
 			window.clearTimeout(this.activeDebounceTimer);
 			this.activeDebounceTimer = null;
 		}
+		if (this.cloudRefreshTimer) {
+			window.clearTimeout(this.cloudRefreshTimer);
+			this.cloudRefreshTimer = null;
+		}
 	}
 
 	private registerImageBeds() {
@@ -296,7 +302,7 @@ export default class PicLinkerPlugin extends Plugin {
 			}
 		} catch (e) {
 			console.error("[PicLinker] 重命名更新图片引用失败:", e);
-			new Notice("PicLinker：重命名后更新图片引用失败，详见控制台", 8000);
+				new Notice("PicLinker：更新图片引用失败，详见控制台", 8000);
 		} finally {
 			// 无论如何都刷新视图（未引用/空白文件夹分区等需要更新）
 			this.debounceFileRefresh();
@@ -319,7 +325,7 @@ export default class PicLinkerPlugin extends Plugin {
 				await this.view.refresh();
 				// 等待云端数据加载完成后，补充一次刷新确保 metadataCache 完全解析后链接路径准确
 				const view = this.view;
-				window.setTimeout(() => {
+				this.cloudRefreshTimer = window.setTimeout(() => {
 					void (async () => {
 						if (view && view.waitForCloudLoad) {
 							await view.waitForCloudLoad();

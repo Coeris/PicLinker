@@ -176,6 +176,12 @@ export class HashCache {
 		return this.cache.size;
 	}
 
+	/** 清空整个缓存（用于主动清理哈希缓存，强制下次去重重新计算） */
+	clear(): void {
+		this.cache.clear();
+		this.dirty = true;
+	}
+
 	/**
 	 * 校验反序列化条目是否结构正确、类型合规。
 	 * 任一必需/已知字段类型不符则返回 false（视为损坏，跳过该条）。

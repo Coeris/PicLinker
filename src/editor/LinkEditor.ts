@@ -34,7 +34,7 @@ export class LinkEditor {
 	async replaceLink(img: ImageLink, newPure: string): Promise<void> {
 		// P1#17: img.files 为空时不回退到 activeFile，避免误改用户正在编辑的文件
 		if (img.files.length === 0) {
-			new Notice("无法确定图片引用的文件，跳过替换");
+			new Notice("PicLinker：无法确定图片引用的文件，已跳过替换");
 			return;
 		}
 		const targetFiles: string[] = img.files;
@@ -225,7 +225,6 @@ export class LinkEditor {
 			const mdMatches: { img: ImageLink; newPure: string }[] = [];
 			while ((m = mdRe.exec(content)) !== null) {
 				const full = m[0];
-				const alt = m[1];
 				let pure = m[2];
 				const tm = pure.match(/^(.+?)\s+"([^"]*)"$/);
 				let title = "";

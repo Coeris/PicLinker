@@ -81,18 +81,18 @@ export class DeleteOperations {
 		const { selection, localImages, removeImageFromMdFile, refresh } = this.ctx;
 
 		if (options.items.length === 0) {
-			new Notice("无项目需要删除");
+			new Notice("没有可删除的图片");
 			return result;
 		}
 
-		if (!(await confirmAsync(this.ctx.app, { message: options.confirmMessage }))) return result;
+		if (!(await confirmAsync(this.ctx.app, { message: options.confirmMessage, title: "删除图片" }))) return result;
 
 		// 第一步：删除文件（先删文件，成功后再清引用，避免「引用已删、文件还在」的不一致态）
 		const deletedKeys = new Set<string>(); // 记录成功删除的项 key
 		const total = options.items.length;
 		// 进度反馈：仅在批量较大时提示，避免单条删除刷屏
 		const showProgress = total > 5;
-		if (showProgress) new Notice(`正在删除（文件阶段）：${result.filesDeleted}/${total}`);
+		if (showProgress) new Notice(`正在删除（图片阶段）：${result.filesDeleted}/${total}`);
 		for (let idx = 0; idx < options.items.length; idx++) {
 			const item = options.items[idx];
 			try {
@@ -110,7 +110,7 @@ export class DeleteOperations {
 			}
 			// 每 10 个或最后一项更新一次进度（避免频繁刷新 Notice）
 			if (showProgress && ((idx + 1) % 10 === 0 || idx + 1 === total)) {
-				new Notice(`正在删除（文件阶段）：${result.filesDeleted}/${total}`);
+				new Notice(`正在删除（图片阶段）：${result.filesDeleted}/${total}`);
 			}
 		}
 
@@ -167,7 +167,7 @@ export class DeleteOperations {
 		// 第六步：显示通知
 		const parts: string[] = [];
 		if (result.referencesDeleted > 0) parts.push(`${result.referencesDeleted} 行引用已清理`);
-		if (result.filesDeleted > 0) parts.push(`${result.filesDeleted} 个文件已删除`);
+		if (result.filesDeleted > 0) parts.push(`${result.filesDeleted} 个图片已删除`);
 		if (result.referencesFailed > 0) parts.push(`${result.referencesFailed} 行引用清理失败`);
 		if (result.filesFailed > 0) parts.push(`${result.filesFailed} 个文件删除失败`);
 		if (parts.length > 0) new Notice(`批量删除完成：${parts.join("，")}`);
@@ -180,11 +180,11 @@ export class DeleteOperations {
 		const { selection, app } = this.ctx;
 		if (selection.getCount(SelectionSection.LocalUnref) === 0) { new Notice("请先选择要删除的图片"); return; }
 		const toDelete = localUnreferenced.filter(f => selection.isSelected(SelectionSection.LocalUnref, f.path));
-		if (toDelete.length === 0) { new Notice("无图片需要删除"); return; }
+		if (toDelete.length === 0) { new Notice("没有可删除的图片"); return; }
 
 		await this.batchDeleteWithCleanup({
 			section: SelectionSection.LocalUnref,
-			confirmMessage: `确定要删除选中的 ${toDelete.length} 个本地未引用图片吗？（将移入回收站）`,
+			confirmMessage: `确定要删除选中的 ${toDelete.length} 个本地图片吗？（将移入回收站）`,
 			items: toDelete.map(f => ({ key: f.path, type: "local" as const, path: f.path })),
 			deleteReferences: false,
 			onDeleteLocal: async (path: string) => {
@@ -200,11 +200,11 @@ export class DeleteOperations {
 		const { selection, app } = this.ctx;
 		if (selection.getCount(SelectionSection.LocalImages) === 0) { new Notice("请先选择要删除的图片"); return; }
 		const toDelete = localImages.filter(img => selection.isSelected(SelectionSection.LocalImages, img.pure));
-		if (toDelete.length === 0) { new Notice("无图片需要删除"); return; }
+		if (toDelete.length === 0) { new Notice("没有可删除的图片"); return; }
 
 		await this.batchDeleteWithCleanup({
 			section: SelectionSection.LocalImages,
-			confirmMessage: `确定要删除选中的 ${toDelete.length} 个图片文件吗？\n将移入系统回收站并清理笔记中的引用行。`,
+			confirmMessage: `确定要删除选中的 ${toDelete.length} 个图片吗？\n将移入系统回收站并清理笔记中的引用行。`,
 			items: toDelete.map(img => ({
 				key: img.pure,
 				type: 'local' as const,
@@ -252,7 +252,7 @@ export class DeleteOperations {
 		}
 
 		if (refsToDelete.length === 0) { new Notice("请先选择要删除的引用行"); return; }
-		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除 ${refsToDelete.length} 个引用行吗？` }))) return;
+		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除 ${refsToDelete.length} 个引用行吗？`, title: "删除引用行" }))) return;
 
 		const fileGroups = new Map<string, typeof refsToDelete>();
 		for (const ref of refsToDelete) {
@@ -320,7 +320,7 @@ export class DeleteOperations {
 		const images = localImages().filter(img => img.found === false);
 		const imageMap = new Map<string, ImageLink>();
 		for (const img of images) imageMap.set(img.pure, img);
-		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${imageKeys.length} 个断链图片的所有引用行吗？` }))) return;
+		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${imageKeys.length} 个断链图片的所有引用行吗？`, title: "删除断链引用" }))) return;
 
 		let successCount = 0;
 		let failCount = 0;
@@ -347,7 +347,7 @@ export class DeleteOperations {
 		const selectedKeys = selection.getSelected(SelectionSection.NotFound);
 		const tagKeys = selectedKeys.filter(k => k.includes("::"));
 		if (tagKeys.length === 0) { new Notice("请先选择要删除的引用标签"); return; }
-		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${tagKeys.length} 个引用行吗？` }))) return;
+		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${tagKeys.length} 个引用行吗？`, title: "删除引用行" }))) return;
 
 		const images = localImages().filter(img => img.found === false);
 
@@ -406,7 +406,7 @@ export class DeleteOperations {
 		const { selection, localImages, cloudFiles, compareResult, selectedBed, deleteCloudFile } = this.ctx;
 		if (selection.getCount(SelectionSection.CloudImages) === 0) { new Notice("请先选择要删除的图片"); return; }
 		const selected = localImages().filter(img => selection.isSelected(SelectionSection.CloudImages, img.pure));
-		if (selected.length === 0) { new Notice("无图片需要删除"); return; }
+		if (selected.length === 0) { new Notice("没有可删除的图片"); return; }
 
 		const urlToCloudFile = new Map<string, CloudFile>();
 		for (const cf of cloudFiles()) {
@@ -440,7 +440,7 @@ export class DeleteOperations {
 	) {
 		const { selection, app, deleteCloudFile, refresh } = this.ctx;
 		if (selection.getCount(SelectionSection.EmptyFolders) === 0) { new Notice("请先选择要删除的文件夹"); return; }
-		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${selection.getCount(SelectionSection.EmptyFolders)} 个空白文件夹吗？` }))) return;
+		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${selection.getCount(SelectionSection.EmptyFolders)} 个空白文件夹吗？`, title: "删除文件夹" }))) return;
 
 		let successCount = 0;
 		let failCount = 0;
@@ -468,9 +468,9 @@ export class DeleteOperations {
 		selection.clear(SelectionSection.EmptyFolders);
 		await refresh();
 		const parts: string[] = [];
-		if (successCount > 0) parts.push(`${successCount} 个已删除`);
-		if (failCount > 0) parts.push(`${failCount} 个删除失败`);
-		new Notice(`删除完成：${parts.join("，")}`);
+		if (successCount > 0) parts.push(`${successCount} 个文件夹已删除`);
+		if (failCount > 0) parts.push(`${failCount} 个文件夹删除失败`);
+		new Notice(`批量删除完成：${parts.join("，")}`);
 		// 汇总失败信息，避免循环内逐个 Notice 刷屏
 		if (failedFolders.length > 0) {
 			const names = failedFolders.map(f => f.split("/").pop() || f);

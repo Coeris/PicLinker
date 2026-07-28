@@ -52,9 +52,19 @@ export class DedupCache {
 		return this.cache.has(path);
 	}
 
+	/** 缓存中的条目数量 */
+	get size(): number {
+		return this.cache.size;
+	}
+
 	/** 移除缓存 */
 	remove(path: string): void {
 		this.cache.delete(path);
+	}
+
+	/** 清空整个缓存（用于主动清理哈希缓存，强制下次去重重新计算） */
+	clear(): void {
+		this.cache.clear();
 	}
 
 	/** 序列化 */

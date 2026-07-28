@@ -156,7 +156,9 @@ export function parseFrontmatterImages(content: string): FrontmatterImageRef[] {
 		if (!value) continue;
 
 		// 仅当值以图片扩展名结尾才纳入
-		const ext = value.split(".").pop()?.toLowerCase() || "";
+		// 先剥离 URL 查询串(?...)与锚点(#...)，避免形如 a.jpg?w=300 的远程 URL 漏识别扩展名
+		const cleanValue = value.split(/[?#]/)[0];
+		const ext = cleanValue.split(".").pop()?.toLowerCase() || "";
 		if (!IMAGE_EXTENSIONS.has(ext)) continue;
 
 		result.push({ key, value, line: i + 1 });

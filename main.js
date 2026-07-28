@@ -85,7 +85,8 @@ async function fallbackRequest(url, options) {
     url,
     method: options.method || "GET",
     headers: options.headers || {},
-    body: options.body
+    body: options.body,
+    ...options.timeout !== void 0 ? { timeout: options.timeout } : {}
   });
   const buf = resp.arrayBuffer;
   const text = (_a = resp.text) != null ? _a : new TextDecoder().decode(buf);
@@ -104,6 +105,7 @@ function getRequire() {
 function nodeFetch(url, options, urlModule, redirectCount) {
   const requireFn = getRequire();
   return new Promise((resolve, reject) => {
+    var _a;
     const parsed = new urlModule.URL(url);
     const useHttps = parsed.protocol === "https:";
     const client = useHttps ? requireFn("https") : requireFn("http");
@@ -122,9 +124,9 @@ function nodeFetch(url, options, urlModule, redirectCount) {
       }
     }
     const req = client.request(reqOpts, (res) => {
-      var _a, _b;
+      var _a2, _b;
       res.on("error", (e) => reject(e));
-      const statusCode = (_a = res.statusCode) != null ? _a : 0;
+      const statusCode = (_a2 = res.statusCode) != null ? _a2 : 0;
       if (statusCode >= 300 && statusCode < 400) {
         const rawLocation = res.headers.location;
         const location = Array.isArray(rawLocation) ? rawLocation[0] : rawLocation;
@@ -150,13 +152,13 @@ function nodeFetch(url, options, urlModule, redirectCount) {
       const chunks = [];
       let total = 0;
       res.on("data", (chunk) => {
-        var _a2;
+        var _a3;
         total += chunk.length;
         if (total > MAX_RESPONSE_SIZE) {
           const err = new Error(
             `directFetch: \u54CD\u5E94\u4F53\u79EF\u8D85\u8FC7\u4E0A\u9650 (${MAX_RESPONSE_SIZE} \u5B57\u8282)`
           );
-          (_a2 = res.destroy) == null ? void 0 : _a2.call(res, err);
+          (_a3 = res.destroy) == null ? void 0 : _a3.call(res, err);
           req.destroy(err);
           reject(err);
           return;
@@ -184,7 +186,7 @@ function nodeFetch(url, options, urlModule, redirectCount) {
     req.on("error", (e) => {
       reject(e);
     });
-    req.setTimeout(15e3, () => {
+    req.setTimeout((_a = options.timeout) != null ? _a : 15e3, () => {
       req.destroy(new Error("directFetch: \u8BF7\u6C42\u8D85\u65F6 (15s)"));
     });
     if (options.body) {
@@ -208,6 +210,10 @@ async function directFetch(url, options = {}) {
     } catch (e) {
       if (options.method === "DELETE") {
         console.warn("[PicLinker] directFetch: Node.js \u8BF7\u6C42\u9519\u8BEF (DELETE)", e);
+        throw e;
+      }
+      if (options.noFallback) {
+        console.warn(`[PicLinker] directFetch: \u8BF7\u6C42\u5931\u8D25\uFF08\u4E0D\u56DE\u9000\uFF09: ${(e == null ? void 0 : e.message) || e}`);
         throw e;
       }
       console.warn(`[PicLinker] directFetch: Node.js \u8BF7\u6C42\u5931\u8D25 \u2192 requestUrl \u56DE\u9000: ${(e == null ? void 0 : e.message) || e}`);
@@ -277,7 +283,7 @@ var CloudComparator = class {
       }
       return result;
     }
-    const checks = localImages.map(async (img) => {
+    const tasks = localImages.map((img) => async () => {
       if (img.type !== "local") {
         if (this.isUrlFromBed(img.pure, bedType)) {
           return { key: img.pure, value: { exists: true, url: img.pure } };
@@ -291,8 +297,14 @@ var CloudComparator = class {
       const exists = await this.checkUrlExists(expectedUrl);
       return { key: img.pure, value: { exists, url: expectedUrl } };
     });
-    const results = await Promise.allSettled(checks);
-    for (const r of results) {
+    const CONCURRENCY = 12;
+    const settledResults = [];
+    for (let i = 0; i < tasks.length; i += CONCURRENCY) {
+      const batch = tasks.slice(i, i + CONCURRENCY).map((fn) => fn());
+      const settled = await Promise.allSettled(batch);
+      settledResults.push(...settled);
+    }
+    for (const r of settledResults) {
       if (r.status === "fulfilled") {
         result.set(r.value.key, r.value.value);
       } else {
@@ -369,7 +381,7 @@ var CloudComparator = class {
   }
   async checkUrlExists(url) {
     try {
-      const response = await directFetch(url, { method: "HEAD" });
+      const response = await directFetch(url, { method: "HEAD", timeout: 8e3, noFallback: true });
       return response.ok;
     } catch (e) {
       console.warn("[PicLinker] HEAD \u8BF7\u6C42\u5931\u8D25:", e instanceof Error ? e.message : String(e));
@@ -387,12 +399,10 @@ function extractFileName(localPure) {
 function syncHeaderBorder(header, content) {
   const collapsed = header.classList.contains("pic-part-header--collapsed");
   const stuck = header.classList.contains("pic-part-header--stuck");
-  if (collapsed) {
-    header.setCssStyles({ border: "1px solid var(--background-modifier-border)", borderBottom: "" });
-  } else if (stuck) {
-    header.setCssStyles({ border: "none", borderBottom: "1px solid var(--background-modifier-border)" });
-  } else {
-    header.setCssStyles({ border: "1px solid var(--background-modifier-border)", borderBottom: "none" });
+  if (stuck && collapsed) {
+    header.addClass("pic-part-header--stuck");
+  } else if (!stuck && header.classList.contains("pic-part-header--stuck")) {
+    header.removeClass("pic-part-header--stuck");
   }
 }
 function isHidden(el) {
@@ -445,6 +455,21 @@ function getTopBedIcon(urls, gray = false) {
   }
   const icon = getBedFaviconSvg(topBed);
   return gray ? icon.replace(/fill="[^"]*"/g, 'fill="currentColor"') : icon;
+}
+function bedTypeLabel(bedType, url) {
+  if (bedType) return bedType;
+  if (url) {
+    try {
+      let host = new URL(url).hostname.toLowerCase();
+      const parts = host.split(".");
+      if (parts.length >= 3 && /^(www|img\d*|cdn\d*|i\d*|pic\d*|photo\d*|res\d*|static|assets)$/.test(parts[0])) {
+        host = parts.slice(1).join(".");
+      }
+      if (host) return host;
+    } catch (e) {
+    }
+  }
+  return "\u672A\u77E5";
 }
 function getFileExtension(filename) {
   const parts = filename.split(".");
@@ -651,7 +676,7 @@ var BED_NAME_TYPE_MAP = {
 var BED_CONFIGS = [
   {
     name: "GitHub \u56FE\u5E8A",
-    desc: "",
+    desc: "\u5C06\u56FE\u7247\u6258\u7BA1\u5230 GitHub \u4ED3\u5E93\uFF08\u9700\u516C\u5F00\u4ED3\u5E93\uFF09",
     guide: "\u3010\u83B7\u53D6 Token\u3011\n1. \u6253\u5F00 https://github.com/settings/tokens\n2. Generate new token (classic) \u2192 \u52FE\u9009 repo \u6743\u9650 \u2192 \u751F\u6210\u5E76\u590D\u5236 Token\n\n\u3010\u521B\u5EFA\u4ED3\u5E93\u3011\n3. \u6253\u5F00 https://github.com/new \u521B\u5EFA\u516C\u5F00\u4ED3\u5E93\uFF08Public\uFF09\n4. \u586B\u5199\u4E0B\u65B9\u914D\u7F6E\uFF1A\n   - Owner\uFF1AGitHub \u7528\u6237\u540D\n   - Repo\uFF1A\u4ED3\u5E93\u540D\n   - Branch\uFF1A\u5206\u652F\uFF08\u9ED8\u8BA4 main\uFF09\n   - Path\uFF1A\u5B50\u76EE\u5F55\uFF08\u9ED8\u8BA4 images\uFF09",
     fields: [
       { name: "Token", desc: "Personal Access Token\uFF08\u9700 repo \u6743\u9650\uFF09", placeholder: "ghp_xxxx", key: "githubToken", isSecret: true, required: true },
@@ -663,7 +688,7 @@ var BED_CONFIGS = [
   },
   {
     name: "\u963F\u91CC\u4E91 OSS",
-    desc: "",
+    desc: "\u5C06\u56FE\u7247\u6258\u7BA1\u5230\u963F\u91CC\u4E91\u5BF9\u8C61\u5B58\u50A8",
     guide: "\u3010\u83B7\u53D6\u5BC6\u94A5\u3011\n1. \u6253\u5F00 https://ram.console.aliyun.com \u2192 AccessKey \u7BA1\u7406\n2. \u521B\u5EFA AccessKey\uFF08\u5EFA\u8BAE\u4F7F\u7528 RAM \u5B50\u8D26\u53F7\uFF0C\u4EC5\u6388\u4E88 OSS \u6743\u9650\uFF09\n3. \u586B\u5199 AccessKey ID \u548C Secret\n\n\u3010\u81EA\u52A8\u83B7\u53D6 Bucket\u3011\n4. \u586B\u5199\u5BC6\u94A5\u540E\u81EA\u52A8\u83B7\u53D6 Bucket \u5217\u8868\n5. \u9009\u62E9 Bucket \u540E\u81EA\u52A8\u586B\u5165 Endpoint\n6. \u5982\u679C\u81EA\u52A8\u83B7\u53D6\u5931\u8D25\uFF0C\u53EF\u624B\u52A8\u586B\u5199 Bucket \u548C Endpoint\n\n\u3010\u521B\u5EFA Bucket\u3011\n7. \u6253\u5F00 https://oss.console.aliyun.com \u2192 \u521B\u5EFA Bucket\n8. \u8BFB\u5199\u6743\u9650\u8BBE\u4E3A\u300C\u516C\u5171\u8BFB\u300D\uFF08\u56FE\u7247\u9700\u8981\u516C\u5F00\u8BBF\u95EE\uFF09\n\n\u3010\u914D\u7F6E\u8DE8\u57DF\u3011\n9. Bucket \u2192 \u6570\u636E\u5B89\u5168 \u2192 \u8DE8\u57DF\u8BBE\u7F6E \u2192 \u521B\u5EFA\u89C4\u5219\n10. \u6765\u6E90\uFF1Aapp://obsidian.md\n11. \u65B9\u6CD5\uFF1AGET, PUT, DELETE\n12. \u5141\u8BB8 Header\uFF1A*",
     fields: [
       { name: "AccessKey ID", desc: "AccessKey \u7BA1\u7406\u9875\u9762\u83B7\u53D6", placeholder: "LTAI...", key: "aliyunAccessKeyId", required: true },
@@ -672,7 +697,7 @@ var BED_CONFIGS = [
   },
   {
     name: "\u817E\u8BAF\u4E91 COS",
-    desc: "",
+    desc: "\u5C06\u56FE\u7247\u6258\u7BA1\u5230\u817E\u8BAF\u4E91\u5BF9\u8C61\u5B58\u50A8",
     guide: "\u3010\u83B7\u53D6\u5BC6\u94A5\u3011\n1. \u6253\u5F00 https://console.cloud.tencent.com/cam \u2192 API \u5BC6\u94A5\u7BA1\u7406\n2. \u65B0\u5EFA\u5BC6\u94A5\uFF08\u5EFA\u8BAE\u4F7F\u7528 CAM \u5B50\u7528\u6237\uFF0C\u4EC5\u6388\u4E88 COS \u6743\u9650\uFF09\n3. \u586B\u5199 SecretId \u548C SecretKey\n\n\u3010\u81EA\u52A8\u83B7\u53D6 Bucket\u3011\n4. \u586B\u5199\u5BC6\u94A5\u540E\u81EA\u52A8\u83B7\u53D6 Bucket \u5217\u8868\n5. \u9009\u62E9 Bucket \u540E\u81EA\u52A8\u586B\u5165 Region\n6. \u5982\u679C\u81EA\u52A8\u83B7\u53D6\u5931\u8D25\uFF0C\u53EF\u624B\u52A8\u586B\u5199 Bucket \u548C Region\n\n\u3010\u521B\u5EFA\u5B58\u50A8\u6876\u3011\n7. \u6253\u5F00 https://console.cloud.tencent.com/cos \u2192 \u521B\u5EFA\u5B58\u50A8\u6876\n8. \u8BBF\u95EE\u6743\u9650\u8BBE\u4E3A\u300C\u516C\u6709\u8BFB\u79C1\u6709\u5199\u300D\n9. Bucket \u683C\u5F0F\uFF1A\u540D\u79F0-APPID\uFF08\u5982 my-images-1250000000\uFF09\n\n\u3010\u914D\u7F6E\u8DE8\u57DF\u3011\n10. \u5B58\u50A8\u6876 \u2192 \u57FA\u7840\u914D\u7F6E \u2192 \u8DE8\u57DF\u8BBF\u95EE CORS \u2192 \u6DFB\u52A0\u89C4\u5219\n11. \u6765\u6E90\uFF1Aapp://obsidian.md\n12. \u65B9\u6CD5\uFF1AGET, PUT, DELETE\n13. \u5141\u8BB8 Header\uFF1A*",
     fields: [
       { name: "SecretId", desc: "API \u5BC6\u94A5\u7BA1\u7406\u9875\u9762\u83B7\u53D6", placeholder: "AKID...", key: "tencentSecretId", isSecret: true, required: true },
@@ -681,7 +706,7 @@ var BED_CONFIGS = [
   },
   {
     name: "\u5176\u4ED6\u56FE\u5E8A",
-    desc: "",
+    desc: "\u517C\u5BB9\u652F\u6301 S3 \u534F\u8BAE\u7684\u81EA\u5B9A\u4E49\u56FE\u5E8A",
     guide: "\u3010\u652F\u6301\u7684\u56FE\u5E8A\u3011\n1. SM.MS\uFF1A\u514D\u8D39\u56FE\u5E8A\uFF0C\u53EA\u9700\u586B\u5199 Token\n2. \u5170\u7A7A\u56FE\u5E8A Lsky Pro\uFF1A\u81EA\u5EFA\u56FE\u5E8A\uFF0C\u9700\u8981 API URL + Token \u6216\u7528\u6237\u540D\u5BC6\u7801\n3. EasyImage\uFF1A\u7B80\u5355\u56FE\u5E8A\uFF0C\u9700\u8981 API URL + Token\n4. Chevereto\uFF1A\u5546\u4E1A\u56FE\u5E8A\uFF0C\u9700\u8981 API URL + Token\n5. \u5176\u4ED6\u81EA\u5EFA\u56FE\u5E8A\uFF1A\u9700\u8981 API URL + \u8BA4\u8BC1\u4FE1\u606F\n\n\u3010SM.MS Token \u83B7\u53D6\u3011\n1. \u6253\u5F00 https://sm.ms \u2192 \u6CE8\u518C\u5E76\u767B\u5F55\n2. Dashboard \u2192 API Token \u2192 \u590D\u5236 Token\n\n\u3010\u81EA\u5EFA\u56FE\u5E8A\u914D\u7F6E\u3011\n3. Name\uFF1A\u81EA\u5B9A\u4E49\u540D\u79F0\uFF08\u4FBF\u4E8E\u8BC6\u522B\uFF09\n4. API URL\uFF1A\u56FE\u5E8A\u63A5\u53E3\u5730\u5740\uFF08\u5982 https://your-domain.com/api/v1/upload\uFF09\n5. Token\uFF1A\u8BA4\u8BC1\u5BC6\u94A5\uFF08\u90E8\u5206\u56FE\u5E8A\u4E0D\u9700\u8981\uFF09\n6. Username/Password\uFF1A\u90E8\u5206\u56FE\u5E8A\u9700\u8981\n7. Path\uFF1A\u56FE\u7247\u5B58\u50A8\u5B50\u76EE\u5F55\uFF08\u53EF\u9009\uFF09",
     fields: [
       { name: "Name", desc: "\u81EA\u5B9A\u4E49\u540D\u79F0\uFF0C\u4FBF\u4E8E\u8BC6\u522B", placeholder: "SM.MS", key: "otherBedName" },
@@ -915,15 +940,15 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
     try {
       const result = await this.plugin.webDAVSync.uploadToWebdav();
       if (result.ok) {
-        new import_obsidian4.Notice("\u914D\u7F6E\u5DF2\u4E0A\u4F20\u5230 WebDAV \u670D\u52A1\u5668");
+        new import_obsidian4.Notice("\u5DF2\u4E0A\u4F20\u914D\u7F6E\u5230 WebDAV");
         this.updateSyncStatus(`\u4E0A\u4F20\u6210\u529F (${(/* @__PURE__ */ new Date()).toLocaleTimeString()})`);
       } else {
-        const msg = result.message || `\u4E0A\u4F20\u5931\u8D25: HTTP ${result.status}`;
+        const msg = result.message || `PicLinker\uFF1A\u4E0A\u4F20\u5931\u8D25\uFF08HTTP ${result.status}\uFF09`;
         new import_obsidian4.Notice(msg);
         this.updateSyncStatus(msg);
       }
     } catch (e) {
-      new import_obsidian4.Notice(`\u4E0A\u4F20\u5F02\u5E38: ${e}`);
+      new import_obsidian4.Notice("PicLinker\uFF1A\u4E0A\u4F20\u5931\u8D25", 15e3);
       this.updateSyncStatus(`\u4E0A\u4F20\u5F02\u5E38: ${e}`);
     } finally {
       this.syncing = false;
@@ -946,12 +971,12 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
         headers: { Authorization: `Basic ${auth}` }
       });
       if (!response.ok) {
-        new import_obsidian4.Notice(`\u4E0B\u8F7D\u5931\u8D25: HTTP ${response.status}`);
+        new import_obsidian4.Notice(`PicLinker\uFF1A\u4E0B\u8F7D\u5931\u8D25\uFF08HTTP ${response.status}\uFF09`);
         return;
       }
       const remoteData = await response.json();
       if (!remoteData || typeof remoteData !== "object") {
-        new import_obsidian4.Notice("\u8FDC\u7A0B\u6570\u636E\u683C\u5F0F\u65E0\u6548");
+        new import_obsidian4.Notice("PicLinker\uFF1A\u8FDC\u7A0B\u6570\u636E\u683C\u5F0F\u65E0\u6548");
         return;
       }
       for (const k of BED_SETTINGS_KEYS) {
@@ -967,7 +992,7 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
       new import_obsidian4.Notice("\u5DF2\u4ECE WebDAV \u4E0B\u8F7D\u5E76\u5E94\u7528\u914D\u7F6E");
       void this.renderSettings();
     } catch (e) {
-      new import_obsidian4.Notice(`\u4E0B\u8F7D\u5F02\u5E38: ${e}`);
+      new import_obsidian4.Notice(`PicLinker\uFF1A\u4E0B\u8F7D\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
     }
   }
   /**
@@ -992,11 +1017,11 @@ ${msg}` })) return;
         return;
       }
       if (result.success) {
-        new import_obsidian4.Notice("\u5DF2\u4ECE WebDAV \u667A\u80FD\u5408\u5E76\u914D\u7F6E");
+        new import_obsidian4.Notice("\u5DF2\u4E0E WebDAV \u914D\u7F6E\u667A\u80FD\u5408\u5E76");
         this.updateSyncStatus(`\u540C\u6B65\u6210\u529F (${(/* @__PURE__ */ new Date()).toLocaleTimeString()})`);
         void this.renderSettings();
       } else {
-        new import_obsidian4.Notice(result.error || "\u540C\u6B65\u5931\u8D25");
+        new import_obsidian4.Notice(result.error ? `PicLinker\uFF1A\u540C\u6B65\u5931\u8D25\uFF1A${result.error}` : "PicLinker\uFF1A\u540C\u6B65\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
         this.updateSyncStatus(result.error || "\u540C\u6B65\u5931\u8D25");
       }
     } finally {
@@ -1229,13 +1254,13 @@ ${msg}` })) return;
           if (bed) bed.configure(this.plugin.settings);
           const result = await this.plugin.createCloudDirectory(dir, "\u963F\u91CC\u4E91 OSS" /* Aliyun */);
           if (result.success) {
-            new import_obsidian4.Notice(`\u6587\u4EF6\u5939\u5DF2\u521B\u5EFA: ${dir}`);
+            new import_obsidian4.Notice(`\u6587\u4EF6\u5939\u300C${dir}\u300D\u5DF2\u521B\u5EFA`);
             dirInput.value = "";
           } else {
-            new import_obsidian4.Notice(`\u521B\u5EFA\u5931\u8D25: ${result.error}`);
+            new import_obsidian4.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${result.error}`);
           }
         } catch (e) {
-          new import_obsidian4.Notice(`\u521B\u5EFA\u5F02\u5E38: ${e instanceof Error ? e.message : String(e)}`);
+          new import_obsidian4.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
         } finally {
           dirBtn.disabled = false;
         }
@@ -1391,13 +1416,13 @@ ${msg}` })) return;
           if (bed) bed.configure(this.plugin.settings);
           const result = await this.plugin.createCloudDirectory(dir, "\u817E\u8BAF\u4E91 COS" /* Tencent */);
           if (result.success) {
-            new import_obsidian4.Notice(`\u6587\u4EF6\u5939\u5DF2\u521B\u5EFA: ${dir}`);
+            new import_obsidian4.Notice(`\u6587\u4EF6\u5939\u300C${dir}\u300D\u5DF2\u521B\u5EFA`);
             dirInput.value = "";
           } else {
-            new import_obsidian4.Notice(`\u521B\u5EFA\u5931\u8D25: ${result.error}`);
+            new import_obsidian4.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${result.error}`);
           }
         } catch (e) {
-          new import_obsidian4.Notice(`\u521B\u5EFA\u5F02\u5E38: ${e instanceof Error ? e.message : String(e)}`);
+          new import_obsidian4.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
         } finally {
           dirBtn.disabled = false;
         }
@@ -1587,7 +1612,8 @@ function parseFrontmatterImages(content) {
     let value = m[2].trim();
     value = value.replace(/^["']|["']$/g, "");
     if (!value) continue;
-    const ext = ((_a = value.split(".").pop()) == null ? void 0 : _a.toLowerCase()) || "";
+    const cleanValue = value.split(/[?#]/)[0];
+    const ext = ((_a = cleanValue.split(".").pop()) == null ? void 0 : _a.toLowerCase()) || "";
     if (!IMAGE_EXTENSIONS.has(ext)) continue;
     result.push({ key, value, line: i + 1 });
   }
@@ -1680,7 +1706,7 @@ var LinkParser = class {
     for (const ref of refs) {
       const pure = ref.value;
       if (!pure) continue;
-      const type = "local";
+      const type = this.detectLinkType(pure);
       links.push({
         raw: `${ref.key}: ${pure}`,
         pure,
@@ -1939,6 +1965,11 @@ var HashCache = class _HashCache {
   /** 缓存中的条目数量 */
   get size() {
     return this.cache.size;
+  }
+  /** 清空整个缓存（用于主动清理哈希缓存，强制下次去重重新计算） */
+  clear() {
+    this.cache.clear();
+    this.dirty = true;
   }
   /**
    * 校验反序列化条目是否结构正确、类型合规。
@@ -2608,8 +2639,8 @@ var ItemRenderer = class {
       const fileName = extractFileName(img.resolvedPath || img.pure);
       if (fileName) {
         navigator.clipboard.writeText(fileName).then(
-          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u6587\u4EF6\u540D: ${fileName}`),
-          () => new import_obsidian6.Notice("\u590D\u5236\u5931\u8D25")
+          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
+          () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
         );
       }
     });
@@ -2678,11 +2709,11 @@ var ItemRenderer = class {
     });
     this.renderTags(item, img, "localTags" /* LocalTags */, img.pure);
     const actions = item.createDiv({ cls: "pic-actions" });
-    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u6587\u4EF6\u5E76\u6E05\u7406\u5F15\u7528" } });
+    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u56FE\u7247\u5E76\u6E05\u7406\u5F15\u7528\u884C" } });
     deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
       e.stopPropagation();
-      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664 "${img.pure}" \u5417\uFF1F
-\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002` })) return;
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${img.pure}\u300D\u5417\uFF1F
+\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`, title: "\u5220\u9664\u56FE\u7247" })) return;
       for (const fp of img.files) {
         await this.ctx.removeImageFromMdFile(fp, [img.pure]);
       }
@@ -2690,7 +2721,7 @@ var ItemRenderer = class {
       const file = app.vault.getAbstractFileByPath(filePath);
       if (file instanceof import_obsidian6.TFile) {
         await app.fileManager.trashFile(file);
-        new import_obsidian6.Notice(`\u5DF2\u5220\u9664: ${extractFileName(filePath) || filePath}`);
+        new import_obsidian6.Notice(`\u5DF2\u5220\u9664\u300C${extractFileName(filePath) || filePath}\u300D`);
       }
       selection.deselect("localImages" /* LocalImages */, img.pure);
       for (const tagKey of selection.getSelected("localTags" /* LocalTags */)) {
@@ -2756,8 +2787,8 @@ var ItemRenderer = class {
       const fileName = extractFileName(img.pure);
       if (fileName) {
         navigator.clipboard.writeText(fileName).then(
-          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u6587\u4EF6\u540D: ${fileName}`),
-          () => new import_obsidian6.Notice("\u590D\u5236\u5931\u8D25")
+          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
+          () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
         );
       }
     });
@@ -2816,24 +2847,28 @@ var ItemRenderer = class {
     });
     this.renderTags(item, img, "cloudTags" /* CloudTags */, img.pure);
     const actions = item.createDiv({ cls: "pic-actions" });
-    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u4E91\u7AEF\u6587\u4EF6\u5E76\u6E05\u7406\u5F15\u7528" } });
+    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u4E91\u7AEF\u56FE\u7247\u5E76\u6E05\u7406\u5F15\u7528\u884C" } });
     deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
-      var _a;
+      var _a, _b;
       e.stopPropagation();
-      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664 "${img.pure}" \u5417\uFF1F
-\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002` })) return;
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${img.pure}\u300D\u5417\uFF1F
+\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`, title: "\u5220\u9664\u56FE\u7247" })) return;
+      const bedType = (_a = detectBedTypeFromUrl(img.pure)) != null ? _a : void 0;
+      if (!bedType) {
+        new import_obsidian6.Notice("\u65E0\u6CD5\u8BC6\u522B\u56FE\u5E8A\u7C7B\u578B\uFF0C\u5DF2\u53D6\u6D88\u5220\u9664\uFF08\u7B14\u8BB0\u5F15\u7528\u672A\u6E05\u7406\uFF09");
+        return;
+      }
+      const cloudFile = this.ctx.cloudFiles.find((cf) => cf.url === img.pure);
+      const fileKey = (cloudFile == null ? void 0 : cloudFile.prefix) || (cloudFile == null ? void 0 : cloudFile.name) || extractFileName(img.pure) || img.pure;
+      const result = await deleteCloudFile(fileKey, bedType);
+      if (!result.success) {
+        new import_obsidian6.Notice(`\u4E91\u7AEF\u56FE\u7247\u5220\u9664\u5931\u8D25\uFF0C\u5DF2\u53D6\u6D88\u6E05\u7406\u5F15\u7528\uFF1A${(_b = result.error) != null ? _b : "\u672A\u77E5\u9519\u8BEF"}`);
+        return;
+      }
       for (const fp of img.files) {
         await removeImageFromMdFile(fp, [img.pure]);
       }
-      const bedType = (_a = detectBedTypeFromUrl(img.pure)) != null ? _a : void 0;
-      const cloudFile = this.ctx.cloudFiles.find((cf) => cf.url === img.pure);
-      const fileKey = (cloudFile == null ? void 0 : cloudFile.prefix) || (cloudFile == null ? void 0 : cloudFile.name) || extractFileName(img.pure) || img.pure;
-      if (bedType) {
-        await deleteCloudFile(fileKey, bedType);
-      } else {
-        new import_obsidian6.Notice("\u65E0\u6CD5\u8BC6\u522B\u56FE\u5E8A\u7C7B\u578B\uFF0C\u8DF3\u8FC7\u4E91\u7AEF\u6587\u4EF6\u5220\u9664");
-      }
-      new import_obsidian6.Notice(`\u5DF2\u5220\u9664: ${extractFileName(img.pure) || img.pure}`);
+      new import_obsidian6.Notice(`\u5DF2\u5220\u9664\u300C${extractFileName(img.pure) || img.pure}\u300D`);
       selection.deselect("cloudImages" /* CloudImages */, img.pure);
       await this.ctx.refresh();
     }));
@@ -2877,8 +2912,8 @@ var ItemRenderer = class {
       const fileName = extractFileName(img.resolvedPath || img.pure);
       if (fileName) {
         navigator.clipboard.writeText(fileName).then(
-          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u6587\u4EF6\u540D: ${fileName}`),
-          () => new import_obsidian6.Notice("\u590D\u5236\u5931\u8D25")
+          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
+          () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
         );
       }
     });
@@ -2893,8 +2928,8 @@ var ItemRenderer = class {
     pathSpan.addEventListener("dblclick", (e) => {
       e.stopPropagation();
       navigator.clipboard.writeText(displayPath).then(
-        () => new import_obsidian6.Notice(`\u8DEF\u5F84\u5DF2\u590D\u5236`),
-        () => new import_obsidian6.Notice("\u590D\u5236\u5931\u8D25")
+        () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u8DEF\u5F84`),
+        () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
       );
     });
     this.renderTags(item, img, "notFound" /* NotFound */, img.pure);
@@ -2907,7 +2942,7 @@ var ItemRenderer = class {
         return;
       }
       const fileList = img.files.map((f) => f.split("/").pop() || f).join("\u3001");
-      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664 "${displayPath}" \u5728 ${img.files.length} \u4E2A\u7B14\u8BB0\uFF08${fileList}\uFF09\u4E2D\u7684\u6240\u6709\u5F15\u7528\u884C\u5417\uFF1F` })) return;
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${displayPath}\u300D\u5728 ${img.files.length} \u4E2A\u7B14\u8BB0\uFF08${fileList}\uFF09\u4E2D\u7684\u6240\u6709\u5F15\u7528\u884C\u5417\uFF1F`, title: "\u5220\u9664\u5F15\u7528\u884C" })) return;
       let successCount = 0;
       let failCount = 0;
       for (const fp of img.files) {
@@ -2922,7 +2957,7 @@ var ItemRenderer = class {
       const parts = [];
       if (successCount > 0) parts.push(`${successCount} \u884C\u5DF2\u5220\u9664`);
       if (failCount > 0) parts.push(`${failCount} \u884C\u5931\u8D25`);
-      new import_obsidian6.Notice(`\u5220\u9664\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
+      new import_obsidian6.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
       await refresh();
     }));
   }
@@ -2949,8 +2984,8 @@ var ItemRenderer = class {
       const fileName = extractFileName(file.name);
       if (fileName) {
         navigator.clipboard.writeText(fileName).then(
-          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u6587\u4EF6\u540D: ${fileName}`),
-          () => new import_obsidian6.Notice("\u590D\u5236\u5931\u8D25")
+          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
+          () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
         );
       }
     });
@@ -2998,23 +3033,28 @@ var ItemRenderer = class {
     pathSpan.addEventListener("dblclick", (e) => {
       e.stopPropagation();
       navigator.clipboard.writeText(file.url).then(
-        () => new import_obsidian6.Notice("\u8DEF\u5F84\u5DF2\u590D\u5236"),
-        () => new import_obsidian6.Notice("\u590D\u5236\u5931\u8D25")
+        () => new import_obsidian6.Notice("\u5DF2\u590D\u5236\u8DEF\u5F84"),
+        () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
       );
     });
     const actions = item.createDiv({ cls: "pic-actions" });
-    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u4E91\u7AEF\u6587\u4EF6\u5E76\u6E05\u7406\u5F15\u7528" } });
+    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u4E91\u7AEF\u56FE\u7247\u5E76\u6E05\u7406\u5F15\u7528\u884C" } });
     deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
+      var _a;
       e.stopPropagation();
-      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u4E91\u7AEF\u6587\u4EF6 "${file.name}" \u5417\uFF1F
-\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002` })) return;
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u4E91\u7AEF\u56FE\u7247\u300C${file.name}\u300D\u5417\uFF1F
+\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`, title: "\u5220\u9664\u4E91\u7AEF\u56FE\u7247" })) return;
       if (!cloudBedType) {
-        new import_obsidian6.Notice("\u4E91\u7AEF\u6587\u4EF6\u672A\u5220\u9664\uFF08\u65E0\u6CD5\u8BC6\u522B\u56FE\u5E8A\u7C7B\u578B\uFF09");
+        new import_obsidian6.Notice("PicLinker\uFF1A\u4E91\u7AEF\u56FE\u7247\u672A\u5220\u9664\uFF1A\u65E0\u6CD5\u8BC6\u522B\u56FE\u5E8A\u7C7B\u578B");
         return;
       }
-      await deleteCloudFile(file.prefix || file.name, cloudBedType);
+      const result = await deleteCloudFile(file.prefix || file.name, cloudBedType);
+      if (!result.success) {
+        new import_obsidian6.Notice(`\u4E91\u7AEF\u56FE\u7247\u5220\u9664\u5931\u8D25\uFF0C\u5DF2\u53D6\u6D88\u6E05\u7406\u5F15\u7528\uFF1A${(_a = result.error) != null ? _a : "\u672A\u77E5\u9519\u8BEF"}`);
+        return;
+      }
       await removeImageFromAllMdFiles([file.url]);
-      new import_obsidian6.Notice(`\u5DF2\u5220\u9664: ${file.name}`);
+      new import_obsidian6.Notice(`\u5DF2\u5220\u9664\u300C${file.name}\u300D`);
       await this.ctx.refresh();
     }));
   }
@@ -3038,8 +3078,8 @@ var ItemRenderer = class {
       if (target.closest("input, img, .pic-file-tag, button")) return;
       e.stopPropagation();
       navigator.clipboard.writeText(file.name).then(
-        () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u6587\u4EF6\u540D: ${file.name}`),
-        () => new import_obsidian6.Notice("\u590D\u5236\u5931\u8D25")
+        () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${file.name}\u300D`),
+        () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
       );
     });
     const checkbox = item.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
@@ -3073,20 +3113,20 @@ var ItemRenderer = class {
     pathSpan.addEventListener("dblclick", (e) => {
       e.stopPropagation();
       navigator.clipboard.writeText(file.path).then(
-        () => new import_obsidian6.Notice(`\u8DEF\u5F84\u5DF2\u590D\u5236`),
-        () => new import_obsidian6.Notice("\u590D\u5236\u5931\u8D25")
+        () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u8DEF\u5F84`),
+        () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
       );
     });
     const actions = item.createDiv({ cls: "pic-actions" });
     const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u79FB\u5165\u56DE\u6536\u7AD9" } });
     deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
       e.stopPropagation();
-      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5C06 "${file.name}" \u79FB\u5165\u56DE\u6536\u7AD9\u5417\uFF1F` })) return;
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5C06\u300C${file.name}\u300D\u79FB\u5165\u56DE\u6536\u7AD9\u5417\uFF1F`, title: "\u79FB\u5165\u56DE\u6536\u7AD9" })) return;
       if (deleteLocalUnrefFile) {
         await deleteLocalUnrefFile(file);
       } else {
         await app.fileManager.trashFile(file);
-        new import_obsidian6.Notice(`\u5DF2\u79FB\u5165\u56DE\u6536\u7AD9: ${file.name}`);
+        new import_obsidian6.Notice(`\u5DF2\u79FB\u5165\u56DE\u6536\u7AD9\u300C${file.name}\u300D`);
       }
       await this.ctx.refresh();
     }));
@@ -3142,7 +3182,7 @@ var BatchOperations = class {
     const { selection } = this.ctx;
     const selected = items.filter((item) => selection.isSelected(section, getKey(item)));
     if (selected.length === 0) {
-      new import_obsidian7.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u590D\u5236\u7684\u9879\u76EE");
+      new import_obsidian7.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u590D\u5236\u7684\u56FE\u7247");
       return;
     }
     const lines = selected.map((item) => {
@@ -3158,7 +3198,7 @@ var BatchOperations = class {
     const { selection } = this.ctx;
     const selected = items.filter((item) => selection.isSelected(section, getKey(item)));
     if (selected.length === 0) {
-      new import_obsidian7.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u4E0B\u8F7D\u7684\u6587\u4EF6");
+      new import_obsidian7.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u4E0B\u8F7D\u7684\u56FE\u7247");
       return;
     }
     let success = 0;
@@ -3221,14 +3261,14 @@ var DeleteOperations = class {
     const result = { referencesDeleted: 0, referencesFailed: 0, filesDeleted: 0, filesFailed: 0 };
     const { selection, localImages, removeImageFromMdFile, refresh } = this.ctx;
     if (options.items.length === 0) {
-      new import_obsidian8.Notice("\u65E0\u9879\u76EE\u9700\u8981\u5220\u9664");
+      new import_obsidian8.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
       return result;
     }
-    if (!await confirmAsync(this.ctx.app, { message: options.confirmMessage })) return result;
+    if (!await confirmAsync(this.ctx.app, { message: options.confirmMessage, title: "\u5220\u9664\u56FE\u7247" })) return result;
     const deletedKeys = /* @__PURE__ */ new Set();
     const total = options.items.length;
     const showProgress = total > 5;
-    if (showProgress) new import_obsidian8.Notice(`\u6B63\u5728\u5220\u9664\uFF08\u6587\u4EF6\u9636\u6BB5\uFF09\uFF1A${result.filesDeleted}/${total}`);
+    if (showProgress) new import_obsidian8.Notice(`\u6B63\u5728\u5220\u9664\uFF08\u56FE\u7247\u9636\u6BB5\uFF09\uFF1A${result.filesDeleted}/${total}`);
     for (let idx = 0; idx < options.items.length; idx++) {
       const item = options.items[idx];
       try {
@@ -3249,7 +3289,7 @@ var DeleteOperations = class {
         result.filesFailed++;
       }
       if (showProgress && ((idx + 1) % 10 === 0 || idx + 1 === total)) {
-        new import_obsidian8.Notice(`\u6B63\u5728\u5220\u9664\uFF08\u6587\u4EF6\u9636\u6BB5\uFF09\uFF1A${result.filesDeleted}/${total}`);
+        new import_obsidian8.Notice(`\u6B63\u5728\u5220\u9664\uFF08\u56FE\u7247\u9636\u6BB5\uFF09\uFF1A${result.filesDeleted}/${total}`);
       }
     }
     if (options.deleteReferences) {
@@ -3291,7 +3331,7 @@ var DeleteOperations = class {
     await refresh();
     const parts = [];
     if (result.referencesDeleted > 0) parts.push(`${result.referencesDeleted} \u884C\u5F15\u7528\u5DF2\u6E05\u7406`);
-    if (result.filesDeleted > 0) parts.push(`${result.filesDeleted} \u4E2A\u6587\u4EF6\u5DF2\u5220\u9664`);
+    if (result.filesDeleted > 0) parts.push(`${result.filesDeleted} \u4E2A\u56FE\u7247\u5DF2\u5220\u9664`);
     if (result.referencesFailed > 0) parts.push(`${result.referencesFailed} \u884C\u5F15\u7528\u6E05\u7406\u5931\u8D25`);
     if (result.filesFailed > 0) parts.push(`${result.filesFailed} \u4E2A\u6587\u4EF6\u5220\u9664\u5931\u8D25`);
     if (parts.length > 0) new import_obsidian8.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
@@ -3306,12 +3346,12 @@ var DeleteOperations = class {
     }
     const toDelete = localUnreferenced.filter((f) => selection.isSelected("localUnref" /* LocalUnref */, f.path));
     if (toDelete.length === 0) {
-      new import_obsidian8.Notice("\u65E0\u56FE\u7247\u9700\u8981\u5220\u9664");
+      new import_obsidian8.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
       return;
     }
     await this.batchDeleteWithCleanup({
       section: "localUnref" /* LocalUnref */,
-      confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${toDelete.length} \u4E2A\u672C\u5730\u672A\u5F15\u7528\u56FE\u7247\u5417\uFF1F\uFF08\u5C06\u79FB\u5165\u56DE\u6536\u7AD9\uFF09`,
+      confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${toDelete.length} \u4E2A\u672C\u5730\u56FE\u7247\u5417\uFF1F\uFF08\u5C06\u79FB\u5165\u56DE\u6536\u7AD9\uFF09`,
       items: toDelete.map((f) => ({ key: f.path, type: "local", path: f.path })),
       deleteReferences: false,
       onDeleteLocal: async (path) => {
@@ -3333,12 +3373,12 @@ var DeleteOperations = class {
     }
     const toDelete = localImages.filter((img) => selection.isSelected("localImages" /* LocalImages */, img.pure));
     if (toDelete.length === 0) {
-      new import_obsidian8.Notice("\u65E0\u56FE\u7247\u9700\u8981\u5220\u9664");
+      new import_obsidian8.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
       return;
     }
     await this.batchDeleteWithCleanup({
       section: "localImages" /* LocalImages */,
-      confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${toDelete.length} \u4E2A\u56FE\u7247\u6587\u4EF6\u5417\uFF1F
+      confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${toDelete.length} \u4E2A\u56FE\u7247\u5417\uFF1F
 \u5C06\u79FB\u5165\u7CFB\u7EDF\u56DE\u6536\u7AD9\u5E76\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`,
       items: toDelete.map((img) => ({
         key: img.pure,
@@ -3388,7 +3428,7 @@ var DeleteOperations = class {
       new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u5F15\u7528\u884C");
       return;
     }
-    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664 ${refsToDelete.length} \u4E2A\u5F15\u7528\u884C\u5417\uFF1F` })) return;
+    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664 ${refsToDelete.length} \u4E2A\u5F15\u7528\u884C\u5417\uFF1F`, title: "\u5220\u9664\u5F15\u7528\u884C" })) return;
     const fileGroups = /* @__PURE__ */ new Map();
     for (const ref of refsToDelete) {
       if (!fileGroups.has(ref.file)) fileGroups.set(ref.file, []);
@@ -3455,7 +3495,7 @@ var DeleteOperations = class {
     const images = localImages().filter((img) => img.found === false);
     const imageMap = /* @__PURE__ */ new Map();
     for (const img of images) imageMap.set(img.pure, img);
-    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${imageKeys.length} \u4E2A\u65AD\u94FE\u56FE\u7247\u7684\u6240\u6709\u5F15\u7528\u884C\u5417\uFF1F` })) return;
+    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${imageKeys.length} \u4E2A\u65AD\u94FE\u56FE\u7247\u7684\u6240\u6709\u5F15\u7528\u884C\u5417\uFF1F`, title: "\u5220\u9664\u65AD\u94FE\u5F15\u7528" })) return;
     let successCount = 0;
     let failCount = 0;
     for (const pure of imageKeys) {
@@ -3487,7 +3527,7 @@ var DeleteOperations = class {
       new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u5F15\u7528\u6807\u7B7E");
       return;
     }
-    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${tagKeys.length} \u4E2A\u5F15\u7528\u884C\u5417\uFF1F` })) return;
+    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${tagKeys.length} \u4E2A\u5F15\u7528\u884C\u5417\uFF1F`, title: "\u5220\u9664\u5F15\u7528\u884C" })) return;
     const images = localImages().filter((img) => img.found === false);
     const perFile = /* @__PURE__ */ new Map();
     for (const tagKey of tagKeys) {
@@ -3548,7 +3588,7 @@ var DeleteOperations = class {
     }
     const selected = localImages().filter((img) => selection.isSelected("cloudImages" /* CloudImages */, img.pure));
     if (selected.length === 0) {
-      new import_obsidian8.Notice("\u65E0\u56FE\u7247\u9700\u8981\u5220\u9664");
+      new import_obsidian8.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
       return;
     }
     const urlToCloudFile = /* @__PURE__ */ new Map();
@@ -3583,7 +3623,7 @@ var DeleteOperations = class {
       new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u6587\u4EF6\u5939");
       return;
     }
-    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${selection.getCount("emptyFolders" /* EmptyFolders */)} \u4E2A\u7A7A\u767D\u6587\u4EF6\u5939\u5417\uFF1F` })) return;
+    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${selection.getCount("emptyFolders" /* EmptyFolders */)} \u4E2A\u7A7A\u767D\u6587\u4EF6\u5939\u5417\uFF1F`, title: "\u5220\u9664\u6587\u4EF6\u5939" })) return;
     let successCount = 0;
     let failCount = 0;
     const failedFolders = [];
@@ -3614,9 +3654,9 @@ var DeleteOperations = class {
     selection.clear("emptyFolders" /* EmptyFolders */);
     await refresh();
     const parts = [];
-    if (successCount > 0) parts.push(`${successCount} \u4E2A\u5DF2\u5220\u9664`);
-    if (failCount > 0) parts.push(`${failCount} \u4E2A\u5220\u9664\u5931\u8D25`);
-    new import_obsidian8.Notice(`\u5220\u9664\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
+    if (successCount > 0) parts.push(`${successCount} \u4E2A\u6587\u4EF6\u5939\u5DF2\u5220\u9664`);
+    if (failCount > 0) parts.push(`${failCount} \u4E2A\u6587\u4EF6\u5939\u5220\u9664\u5931\u8D25`);
+    new import_obsidian8.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
     if (failedFolders.length > 0) {
       const names = failedFolders.map((f) => f.split("/").pop() || f);
       console.warn(`[PicLinker] ${failCount} \u4E2A\u6587\u4EF6\u5939\u5220\u9664\u5931\u8D25:`, failedFolders);
@@ -3870,7 +3910,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         // [0] 本地图片
         [
           ...this.selection.getCount("localTags" /* LocalTags */) > 0 ? [{ text: `\u5220\u9664\u884C (${this.selection.getCount("localTags" /* LocalTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["localTags" /* LocalTags */]) }] : [],
-          ...this.selection.getCount("localImages" /* LocalImages */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("localImages" /* LocalImages */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u56FE\u7247\u6587\u4EF6", onClick: () => this.deleteOps.batchDeleteLocalFiles(this.localImages) }] : []
+          ...this.selection.getCount("localImages" /* LocalImages */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("localImages" /* LocalImages */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u56FE\u7247", onClick: () => this.deleteOps.batchDeleteLocalFiles(this.localImages) }] : []
         ],
         // [1] 云端图片
         this.selection.getCount("cloudImages" /* CloudImages */) > 0 || this.selection.getCount("cloudTags" /* CloudTags */) > 0 ? [
@@ -3905,7 +3945,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             { text: `\u4E0B\u8F7D (${this.selection.getCount("cloudFiles" /* CloudFiles */)})`, cls: "pic-btn-sm", title: "\u4E0B\u8F7D\u9009\u4E2D\u7684\u4E91\u7AEF\u56FE\u7247", onClick: () => {
               void this.batchOps.genericBatchDownload("cloudFiles" /* CloudFiles */, filteredCloud, (f) => f.prefix || f.name, (f) => f.url, (f) => extractFileName(f.name) || "image");
             } },
-            { text: `\u5220\u9664 (${this.selection.getCount("cloudFiles" /* CloudFiles */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u4ECE\u56FE\u5E8A\u4E2D\u5220\u9664\u9009\u4E2D\u7684\u6587\u4EF6", onClick: () => {
+            { text: `\u5220\u9664 (${this.selection.getCount("cloudFiles" /* CloudFiles */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u4E91\u7AEF\u56FE\u7247", onClick: () => {
               void this.cleanupUnreferenced(filteredCloud.filter((f) => this.selection.isSelected("cloudFiles" /* CloudFiles */, f.prefix || f.name)));
             } }
           ];
@@ -3913,11 +3953,11 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       ],
       getSameNameActions: () => [
         ...this.selection.getCount("sameNameTags" /* SameNameTags */) > 0 ? [{ text: `\u5220\u9664\u884C (${this.selection.getCount("sameNameTags" /* SameNameTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["sameNameTags" /* SameNameTags */]) }] : [],
-        ...this.selection.getCount("sameName" /* SameName */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("sameName" /* SameName */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u540C\u540D\u6587\u4EF6", onClick: () => this.deleteSelectedSameName() }] : []
+        ...this.selection.getCount("sameName" /* SameName */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("sameName" /* SameName */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u91CD\u590D\u56FE\u7247", onClick: () => this.deleteSelectedSameName() }] : []
       ],
       getDedupActions: () => [
         ...this.selection.getCount("dedupTags" /* DedupTags */) > 0 ? [{ text: `\u5220\u9664\u884C (${this.selection.getCount("dedupTags" /* DedupTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["dedupTags" /* DedupTags */]) }] : [],
-        ...this.selection.getCount("dedup" /* Dedup */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("dedup" /* Dedup */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u91CD\u590D\u6587\u4EF6\uFF0C\u5C06\u5F15\u7528\u66F4\u65B0\u4E3A\u7EC4\u5185\u7B2C\u4E00\u9879", onClick: () => this.dedupDeleteSelected() }] : []
+        ...this.selection.getCount("dedup" /* Dedup */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("dedup" /* Dedup */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u91CD\u590D\u56FE\u7247\uFF0C\u5C06\u5F15\u7528\u66F4\u65B0\u4E3A\u7EC4\u5185\u7B2C\u4E00\u9879", onClick: () => this.dedupDeleteSelected() }] : []
       ],
       getEmptyFolderActions: () => this.selection.getCount("emptyFolders" /* EmptyFolders */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("emptyFolders" /* EmptyFolders */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u7A7A\u767D\u6587\u4EF6\u5939", onClick: () => {
         void this.deleteOps.batchDeleteEmptyFolders((fp) => this.parseEmptyFolder(fp));
@@ -3982,6 +4022,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   /** 仅计算本地同名文件（每次刷新时调用，不依赖云端数据） */
   /** 从 localImages + 未引用图片中收集本地同名条目（公共逻辑） */
   collectLocalSameNameEntries() {
+    var _a;
     const nameMap = /* @__PURE__ */ new Map();
     for (const img of this.localImages) {
       const fileName = extractFileName(img.resolvedPath || img.pure);
@@ -3996,7 +4037,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         }
       } else {
         if (!existing.some((i) => i.source === "cloud" && i.url === img.pure)) {
-          existing.push({ source: "cloud", path, url: img.pure, section: "\u4E91\u7AEF\u56FE\u7247" });
+          existing.push({ source: "cloud", path, url: img.pure, bedType: (_a = detectBedTypeFromUrl(img.pure)) != null ? _a : void 0, section: "\u4E91\u7AEF\u56FE\u7247" });
         }
       }
     }
@@ -4040,7 +4081,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   }
   /** 计算全部同名文件数据并保存（云端比对完成后调用，全量重建） */
   computeAndSaveSameName() {
-    var _a;
+    var _a, _b, _c;
     const localEntries = this.collectLocalSameNameEntries();
     const nameMap = /* @__PURE__ */ new Map();
     for (const [key, items] of localEntries) {
@@ -4062,6 +4103,23 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         const section = referencedCloudUrls.has(cf.url) ? "\u4E91\u7AEF\u56FE\u7247" : "\u4E91\u7AEF\u672A\u5F15\u7528\u56FE\u7247";
         entry.items.push({ source: "cloud", path: cf.prefix || cf.name, url: cf.url, bedType: cf.bedType, section });
       }
+    }
+    for (const entry of nameMap.values()) {
+      if (entry.items.length <= 1) continue;
+      const seen = /* @__PURE__ */ new Set();
+      const deduped = [];
+      for (const it of entry.items) {
+        if (it.source !== "cloud") {
+          deduped.push(it);
+          continue;
+        }
+        const u = (_b = it.url) != null ? _b : it.path;
+        const k = `${(_c = it.bedType) != null ? _c : ""}:${u}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        deduped.push(it);
+      }
+      entry.items = deduped;
     }
     const groups = [];
     for (const [, entry] of nameMap) {
@@ -4228,7 +4286,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         this.renderContent();
       } catch (e) {
         console.warn("[PicLinker] \u52A0\u8F7D\u4E91\u7AEF\u6570\u636E \u5931\u8D25", e instanceof Error ? e.message : String(e));
-        new import_obsidian9.Notice(`\u52A0\u8F7D\u4E91\u7AEF\u6570\u636E\u5931\u8D25: ${e instanceof Error ? e.message : String(e)}`);
+        new import_obsidian9.Notice(`PicLinker\uFF1A\u52A0\u8F7D\u4E91\u7AEF\u6570\u636E\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
       } finally {
         this.cloudLoading = false;
         for (const resolve of this.cloudDataResolvers) resolve();
@@ -4262,7 +4320,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       this.cleanupDedupGroups();
       this.renderContent();
     } catch (e) {
-      new import_obsidian9.Notice(`\u5237\u65B0\u672C\u5730\u56FE\u7247\u5931\u8D25: ${e instanceof Error ? e.message : String(e)}`);
+      new import_obsidian9.Notice(`PicLinker\uFF1A\u5237\u65B0\u672C\u5730\u56FE\u7247\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
     } finally {
       this.localLoading = false;
     }
@@ -4361,7 +4419,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         await new Promise((r) => window.setTimeout(r, 200));
         await this.refresh();
       } catch (e) {
-        new import_obsidian9.Notice(`\u5237\u65B0\u5931\u8D25: ${e instanceof Error ? e.message : String(e)}`);
+        new import_obsidian9.Notice(`PicLinker\uFF1A\u5237\u65B0\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
       } finally {
         container2 == null ? void 0 : container2.classList.remove("refreshing");
         container2 == null ? void 0 : container2.classList.add("refreshed");
@@ -4566,13 +4624,13 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const cloudReferenced = [];
     const notFoundImages = [];
     for (const img of filteredLocal) {
+      if (img.type !== "local") {
+        cloudReferenced.push(img);
+        continue;
+      }
       if (this.cloudLoaded) {
         const result = this.compareResult.get(img.pure);
         if (result == null ? void 0 : result.exists) {
-          cloudReferenced.push(img);
-          continue;
-        }
-        if (img.type !== "local") {
           cloudReferenced.push(img);
           continue;
         }
@@ -4592,7 +4650,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const actions = header.querySelector(".pic-part-actions");
     if (actions) {
       if (this.selection.getCount("localImages" /* LocalImages */) > 0) {
-        const btn = actions.createEl("button", { text: `\u5220\u9664 (${this.selection.getCount("localImages" /* LocalImages */)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u7684\u56FE\u7247\u6587\u4EF6" } });
+        const btn = actions.createEl("button", { text: `\u5220\u9664 (${this.selection.getCount("localImages" /* LocalImages */)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u7684\u56FE\u7247" } });
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
           void this.deleteOps.batchDeleteLocalFiles(localOnly);
@@ -4700,7 +4758,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     if (actions) {
       if (!expanded) actions.setCssStyles({ display: "none" });
       if (this.selection.getCount("sameName" /* SameName */) > 0) {
-        const delBtn = actions.createEl("button", { text: `\u5220\u9664 (${this.selection.getCount("sameName" /* SameName */)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u7684\u540C\u540D\u6587\u4EF6" } });
+        const delBtn = actions.createEl("button", { text: `\u5220\u9664 (${this.selection.getCount("sameName" /* SameName */)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u7684\u91CD\u590D\u56FE\u7247" } });
         delBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           void this.deleteSelectedSameName();
@@ -4723,17 +4781,34 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     if (actions) {
       if (!expanded) actions.setCssStyles({ display: "none" });
       if (this.selection.getCount("dedup" /* Dedup */) > 0) {
-        const delBtn = actions.createEl("button", { text: `\u5220\u9664 (${this.selection.getCount("dedup" /* Dedup */)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u7684\u91CD\u590D\u6587\u4EF6\uFF0C\u5C06\u5F15\u7528\u66F4\u65B0\u4E3A\u7EC4\u5185\u7B2C\u4E00\u9879" } });
+        const delBtn = actions.createEl("button", { text: `\u5220\u9664 (${this.selection.getCount("dedup" /* Dedup */)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u7684\u91CD\u590D\u56FE\u7247\uFF0C\u5C06\u5F15\u7528\u66F4\u65B0\u4E3A\u7EC4\u5185\u7B2C\u4E00\u9879" } });
         delBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           void this.dedupDeleteSelected();
         });
       }
       this.addClearSelectionButton(actions, "dedup" /* Dedup */);
+      const clearCacheBtn = actions.createEl("button", { text: "\u6E05\u9664\u7F13\u5B58", cls: "pic-btn-sm", attr: { title: "\u6E05\u9664\u672C\u5730/\u4E91\u7AEF\u56FE\u7247\u54C8\u5E0C\u7F13\u5B58\uFF0C\u4E0B\u6B21\u53BB\u91CD\u5C06\u91CD\u65B0\u8BA1\u7B97\uFF08\u89E3\u51B3\u56E0\u7F13\u5B58\u5BFC\u81F4\u7684\u91CD\u590D\u6F0F\u5224\uFF09" } });
+      clearCacheBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        void this.clearDedupHashCache();
+      });
     }
     const _renderDedup = () => this.renderDedupGroups(content, filteredDedup);
     if (expanded) _renderDedup();
     else setLazyRenderFn(content, _renderDedup);
+  }
+  /** 主动清除去重哈希缓存（dedupCache + hashCache），并持久化，避免重载后恢复旧缓存 */
+  async clearDedupHashCache() {
+    var _a, _b;
+    const localCount = (_a = this.plugin.dedupCache.size) != null ? _a : 0;
+    const cloudCount = (_b = this.plugin.hashCache.size) != null ? _b : 0;
+    if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u6E05\u9664\u54C8\u5E0C\u7F13\u5B58\u5417\uFF1F
+\u5C06\u5220\u9664 ${localCount + cloudCount} \u6761\u672C\u5730/\u4E91\u7AEF\u56FE\u7247\u54C8\u5E0C\u8BB0\u5F55\uFF0C\u4E0B\u6B21\u53BB\u91CD\u4F1A\u91CD\u65B0\u8BA1\u7B97\uFF08\u8017\u65F6\u7A0D\u957F\u4F46\u53EF\u89E3\u51B3\u56E0\u7F13\u5B58\u5BFC\u81F4\u7684\u91CD\u590D\u6F0F\u5224\uFF09\u3002`, title: "\u6E05\u9664\u54C8\u5E0C\u7F13\u5B58" })) return;
+    this.plugin.dedupCache.clear();
+    this.plugin.hashCache.clear();
+    await this.plugin.saveSettings();
+    new import_obsidian9.Notice(`\u5DF2\u6E05\u9664 ${localCount + cloudCount} \u6761\u54C8\u5E0C\u7F13\u5B58`);
   }
   // ===== Section 8: 空白文件夹 =====
   renderEmptyFoldersSection(el) {
@@ -4796,7 +4871,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       e.stopPropagation();
       void this.batchOps.genericBatchDownload("cloudFiles" /* CloudFiles */, filteredCloud, (f) => f.prefix || f.name, (f) => f.url, (f) => extractFileName(f.name) || "image");
     });
-    actions.createEl("button", { text: `\u5220\u9664 (${count})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u4ECE\u56FE\u5E8A\u4E2D\u5220\u9664\u9009\u4E2D\u7684\u6587\u4EF6" } }).addEventListener("click", (e) => {
+    actions.createEl("button", { text: `\u5220\u9664 (${count})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u7684\u4E91\u7AEF\u56FE\u7247" } }).addEventListener("click", (e) => {
       e.stopPropagation();
       const selected = filteredCloud.filter((f) => this.selection.isSelected("cloudFiles" /* CloudFiles */, f.prefix || f.name));
       if (selected.length > 0) void this.cleanupUnreferenced(selected);
@@ -4851,13 +4926,11 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const update = () => {
       const headers = this.containerEl.querySelectorAll(".pic-part-header");
       if (headers.length === 0) return;
-      const toolbarEl = this.containerEl.querySelector(".pic-toolbar");
-      const toolbarH = toolbarEl ? toolbarEl.offsetHeight : 42;
       const containerTop = scrollContainer.getBoundingClientRect().top;
-      const stuckThreshold = containerTop + toolbarH - 1;
       headers.forEach((h) => {
+        const stickyTopPx = parseFloat(getComputedStyle(h).top) || 0;
+        const nowStuck = h.getBoundingClientRect().top <= containerTop + stickyTopPx;
         const wasStuck = h.classList.contains("pic-part-header--stuck");
-        const nowStuck = h.getBoundingClientRect().top <= stuckThreshold;
         if (wasStuck !== nowStuck) {
           h.toggleClass("pic-part-header--stuck", nowStuck);
           syncHeaderBorder(h, h.nextElementSibling);
@@ -5072,7 +5145,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
           const img = { pure: item.url, type: "https", raw: "", params: "", count: 0, files: [] };
           this.itemRenderer.addThumbnail(itemEl, img);
         }
-        const bedLabel = item.bedType || "\u672A\u77E5";
+        const bedLabel = bedTypeLabel(item.bedType, item.url);
         itemEl.createSpan({ cls: "pic-path", text: `${bedLabel} / ${extractFileName(item.url || item.path) || item.url || item.path}` });
         itemEl.dataset.purePath = itemKey;
         const matchedCloudImg = this.localImages.find((i) => i.pure === (item.url || item.path));
@@ -5085,7 +5158,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       delBtn.addEventListener("click", onAsyncClick(async (e) => {
         e.stopPropagation();
         const itemName = item.source === "local" ? item.path.split("/").pop() || item.path : item.url || item.path;
-        if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664 "${itemName}" \u5417\uFF1F` })) return;
+        if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${itemName}\u300D\u5417\uFF1F`, title: "\u5220\u9664\u56FE\u7247" })) return;
         let ok = false;
         try {
           if (item.source === "local") {
@@ -5112,15 +5185,24 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
           try {
             const refImg = this.localImages.find((i) => (i.resolvedPath || i.pure) === (item.url || item.path));
             if (refImg) {
+              const failedFiles = [];
               for (const fp of refImg.files) {
-                await this.plugin.linkEditor.removeImageFromMdFile(fp, [item.url || item.path]);
+                try {
+                  await this.plugin.linkEditor.removeImageFromMdFile(fp, [item.url || item.path]);
+                } catch (e2) {
+                  failedFiles.push(fp);
+                }
+              }
+              if (failedFiles.length > 0) {
+                const names = failedFiles.map((f) => f.split("/").pop() || f).join("\u3001");
+                new import_obsidian9.Notice(`\u56FE\u7247\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u884C\u6E05\u7406\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u4FEE\u6539 ${names} \u7B14\u8BB0`, 8e3);
               }
             }
           } catch (e2) {
             console.warn("[PicLinker] \u5F15\u7528\u884C\u5220\u9664\u5931\u8D25:", e2);
-            new import_obsidian9.Notice("\u6587\u4EF6\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u884C\u6E05\u7406\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u5220\u9664");
+            new import_obsidian9.Notice("\u56FE\u7247\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u884C\u6E05\u7406\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u4FEE\u6539\u7B14\u8BB0", 8e3);
           }
-          new import_obsidian9.Notice(`\u5DF2\u5220\u9664: ${itemName}`);
+          new import_obsidian9.Notice(`\u5DF2\u5220\u9664\u300C${itemName}\u300D`);
           for (const g of this.sameNameGroups) {
             g.items = g.items.filter((i) => !(i.source === item.source && (i.url || i.path) === (item.url || item.path)));
           }
@@ -5177,12 +5259,12 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
         e.stopPropagation();
         const displayPath2 = info.isCloud ? info.path : folderPath;
-        if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u7A7A\u767D\u6587\u4EF6\u5939 "${displayPath2}" \u5417\uFF1F` })) return;
+        if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u6587\u4EF6\u5939\u300C${displayPath2}\u300D\u5417\uFF1F`, title: "\u5220\u9664\u6587\u4EF6\u5939" })) return;
         try {
           if (info.isCloud && info.bedType) {
             const result = await this.plugin.deleteCloudFile(info.path, info.bedType);
             if (result.success) {
-              new import_obsidian9.Notice(`\u5DF2\u5220\u9664: ${displayPath2}`);
+              new import_obsidian9.Notice(`\u5DF2\u5220\u9664\u300C${displayPath2}\u300D`);
             } else {
               new import_obsidian9.Notice(`\u5220\u9664\u5931\u8D25: ${result.error}`);
             }
@@ -5192,7 +5274,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             } catch (e2) {
               await this.app.vault.adapter.rmdir(folderPath, true);
             }
-            new import_obsidian9.Notice(`\u5DF2\u5220\u9664: ${displayPath2}`);
+            new import_obsidian9.Notice(`\u5DF2\u5220\u9664\u300C${displayPath2}\u300D`);
           }
           this.renderContent();
         } catch (e2) {
@@ -5391,42 +5473,31 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
           cloudFilesToProcess.push(file);
         }
       }
+      let skippedDownload = 0;
       if (cloudFilesToProcess.length > 0) {
-        const sizeMap = /* @__PURE__ */ new Map();
-        for (const file of cloudFilesToProcess) {
+        const CONCURRENCY = 12;
+        const total = cloudFilesToProcess.length;
+        let done = 0;
+        const downloadOne = async (file) => {
           try {
-            const resp = await (0, import_obsidian9.requestUrl)({ url: file.url, method: "HEAD" });
-            const size = parseInt(resp.headers["content-length"] || "0", 10);
-            if (size > 0) {
-              if (!sizeMap.has(size)) sizeMap.set(size, []);
-              sizeMap.get(size).push(file);
-            }
+            const response = await (0, import_obsidian9.requestUrl)({ url: file.url });
+            const buffer = response.arrayBuffer;
+            const hashBytes = await crypto.subtle.digest("SHA-256", buffer);
+            const hash = Array.from(new Uint8Array(hashBytes)).map((b) => b.toString(16).padStart(2, "0")).join("");
+            this.plugin.dedupCache.set({ hash, source: "cloud", path: file.url, bedType: file.bedType, computedAt: Date.now() });
+            if (!cloudHashMap.has(hash)) cloudHashMap.set(hash, []);
+            cloudHashMap.get(hash).push(file);
           } catch (e) {
-            if (!sizeMap.has(0)) sizeMap.set(0, []);
-            sizeMap.get(0).push(file);
+            skippedDownload++;
+            console.warn("[PicLinker] \u4E91\u7AEF\u6587\u4EF6\u4E0B\u8F7D\u5931\u8D25\uFF0C\u8DF3\u8FC7:", file.url, e instanceof Error ? e.message : String(e));
           }
-        }
-        const localSizeSet = /* @__PURE__ */ new Set();
-        for (const img of allLocalImages) {
-          const filePath = img.resolvedPath || img.pure;
-          const file = this.app.vault.getAbstractFileByPath(filePath);
-          if (file instanceof import_obsidian9.TFile) localSizeSet.add(file.stat.size);
-        }
-        for (const [size, files] of sizeMap) {
-          if (files.length === 1 && !localSizeSet.has(size)) continue;
-          for (const file of files) {
-            try {
-              const response = await (0, import_obsidian9.requestUrl)({ url: file.url });
-              const buffer = response.arrayBuffer;
-              const hashBytes = await crypto.subtle.digest("SHA-256", buffer);
-              const hash = Array.from(new Uint8Array(hashBytes)).map((b) => b.toString(16).padStart(2, "0")).join("");
-              this.plugin.dedupCache.set({ hash, source: "cloud", path: file.url, bedType: file.bedType, computedAt: Date.now() });
-              if (!cloudHashMap.has(hash)) cloudHashMap.set(hash, []);
-              cloudHashMap.get(hash).push(file);
-            } catch (e) {
-              console.warn("[PicLinker] \u4E91\u7AEF\u6587\u4EF6\u4E0B\u8F7D\u5931\u8D25\uFF0C\u8DF3\u8FC7:", file.url, e instanceof Error ? e.message : String(e));
-              continue;
-            }
+        };
+        for (let i = 0; i < cloudFilesToProcess.length; i += CONCURRENCY) {
+          const batch = cloudFilesToProcess.slice(i, i + CONCURRENCY);
+          await Promise.allSettled(batch.map(downloadOne));
+          done += batch.length;
+          if (total > 20 && (done % 60 === 0 || done === total)) {
+            new import_obsidian9.Notice(`\u53BB\u91CD\u4E2D\uFF1A\u5DF2\u5904\u7406\u4E91\u7AEF\u6587\u4EF6 ${done}/${total}`);
           }
         }
       }
@@ -5497,9 +5568,12 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       this.saveDedupGroups();
       this.renderContent();
       if (groups.length === 0) {
-        new import_obsidian9.Notice(selectedOnly ? "\u9009\u4E2D\u7684\u56FE\u7247\u6CA1\u6709\u91CD\u590D" : "\u6CA1\u6709\u53D1\u73B0\u91CD\u590D\u56FE\u7247");
+        new import_obsidian9.Notice("\u6CA1\u6709\u53D1\u73B0\u91CD\u590D\u56FE\u7247");
       } else {
         new import_obsidian9.Notice(`\u53D1\u73B0 ${groups.length} \u7EC4\u91CD\u590D\u56FE\u7247`);
+      }
+      if (skippedDownload > 0) {
+        new import_obsidian9.Notice(`\u6709 ${skippedDownload} \u4E2A\u4E91\u7AEF\u6587\u4EF6\u56E0\u4E0B\u8F7D\u5931\u8D25\u88AB\u8DF3\u8FC7\uFF08\u53EF\u80FD\u4E3A\u9632\u76D7\u94FE/CORS/\u7B7E\u540D\u8FC7\u671F\uFF09\uFF0C\u53EF\u67E5\u770B\u63A7\u5236\u53F0\u4E86\u89E3\u8BE6\u60C5`);
       }
     } finally {
       this.isDedupRunning = false;
@@ -5567,7 +5641,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             e.stopPropagation();
             showImagePreview(thumbSrc);
           });
-          const bedLabel = item.bedType || "\u672A\u77E5";
+          const bedLabel = bedTypeLabel(item.bedType, item.path);
           itemEl.createSpan({ cls: "pic-path", text: `${bedLabel} / ${extractFileName(item.path) || item.path}` });
         }
         const matchedDedupImg = this.localImages.find((i) => (i.resolvedPath || i.pure) === item.path);
@@ -5577,11 +5651,11 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         const actions = itemEl.createDiv({ cls: "pic-actions" });
         const delBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u6B64\u9879\uFF0C\u5F15\u7528\u5C06\u66F4\u65B0\u4E3A\u4FDD\u7559\u9879" } });
         delBtn.addEventListener("click", onAsyncClick(async (e) => {
-          var _a, _b, _c, _d;
+          var _a, _b, _c, _d, _e;
           e.stopPropagation();
           const itemName = item.source === "local" ? item.path.split("/").pop() || item.path : extractFileName(item.path) || item.path;
-          if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664 "${itemName}" \u5417\uFF1F
-\u5F15\u7528\u5C06\u81EA\u52A8\u66F4\u65B0\u4E3A\u7EC4\u5185\u4FDD\u7559\u9879\u3002` })) return;
+          if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${itemName}\u300D\u5417\uFF1F
+\u5F15\u7528\u5C06\u81EA\u52A8\u66F4\u65B0\u4E3A\u7EC4\u5185\u4FDD\u7559\u9879\u3002`, title: "\u5220\u9664\u91CD\u590D\u9879" })) return;
           const remaining = group.items.filter((i) => i !== item);
           const keepItem = remaining.reduce((best, cur) => {
             const bestScore = best.source === "cloud" ? (best.referenced || 0) + 1e3 : 0;
@@ -5613,19 +5687,24 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             console.error("[PicLinker] \u5220\u9664\u5F02\u5E38:", e2);
           }
           if (ok && keepItem) {
+            let freshImg;
             try {
               const bestCloud = remaining.find((i) => i.source === "cloud");
               const keepPath = bestCloud ? bestCloud.path : keepItem.source === "local" ? ((_a = keepItem.img) == null ? void 0 : _a.pure) || keepItem.path : keepItem.path;
-              const freshImg = this.localImages.find((i) => (i.resolvedPath || i.pure) === item.path);
+              freshImg = this.localImages.find((i) => (i.resolvedPath || i.pure) === item.path);
               const oldPath = item.source === "local" ? (_d = (_c = freshImg == null ? void 0 : freshImg.pure) != null ? _c : (_b = item.img) == null ? void 0 : _b.pure) != null ? _d : item.path : item.path;
               await this.plugin.linkEditor.replaceImageInMdFiles(oldPath, keepPath, freshImg == null ? void 0 : freshImg.files);
             } catch (e2) {
               console.warn("[PicLinker] \u5F15\u7528\u66F4\u65B0\u5931\u8D25:", e2);
-              new import_obsidian9.Notice("\u6587\u4EF6\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u66F4\u65B0\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u66FF\u6362");
+              const names = ((_e = freshImg == null ? void 0 : freshImg.files) != null ? _e : []).map((f) => f.split("/").pop() || f).join("\u3001");
+              new import_obsidian9.Notice(
+                names ? `\u56FE\u7247\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u66F4\u65B0\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u4FEE\u6539 ${names} \u7B14\u8BB0` : "\u56FE\u7247\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u66F4\u65B0\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u4FEE\u6539\u7B14\u8BB0",
+                8e3
+              );
             }
           }
           if (ok) {
-            new import_obsidian9.Notice(`\u5DF2\u5220\u9664: ${itemName}`);
+            new import_obsidian9.Notice(`\u5DF2\u5220\u9664\u300C${itemName}\u300D`);
             group.items = group.items.filter((i) => i !== item);
             this.dedupGroups = this.dedupGroups.filter((g) => g.items.length >= 2);
             this.selection.deselect("dedup" /* Dedup */, itemKey);
@@ -5677,7 +5756,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   async deleteSelectedSameName() {
     var _a, _b;
     if (this.selection.getCount("sameName" /* SameName */) === 0) {
-      new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u6587\u4EF6");
+      new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u91CD\u590D\u56FE\u7247");
       return;
     }
     const items = [];
@@ -5700,7 +5779,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     }
     await this.deleteOps.batchDeleteWithCleanup({
       section: "sameName" /* SameName */,
-      confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${items.length} \u4E2A\u6587\u4EF6\u5417\uFF1F`,
+      confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${items.length} \u4E2A\u91CD\u590D\u56FE\u7247\u5417\uFF1F`,
       items,
       deleteReferences: true,
       onDeleteLocal: async (path) => {
@@ -5731,11 +5810,11 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   async dedupDeleteSelected() {
     var _a, _b, _c, _d;
     if (this.selection.getCount("dedup" /* Dedup */) === 0) {
-      new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u91CD\u590D\u6587\u4EF6");
+      new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u91CD\u590D\u56FE\u7247");
       return;
     }
-    if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${this.selection.getCount("dedup" /* Dedup */)} \u4E2A\u91CD\u590D\u6587\u4EF6\u5417\uFF1F
-\u5F15\u7528\u5C06\u81EA\u52A8\u5207\u6362\u4E3A\u7EC4\u5185\u4E91\u7AEF\u7248\u672C\u3002` })) {
+    if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${this.selection.getCount("dedup" /* Dedup */)} \u4E2A\u91CD\u590D\u56FE\u7247\u5417\uFF1F
+\u5F15\u7528\u5C06\u5207\u6362\u4E3A\u7EC4\u5185\u4FDD\u7559\u9879\u3002`, title: "\u5220\u9664\u91CD\u590D\u56FE\u7247" })) {
       return;
     }
     let deleteSuccess = 0;
@@ -5802,7 +5881,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     this.saveDedupGroups();
     await this.refresh();
     const parts = [];
-    if (deleteSuccess > 0) parts.push(`${deleteSuccess} \u4E2A\u6587\u4EF6\u5DF2\u5220\u9664`);
+    if (deleteSuccess > 0) parts.push(`${deleteSuccess} \u4E2A\u56FE\u7247\u5DF2\u5220\u9664`);
     if (updateSuccess > 0) parts.push(`${updateSuccess} \u5904\u5F15\u7528\u5DF2\u66F4\u65B0`);
     if (deleteFail > 0) parts.push(`${deleteFail} \u4E2A\u5931\u8D25`);
     new import_obsidian9.Notice(`\u53BB\u91CD\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
@@ -5833,9 +5912,9 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const displayPath = img.resolvedPath || img.pure;
     const copyTarget = displayPath;
     navigator.clipboard.writeText(copyTarget).then(() => {
-      new import_obsidian9.Notice(`\u5DF2\u590D\u5236: ${copyTarget}`);
+      new import_obsidian9.Notice(`\u5DF2\u590D\u5236\u8DEF\u5F84\u300C${copyTarget}\u300D`);
     }).catch(() => {
-      new import_obsidian9.Notice("\u590D\u5236\u5931\u8D25");
+      new import_obsidian9.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
     });
   }
   /** 更新所有目录复选框的 checked/indeterminate 状态 */
@@ -5889,7 +5968,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   async jumpToFile(img, filePath, lineNumber) {
     const abstractFile = this.plugin.app.vault.getAbstractFileByPath(filePath);
     if (!abstractFile || !(abstractFile instanceof import_obsidian9.TFile)) {
-      new import_obsidian9.Notice(`\u6587\u4EF6\u4E0D\u5B58\u5728: ${filePath}`);
+      new import_obsidian9.Notice(`\u7B14\u8BB0\u4E0D\u5B58\u5728\uFF1A${filePath}`);
       return;
     }
     try {
@@ -5913,7 +5992,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         }
       }
     } catch (e) {
-      new import_obsidian9.Notice(`\u65E0\u6CD5\u6253\u5F00\u6587\u4EF6: ${filePath}`);
+      new import_obsidian9.Notice(`\u65E0\u6CD5\u6253\u5F00\u7B14\u8BB0\uFF1A${filePath}`);
     }
   }
   getLocalUnreferencedImages() {
@@ -6003,7 +6082,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   // ==================== 云端未引用清理 ====================
   async cleanupUnreferenced(files) {
     const count = files.length;
-    if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${count} \u4E2A\u6587\u4EF6\u5417\uFF1F` })) return;
+    if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${count} \u4E2A\u4E91\u7AEF\u56FE\u7247\u5417\uFF1F`, title: "\u5220\u9664\u4E91\u7AEF\u56FE\u7247" })) return;
     let success = 0;
     let failed = 0;
     for (const file of files) {
@@ -6013,7 +6092,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       else failed++;
     }
     this.selection.clear("cloudFiles" /* CloudFiles */);
-    new import_obsidian9.Notice(`\u5220\u9664\u5B8C\u6210\uFF1A\u6210\u529F ${success} \u4E2A\uFF0C\u5931\u8D25 ${failed} \u4E2A`);
+    new import_obsidian9.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A\u6210\u529F ${success} \u4E2A\uFF0C\u5931\u8D25 ${failed} \u4E2A`);
     await this.refresh();
   }
   /** 更新删除选中按钮的计数和禁用状态 */
@@ -6064,6 +6143,12 @@ var VaultScanner = class {
   async scan() {
     const result = /* @__PURE__ */ new Map();
     const mdFiles = this.app.vault.getMarkdownFiles();
+    const fileByName = /* @__PURE__ */ new Map();
+    for (const f of this.app.vault.getFiles()) {
+      const arr = fileByName.get(f.name);
+      if (arr) arr.push(f);
+      else fileByName.set(f.name, [f]);
+    }
     const filesToRead = [];
     const fileLinksMap = /* @__PURE__ */ new Map();
     for (const file of mdFiles) {
@@ -6118,7 +6203,8 @@ var VaultScanner = class {
               const fileName = link.pure.split("/").pop() || link.pure;
               const isRelative = link.pure.includes("/");
               if (isRelative) {
-                const matchByName = this.app.vault.getFiles().find((f) => f.name === fileName);
+                const matches = fileByName.get(fileName);
+                const matchByName = matches && matches.length > 0 ? matches[0] : void 0;
                 if (matchByName) {
                   resolvedPath = matchByName.path;
                 } else {
@@ -7351,9 +7437,17 @@ var DedupCache = class {
   has(path) {
     return this.cache.has(path);
   }
+  /** 缓存中的条目数量 */
+  get size() {
+    return this.cache.size;
+  }
   /** 移除缓存 */
   remove(path) {
     this.cache.delete(path);
+  }
+  /** 清空整个缓存（用于主动清理哈希缓存，强制下次去重重新计算） */
+  clear() {
+    this.cache.clear();
   }
   /** 序列化 */
   serialize() {
@@ -7541,7 +7635,7 @@ var LinkEditor = class {
    */
   async replaceLink(img, newPure) {
     if (img.files.length === 0) {
-      new import_obsidian11.Notice("\u65E0\u6CD5\u786E\u5B9A\u56FE\u7247\u5F15\u7528\u7684\u6587\u4EF6\uFF0C\u8DF3\u8FC7\u66FF\u6362");
+      new import_obsidian11.Notice("PicLinker\uFF1A\u65E0\u6CD5\u786E\u5B9A\u56FE\u7247\u5F15\u7528\u7684\u6587\u4EF6\uFF0C\u5DF2\u8DF3\u8FC7\u66FF\u6362");
       return;
     }
     const targetFiles = img.files;
@@ -7698,7 +7792,6 @@ var LinkEditor = class {
       const mdMatches = [];
       while ((m = mdRe.exec(content)) !== null) {
         const full = m[0];
-        const alt = m[1];
         let pure = m[2];
         const tm = pure.match(/^(.+?)\s+"([^"]*)"$/);
         let title = "";
@@ -8018,6 +8111,8 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
     this.fileDebounceTimer = null;
     /** 活跃文件切换防抖定时器 */
     this.activeDebounceTimer = null;
+    /** 云端刷新后补充刷新的延迟定时器（防止插件卸载时操作已销毁视图） */
+    this.cloudRefreshTimer = null;
   }
   async onload() {
     this.linkParser = new LinkParser();
@@ -8104,6 +8199,10 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
       window.clearTimeout(this.activeDebounceTimer);
       this.activeDebounceTimer = null;
     }
+    if (this.cloudRefreshTimer) {
+      window.clearTimeout(this.cloudRefreshTimer);
+      this.cloudRefreshTimer = null;
+    }
   }
   registerImageBeds() {
     const github = new GitHubImageBed();
@@ -8176,7 +8275,7 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
       }
     } catch (e) {
       console.error("[PicLinker] \u91CD\u547D\u540D\u66F4\u65B0\u56FE\u7247\u5F15\u7528\u5931\u8D25:", e);
-      new import_obsidian12.Notice("PicLinker\uFF1A\u91CD\u547D\u540D\u540E\u66F4\u65B0\u56FE\u7247\u5F15\u7528\u5931\u8D25\uFF0C\u8BE6\u89C1\u63A7\u5236\u53F0", 8e3);
+      new import_obsidian12.Notice("PicLinker\uFF1A\u66F4\u65B0\u56FE\u7247\u5F15\u7528\u5931\u8D25\uFF0C\u8BE6\u89C1\u63A7\u5236\u53F0", 8e3);
     } finally {
       this.debounceFileRefresh();
     }
@@ -8192,7 +8291,7 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
       if (leaves.length > 0 && this.view) {
         await this.view.refresh();
         const view = this.view;
-        window.setTimeout(() => {
+        this.cloudRefreshTimer = window.setTimeout(() => {
           void (async () => {
             if (view && view.waitForCloudLoad) {
               await view.waitForCloudLoad();

@@ -57,6 +57,10 @@ export interface DirectFetchOptions {
 	method?: string;
 	headers?: Record<string, string>;
 	body?: string | ArrayBuffer;
+	/** 请求超时毫秒数（默认 15000）。存在性探测等轻量请求可设较小值以快速失败。 */
+	timeout?: number;
+	/** 为 true 时，Node.js 请求失败直接抛出，不回退 requestUrl（被墙域名回退也必然超时，纯属浪费）。 */
+	noFallback?: boolean;
 }
 
 export interface DirectFetchResponse {
@@ -81,6 +85,7 @@ async function fallbackRequest(
 		method: options.method || "GET",
 		headers: options.headers || {},
 		body: options.body,
+		...(options.timeout !== undefined ? { timeout: options.timeout } : {}),
 	});
 	const buf = resp.arrayBuffer;
 	const text = resp.text ?? new TextDecoder().decode(buf);
@@ -212,8 +217,8 @@ function nodeFetch(
 		req.on("error", (e: Error) => {
 			reject(e);
 		});
-		// 超时处理：15 秒无响应则中止
-		req.setTimeout(15000, () => {
+		// 超时处理：默认 15 秒无响应则中止；存在性探测等可经 options.timeout 缩短
+		req.setTimeout(options.timeout ?? 15000, () => {
 			req.destroy(new Error("directFetch: 请求超时 (15s)"));
 		});
 		if (options.body) {
@@ -250,6 +255,11 @@ export async function directFetch(
 			// DELETE 请求对签名头部敏感，Node 失败不回退，直接抛出原始错误。
 			if (options.method === "DELETE") {
 				console.warn("[PicLinker] directFetch: Node.js 请求错误 (DELETE)", e);
+				throw e;
+			}
+			// noFallback：被墙域名回退 requestUrl 也必然超时，直接抛出，避免再卡 15s+。
+			if (options.noFallback) {
+				console.warn(`[PicLinker] directFetch: 请求失败（不回退）: ${(e as Error)?.message || e}`);
 				throw e;
 			}
 			// 其余请求回退到 Obsidian requestUrl（移动端 / Node DNS 异常）。

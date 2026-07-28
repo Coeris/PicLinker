@@ -14,16 +14,30 @@ import { detectBedTypeFromUrl, getBedFaviconSvg } from "../../icons";
  * @param header 分区标题条元素
  * @param content 分区内容元素（当前未直接用于边框计算，保留以备扩展）
  */
+/**
+ * 同步分区标题条的边框状态。
+ * 关键设计：边框完全由 CSS class 驱动（.pic-part-header--collapsed / --stuck / 组合），
+ * JS 只负责确保 class 与“是否吸顶”一致，绝不写内联 border。
+ *
+ * 为什么不能写内联 border：
+ * 折叠时 toggleSection 会调 scrollIntoView，触发吸顶滚动 handler 再次进入本函数；
+ * 内联 style.border / border-bottom 是非原子写入，滚动竞态中旧状态的残留内联值会
+ * 盖住新状态，导致“点一下边框不对、刷新后才对”。改为纯 class 驱动后无残留、无竞态。
+ *
+ * @param header 分区标题条元素
+ * @param content 分区内容元素（当前未直接用于边框计算，保留以备扩展）
+ */
 export function syncHeaderBorder(header: HTMLElement, content: HTMLElement): void {
 	const collapsed = header.classList.contains("pic-part-header--collapsed");
 	const stuck = header.classList.contains("pic-part-header--stuck");
-	if (collapsed) {
-		header.setCssStyles({ border: "1px solid var(--background-modifier-border)", borderBottom: "" });
-	} else if (stuck) {
-		header.setCssStyles({ border: "none", borderBottom: "1px solid var(--background-modifier-border)" });
-	} else {
-		header.setCssStyles({ border: "1px solid var(--background-modifier-border)", borderBottom: "none" });
+	// 仅对齐吸顶态 class（吸顶由滚动检测决定，需 JS 同步）；收起态由点击 handler 直接 toggle。
+	// 边框样式本身交给 CSS，见 styles.css 中 .pic-part-header / --collapsed / --stuck 规则。
+	if (stuck && collapsed) {
+		header.addClass("pic-part-header--stuck");
+	} else if (!stuck && header.classList.contains("pic-part-header--stuck")) {
+		header.removeClass("pic-part-header--stuck");
 	}
+	// collapsed 态的 class 已由点击 handler 维护，此处不触碰，避免与滚动 handler 竞态。
 }
 
 /**
@@ -133,6 +147,28 @@ export function getTopBedIcon(urls: string[], gray = false): string {
 	}
 	const icon = getBedFaviconSvg(topBed);
 	return gray ? icon.replace(/fill="[^"]*"/g, 'fill="currentColor"') : icon;
+}
+
+/**
+ * 图床显示名：有明确图床类型时直接返回（如「阿里云 OSS」）；
+ * 未识别（bedType 为 null，例如豆瓣等未在 DOMAIN_BED_MAP 登记的图床）
+ * 时回退到 URL 域名（如 doubanio.com），避免一律显示「未知」。
+ */
+export function bedTypeLabel(bedType: ImageBedType | undefined | null, url?: string): string {
+	if (bedType) return bedType;
+	if (url) {
+		try {
+			let host = new URL(url).hostname.toLowerCase();
+			// 去掉常见图片 CDN 前缀（www./img1./cdn./i. 等），显示主域名更直观；
+			// 仅当主机名含 ≥3 段时才剥离首段，避免误伤 imgur.com 这类两段域名。
+			const parts = host.split(".");
+			if (parts.length >= 3 && /^(www|img\d*|cdn\d*|i\d*|pic\d*|photo\d*|res\d*|static|assets)$/.test(parts[0])) {
+				host = parts.slice(1).join(".");
+			}
+			if (host) return host;
+		} catch { /* 无效 URL，回退未知 */ }
+	}
+	return "未知";
 }
 
 /** 获取文件扩展名 */

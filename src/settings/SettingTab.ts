@@ -32,7 +32,7 @@ const BED_NAME_TYPE_MAP: Record<string, ImageBedType> = {
 const BED_CONFIGS: BedConfig[] = [
 	{
 		name: "GitHub 图床",
-		desc: "",
+		desc: "将图片托管到 GitHub 仓库（需公开仓库）",
 		guide:
 			"【获取 Token】\n" +
 			"1. 打开 https://github.com/settings/tokens\n" +
@@ -54,7 +54,7 @@ const BED_CONFIGS: BedConfig[] = [
 	},
 	{
 		name: "阿里云 OSS",
-		desc: "",
+		desc: "将图片托管到阿里云对象存储",
 		guide:
 			"【获取密钥】\n" +
 			"1. 打开 https://ram.console.aliyun.com → AccessKey 管理\n" +
@@ -79,7 +79,7 @@ const BED_CONFIGS: BedConfig[] = [
 	},
 	{
 		name: "腾讯云 COS",
-		desc: "",
+		desc: "将图片托管到腾讯云对象存储",
 		guide:
 			"【获取密钥】\n" +
 			"1. 打开 https://console.cloud.tencent.com/cam → API 密钥管理\n" +
@@ -105,7 +105,7 @@ const BED_CONFIGS: BedConfig[] = [
 	},
 	{
 		name: "其他图床",
-		desc: "",
+		desc: "兼容支持 S3 协议的自定义图床",
 		guide:
 			"【支持的图床】\n" +
 			"1. SM.MS：免费图床，只需填写 Token\n" +
@@ -446,15 +446,15 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		try {
 			const result = await this.plugin.webDAVSync.uploadToWebdav();
 			if (result.ok) {
-				new Notice("配置已上传到 WebDAV 服务器");
+				new Notice("已上传配置到 WebDAV");
 				this.updateSyncStatus(`上传成功 (${new Date().toLocaleTimeString()})`);
 			} else {
-				const msg = result.message || `上传失败: HTTP ${result.status}`;
+				const msg = result.message || `PicLinker：上传失败（HTTP ${result.status}）`;
 				new Notice(msg);
 				this.updateSyncStatus(msg);
 			}
 		} catch (e) {
-			new Notice(`上传异常: ${e}`);
+			new Notice("PicLinker：上传失败", 15000);
 			this.updateSyncStatus(`上传异常: ${e}`);
 		} finally {
 			this.syncing = false;
@@ -481,13 +481,13 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 			});
 
 			if (!response.ok) {
-				new Notice(`下载失败: HTTP ${response.status}`);
+				new Notice(`PicLinker：下载失败（HTTP ${response.status}）`);
 				return;
 			}
 
 			const remoteData = await response.json<RemoteConfigData>();
 			if (!remoteData || typeof remoteData !== "object") {
-				new Notice("远程数据格式无效");
+				new Notice("PicLinker：远程数据格式无效");
 				return;
 			}
 
@@ -507,7 +507,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 			new Notice("已从 WebDAV 下载并应用配置");
 			void this.renderSettings(); // 刷新设置页
 		} catch (e) {
-			new Notice(`下载异常: ${e}`);
+			new Notice(`PicLinker：下载失败：${e instanceof Error ? e.message : String(e)}`);
 		}
 	}
 
@@ -541,11 +541,11 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 			}
 
 			if (result.success) {
-				new Notice("已从 WebDAV 智能合并配置");
+				new Notice("已与 WebDAV 配置智能合并");
 				this.updateSyncStatus(`同步成功 (${new Date().toLocaleTimeString()})`);
 				void this.renderSettings();
 			} else {
-				new Notice(result.error || "同步失败");
+				new Notice(result.error ? `PicLinker：同步失败：${result.error}` : "PicLinker：同步失败，请重试");
 				this.updateSyncStatus(result.error || "同步失败");
 			}
 		} finally {
@@ -843,13 +843,13 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 
 					const result = await this.plugin.createCloudDirectory(dir, ImageBedType.Aliyun);
 					if (result.success) {
-						new Notice(`文件夹已创建: ${dir}`);
+						new Notice(`文件夹「${dir}」已创建`);
 						dirInput.value = "";
 					} else {
-						new Notice(`创建失败: ${result.error}`);
+						new Notice(`PicLinker：文件夹创建失败：${result.error}`);
 					}
 				} catch (e) {
-					new Notice(`创建异常: ${e instanceof Error ? e.message : String(e)}`);
+					new Notice(`PicLinker：文件夹创建失败：${e instanceof Error ? e.message : String(e)}`);
 				} finally {
 					dirBtn.disabled = false;
 				}
@@ -1056,13 +1056,13 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 
 					const result = await this.plugin.createCloudDirectory(dir, ImageBedType.Tencent);
 					if (result.success) {
-						new Notice(`文件夹已创建: ${dir}`);
+						new Notice(`文件夹「${dir}」已创建`);
 						dirInput.value = "";
 					} else {
-						new Notice(`创建失败: ${result.error}`);
+						new Notice(`PicLinker：文件夹创建失败：${result.error}`);
 					}
 				} catch (e) {
-					new Notice(`创建异常: ${e instanceof Error ? e.message : String(e)}`);
+					new Notice(`PicLinker：文件夹创建失败：${e instanceof Error ? e.message : String(e)}`);
 				} finally {
 					dirBtn.disabled = false;
 				}

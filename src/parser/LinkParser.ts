@@ -121,8 +121,9 @@ export class LinkParser {
 		for (const ref of refs) {
 			const pure = ref.value;
 			if (!pure) continue;
-			// 裸路径字段一定是本地文件引用（不允许 http/https/data）
-			const type: ImageLink["type"] = "local";
+			// 不再强制本地：frontmatter 里也可能是远程 https/http 外链（如 banner/cover 字段），
+			// 用 detectLinkType 推断真实类型，否则远程 URL 会被误判为本地文件 → 进「未找到」区。
+			const type = this.detectLinkType(pure);
 			links.push({
 				raw: `${ref.key}: ${pure}`,
 				pure,
