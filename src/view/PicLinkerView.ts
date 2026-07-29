@@ -502,12 +502,11 @@ export class PicLinkerView extends ItemView {
 			this.selection.off(this.selectionChangeCallback);
 			this.selectionChangeCallback = null;
 		}
-		// 清理 DOM
 		// 清理 ResizeObserver
 		this.toolbarResizeObserver?.disconnect();
 		this.toolbarResizeObserver = null;
-		// 清理写入 :root 的 toolbar 高度变量，避免视图关闭后残留影响其他实例
-		document.documentElement.style.removeProperty("--pic-toolbar-h");
+		// 不移除 :root 的 --pic-toolbar-h：多实例共存时移除会让其他实例回落 42px 默认值、
+		// 吸顶错位；保留最后一次测量值对其他实例仍正确（toolbar 高度一致），下次打开会重测
 		// 清理 DOM
 		this.containerEl.empty();
 	}
@@ -556,10 +555,12 @@ export class PicLinkerView extends ItemView {
 		// 第二步：后台加载云端数据（慢，完成后自动更新）
 		if (!this.cloudLoading) {
 			void this.loadCloudData();
-		} else {
+			} else {
 			// 云端数据正在加载中，等加载完成后用最新本地数据重新渲染
 			this.cloudDataResolvers.push(() => {
-				if (this.localImages.length > 0) {
+				// 加载成功时 loadCloudData 末尾已用最新数据渲染过，跳过避免重复渲染/闪烁；
+				// 仅在加载失败（cloudLoaded 仍为 false）时兜底重渲染本地数据
+				if (!this.cloudLoaded && this.localImages.length > 0) {
 					this.renderContent();
 				}
 			});
@@ -856,6 +857,12 @@ export class PicLinkerView extends ItemView {
 				s.setCssStyles({ display: shouldCollapse ? "none" : "" });
 				// 全部展开时触发延迟渲染
 				if (!shouldCollapse) ensureLazyRendered(s);
+				// 同步收起态 class（全局按钮也必须 toggle，否则边框/圆角不更新）
+				const hdr = s.previousElementSibling as HTMLElement;
+				if (hdr && hdr.classList.contains("pic-part-header")) {
+					hdr.toggleClass("pic-part-header--collapsed", shouldCollapse);
+					syncHeaderBorder(hdr, s);
+				}
 			});
 			allDirContents.forEach(d => { d.setCssStyles({ display: shouldCollapse ? "none" : "" }); });
 			mainList.querySelectorAll<HTMLElement>(".pic-dir-arrow").forEach(a => { a.textContent = shouldCollapse ? "▶" : "▽"; });
@@ -964,7 +971,7 @@ export class PicLinkerView extends ItemView {
 		}
 	}
 
-	private renderContent(savedCheckedPaths?: Set<string>) {
+	private renderContent(savedCheckedPaths?: Map<string, SelectionSection>) {
 		// 视图已关闭，避免操作已销毁的 DOM
 		if (this.isClosed) return;
 
@@ -1028,9 +1035,9 @@ export class PicLinkerView extends ItemView {
 		scrollContainer.scrollTop = savedScrollTop;
 	}
 
-	/** 收集当前所有选中的路径（用于 DOM 重建后恢复） */
-	private collectCheckedPaths(): Set<string> {
-		const paths = new Set<string>();
+	/** 收集当前所有选中的路径及其所属 section（用于 DOM 重建后恢复） */
+	private collectCheckedPaths(): Map<string, SelectionSection> {
+		const paths = new Map<string, SelectionSection>();
 		for (const section of [
 			SelectionSection.LocalImages,
 			SelectionSection.CloudImages,
@@ -1042,10 +1049,16 @@ export class PicLinkerView extends ItemView {
 			SelectionSection.EmptyFolders,
 		]) {
 			for (const path of this.selection.getSelected(section)) {
-				paths.add(path);
+				paths.set(path, section);
 			}
 		}
 		return paths;
+	}
+
+	/** 由云端 URL 反查对象存储 fileKey（prefix || name），保证 deleteCloudFile 拿到的是 key 而非完整 URL（与 ItemRenderer 同一逻辑） */
+	private resolveCloudFileKey(urlOrPath: string): string {
+		const cf = this.cloudFiles.find(f => f.url === urlOrPath);
+		return cf?.prefix || cf?.name || extractFileName(urlOrPath) || urlOrPath;
 	}
 
 	/** 按来源拆分图片：本地 / 云端 / 未找到 */
@@ -1297,20 +1310,22 @@ export class PicLinkerView extends ItemView {
 			});
 	}
 
-	/** 恢复选中状态：根据 SelectionManager 中的选中记录恢复复选框 checked 状态 */
-	private restoreSelectionState(savedCheckedPaths: Set<string>) {
+	/** 恢复选中状态：视觉（checkbox/class）与 SelectionManager 双回写，避免「看着选中、getCount=0」的假恢复 */
+	private restoreSelectionState(savedCheckedPaths: Map<string, SelectionSection>) {
 		const mainList = this.containerEl.querySelector<HTMLElement>("#pic-main-list");
 		if (!mainList) return;
 
-		// 恢复复选框选中状态
+		// 恢复复选框选中状态 + 回写 SelectionManager
 		mainList.querySelectorAll<HTMLElement>(".pic-item").forEach(item => {
 			const purePath = item.dataset.purePath;
 			if (!purePath) return;
 
-			if (savedCheckedPaths.has(purePath)) {
+			const section = savedCheckedPaths.get(purePath);
+			if (section) {
 				const cb = item.querySelector<HTMLInputElement>(".pic-cloud-checkbox");
 				if (cb) cb.checked = true;
 				item.toggleClass("pic-item--selected", true);
+				this.selection.select(section, [purePath]);
 			}
 		});
 
@@ -1374,8 +1389,19 @@ export class PicLinkerView extends ItemView {
 			});
 		};
 
-		this.stickyScrollHandler = update;
-		scrollContainer.addEventListener("scroll", update, { passive: true });
+		// rAF 节流：滚动事件每帧最多执行一次，避免每帧对每个 header 调 getComputedStyle + getBoundingClientRect
+		let rafPending = false;
+		const throttled = () => {
+			if (rafPending) return;
+			rafPending = true;
+			requestAnimationFrame(() => {
+				rafPending = false;
+				update();
+			});
+		};
+
+		this.stickyScrollHandler = throttled;
+		scrollContainer.addEventListener("scroll", throttled, { passive: true });
 		// 初次渲染也判定一次（处理刷新时已在顶部的标题）
 		update();
 	}
@@ -1669,7 +1695,7 @@ export class PicLinkerView extends ItemView {
 						}
 					} else {
 						const bedType = item.bedType || this.selectedBed;
-						const result = await this.plugin.deleteCloudFile(item.url || item.path, bedType);
+						const result = await this.plugin.deleteCloudFile(this.resolveCloudFileKey(item.url || item.path), bedType);
 						if (result.success) {
 							ok = true;
 						} else {
@@ -2036,6 +2062,9 @@ export class PicLinkerView extends ItemView {
 		const cloudFilesToProcess: CloudFile[] = [];
 		for (const file of this.cloudFiles) {
 			if (file.isDirectory) continue;
+			// 非图片不参与去重：避免把任意大文件（视频/压缩包）全量下载进内存
+			const ext = (file.name.split(".").pop() || "").toLowerCase();
+			if (!IMAGE_EXTENSIONS.has(ext)) continue;
 			if (selectedOnly) {
 				// CloudImages 区选中的云端图片 URL 命中本文件？
 				const cloudImgHit = selectedCloudPures.size > 0 && selectedCloudPures.has(file.url);
@@ -2082,9 +2111,11 @@ export class PicLinkerView extends ItemView {
 					console.warn("[PicLinker] 云端文件下载失败，跳过:", file.url, e instanceof Error ? e.message : String(e));
 				}
 			};
-			// 分批并发下载（避免大库瞬间打满请求；Promise.allSettled 不因个别失败中断整体）
-			for (let i = 0; i < cloudFilesToProcess.length; i += CONCURRENCY) {
-				const batch = cloudFilesToProcess.slice(i, i + CONCURRENCY);
+		// 分批并发下载（避免大库瞬间打满请求；Promise.allSettled 不因个别失败中断整体）
+		for (let i = 0; i < cloudFilesToProcess.length; i += CONCURRENCY) {
+			// 视图已关闭：中止下载，不再占用网络/内存
+			if (this.isClosed) return;
+			const batch = cloudFilesToProcess.slice(i, i + CONCURRENCY);
 				await Promise.allSettled(batch.map(downloadOne));
 				done += batch.length;
 				if (total > 20 && (done % 60 === 0 || done === total)) {
@@ -2287,7 +2318,7 @@ export class PicLinkerView extends ItemView {
 							}
 						} else {
 							const bedType = item.bedType || this.selectedBed;
-							const result = await this.plugin.deleteCloudFile(item.path, bedType);
+							const result = await this.plugin.deleteCloudFile(this.resolveCloudFileKey(item.path), bedType);
 							if (result.success) {
 								this.plugin.dedupCache.remove(item.path);
 								ok = true;
@@ -2494,14 +2525,15 @@ export class PicLinkerView extends ItemView {
 							deleteFail++;
 						}
 					} else {
-						// 删除云端文件
+						// 删除云端文件（先反查对象 key；删除失败则跳过引用替换，避免「引用已改、云端图还在」脏态）
 						const bedType = item.bedType || this.selectedBed;
-						const result = await this.plugin.deleteCloudFile(item.path, bedType);
+						const result = await this.plugin.deleteCloudFile(this.resolveCloudFileKey(item.path), bedType);
 						if (result.success) {
 							this.plugin.dedupCache.remove(item.path);
 							deleteSuccess++;
 						} else {
 							deleteFail++;
+							continue;
 						}
 					}
 
@@ -2712,8 +2744,13 @@ export class PicLinkerView extends ItemView {
 	 * 获取云端未引用的图片（不被任何本地笔记引用的）
 	 */
 	private getCloudOnlyFiles(): CloudFile[] {
+		// 按 URL 判定引用（笔记里的远程图片链接 pure 即云端 URL），
+		// 不再按文件名引用计数——同名不同图的本地文件会误遮蔽云端未引用文件
+		const referencedUrls = new Set(
+			this.localImages.filter(img => img.type !== "local").map(img => img.pure)
+		);
 		return this.cloudFiles.filter(
-			(f) => !f.isDirectory && (this.fileNameRefCount.get(extractFileName(f.name) || f.name) || 0) === 0
+			(f) => !f.isDirectory && !referencedUrls.has(f.url)
 		);
 	}
 

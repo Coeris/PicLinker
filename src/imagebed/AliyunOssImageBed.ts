@@ -126,8 +126,12 @@ export class AliyunOssImageBed implements ImageBed {
 				}
 
 				// 检查是否还有下一页
-				const nextToken = doc.querySelector("NextContinuationToken")?.textContent || "";
+				// encoding-type=url 下 NextContinuationToken 是 URL 编码态，必须先解码，
+				// 否则下一次请求经 URLSearchParams 二次编码，>1000 对象时分页必坏
+				const rawNextToken = doc.querySelector("NextContinuationToken")?.textContent || "";
 				const isTruncated = doc.querySelector("IsTruncated")?.textContent === "true";
+				let nextToken = rawNextToken;
+				try { nextToken = rawNextToken ? decodeURIComponent(rawNextToken) : ""; } catch { /* 解码失败用原值 */ }
 				continuationToken = isTruncated ? nextToken : "";
 
 			} while (continuationToken);
@@ -199,8 +203,10 @@ export class AliyunOssImageBed implements ImageBed {
 					if (prefix) dirs.add(prefix);
 				}
 
-				const nextToken = xmlDoc.querySelector("NextContinuationToken")?.textContent || "";
+				const rawNextToken = xmlDoc.querySelector("NextContinuationToken")?.textContent || "";
 				const isTruncated = xmlDoc.querySelector("IsTruncated")?.textContent === "true";
+				let nextToken = rawNextToken;
+				try { nextToken = rawNextToken ? decodeURIComponent(rawNextToken) : ""; } catch { /* 解码失败用原值 */ }
 				continuationToken = isTruncated ? nextToken : "";
 			} while (continuationToken);
 		} catch (e) {
@@ -341,7 +347,9 @@ export class AliyunOssImageBed implements ImageBed {
 
 			if (!response.ok) {
 				const errText = await response.text();
-				console.warn("[PicLinker] listBuckets: 请求失败", response.status, errText.slice(0, 200));
+				// OSS 错误 XML（如 SignatureDoesNotMatch）会回显 AccessKeyId，日志前必须脱敏
+				const sanitized = this.accessKeyId ? errText.split(this.accessKeyId).join("***") : errText;
+				console.warn("[PicLinker] listBuckets: 请求失败", response.status, sanitized.slice(0, 200));
 				return [];
 			}
 

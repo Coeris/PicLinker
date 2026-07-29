@@ -20,7 +20,9 @@ export async function sha256(data: Uint8Array): Promise<string> {
 /** 从 endpoint 提取区域，如 oss-cn-chengdu.aliyuncs.com → cn-chengdu */
 export function getRegion(endpoint: string): string {
 	const match = endpoint.match(/oss-([^.]+)\./);
-	return match ? match[1] : "oss-cn-hangzhou";
+	// 兜底值必须与匹配分支同格式（不带 oss- 前缀），否则自定义域名时
+	// signServiceUrl 会拼出 oss-oss-cn-hangzhou.aliyuncs.com，签名与 host 全错
+	return match ? match[1] : "cn-hangzhou";
 }
 
 /** HMAC-SHA256 签名（Node.js / Web Crypto 双路径） */

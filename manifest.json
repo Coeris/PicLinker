@@ -1,9 +1,9 @@
 {
   "id": "piclinker",
   "name": "PicLinker",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "minAppVersion": "1.8.7",
-  "description": "一款面向 Obsidian 的全库图片资产管理插件，覆盖扫描、去重、比对与批量操作等核心能力。",
+  "description": "全库图片资产管理插件，覆盖扫描、去重、比对与批量操作等核心能力.",
   "author": "Coeris",
   "isDesktopOnly": false
 }

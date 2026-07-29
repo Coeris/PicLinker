@@ -90,7 +90,10 @@ export async function signCosV1(params: {
 	headers?: Record<string, string>;
 	queryParams?: Record<string, string>;
 }): Promise<CosSignResult> {
-	const { method, path, host, secretId, secretKey, headers, queryParams } = params;
+	const { method, host, secretId, secretKey, headers, queryParams } = params;
+	// COS V1 签名要求 path 逐段 URL 编码（与 OSS 侧一致），
+	// 否则含中文/空格/# 的对象名签名与 URL 全错（删除/建目录必失败）
+	const path = params.path.split("/").map(encodeURIComponent).join("/");
 
 	const now = new Date();
 	const timestamp = Math.floor(now.getTime() / 1000);

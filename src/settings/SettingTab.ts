@@ -503,7 +503,8 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 				lastSyncedAt: new Date().toISOString(),
 				lastSyncSource: "download",
 			};
-			await this.plugin.saveSettings();
+			// 同步下载触发的保存不算「本地编辑」，避免污染冲突检测基准
+			await this.plugin.saveSettings({ markLocalModified: false });
 			new Notice("已从 WebDAV 下载并应用配置");
 			void this.renderSettings(); // 刷新设置页
 		} catch (e) {

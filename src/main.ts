@@ -113,7 +113,7 @@ export default class PicLinkerPlugin extends Plugin {
 		this.webDAVSync = new WebDAVSync(
 			this.settings,
 			this.getEncSaltB64(),
-			async (updated) => { this.settings = updated; await this.saveSettings(); },
+			async (updated) => { this.settings = updated; await this.saveSettings({ markLocalModified: false }); },
 		);
 		if (this._pendingWebdavMeta) {
 			this.webDAVSync.meta = this._pendingWebdavMeta;
@@ -325,6 +325,8 @@ export default class PicLinkerPlugin extends Plugin {
 				await this.view.refresh();
 				// 等待云端数据加载完成后，补充一次刷新确保 metadataCache 完全解析后链接路径准确
 				const view = this.view;
+				// 先清旧定时器：连续触发会叠加多个 1s 回调，onunload 只能清最后一个
+				if (this.cloudRefreshTimer) window.clearTimeout(this.cloudRefreshTimer);
 				this.cloudRefreshTimer = window.setTimeout(() => {
 					void (async () => {
 						if (view && view.waitForCloudLoad) {
@@ -358,7 +360,8 @@ export default class PicLinkerPlugin extends Plugin {
 
 	async loadSettings() {
 		const data = ((await this.loadData()) as unknown as Record<string, unknown>) || {};
-		const { _encSalt, _hashcache, _webdavmeta, _dedupcache, _scancache, ...settingsData } = data;
+		// 私键必须全部剔除：否则 _bedTestResults 等会混入 settings 并随每次保存回写、污染类型
+		const { _encSalt, _hashcache, _webdavmeta, _dedupcache, _scancache, _bedTestResults, ...settingsData } = data;
 		// 清理已废弃的旧字段
 		const deprecatedKeys = ["autoRefreshOnOpen", "showUnreferenced", "deleteConfirm", "debounceDelay"];
 		for (const key of deprecatedKeys) {
@@ -419,9 +422,11 @@ export default class PicLinkerPlugin extends Plugin {
 		this.settings = working as PicLinkerSettings;
 
 		// 将迁移结果写回 data.json（幂等：仅当 salt 为新生成/迁移时）
+		// 必须先加密再写盘：此处 this.settings 是解密后的明文，直接展开会把 token 明文落盘
 		if (persistMigration && this._encSaltB64) {
 			try {
-				await this.saveData(this.buildSavePayload(this.settings, this._encSaltB64));
+				const encrypted = await encryptSensitiveFields(this.settings, this._encSaltB64);
+				await this.saveData(this.buildSavePayload(encrypted, this._encSaltB64, false));
 			} catch (e) {
 				console.warn("[PicLinker] 迁移结果持久化失败（下次启动将重试）", e);
 			}
@@ -437,7 +442,7 @@ export default class PicLinkerPlugin extends Plugin {
 	}
 
 	/** 构建完整保存负载（含加密字段、持久 salt 与各类缓存） */
-	private buildSavePayload(encrypted: Record<string, unknown>, encSaltB64: string): Record<string, unknown> {
+	private buildSavePayload(encrypted: Record<string, unknown>, encSaltB64: string, markLocalModified = true): Record<string, unknown> {
 		const savePayload: Record<string, unknown> = { ...encrypted, _encSalt: encSaltB64 };
 		if (this.hashCache.isDirty() || this.hashCache.size > 0) {
 			savePayload._hashcache = this.hashCache.serialize();
@@ -447,8 +452,12 @@ export default class PicLinkerPlugin extends Plugin {
 			savePayload._dedupcache = this.dedupCache.serialize();
 		}
 		if (this.webDAVSync?.meta) {
-			// 记录本地最后修改时间，用于三方比较冲突检测
-			this.webDAVSync.meta.lastLocalModifiedAt = new Date().toISOString();
+			// lastLocalModifiedAt 是「真实本地编辑」基准（三方冲突检测用），
+			// 仅用户编辑触发的保存才刷新；同步下载/迁移/诊断保存传 false，
+			// 否则每次保存都刷新会让 localModified 恒新 → 冲突检测恒误报
+			if (markLocalModified) {
+				this.webDAVSync.meta.lastLocalModifiedAt = new Date().toISOString();
+			}
 			savePayload._webdavmeta = this.webDAVSync.meta;
 		}
 		// 持久化扫描缓存（加速下次启动）
@@ -458,11 +467,11 @@ export default class PicLinkerPlugin extends Plugin {
 		return savePayload;
 	}
 
-	async saveSettings() {
+	async saveSettings(options?: { markLocalModified?: boolean }) {
 		// 加密敏感字段后保存（新方案：持久随机 salt + 600k）
 		const encSaltB64 = this.getEncSaltB64();
 		const encrypted = await encryptSensitiveFields(this.settings, encSaltB64);
-		const savePayload = this.buildSavePayload(encrypted, encSaltB64);
+		const savePayload = this.buildSavePayload(encrypted, encSaltB64, options?.markLocalModified !== false);
 		await this.saveData(savePayload);
 		// 更新各图床配置
 		for (const bed of this.imageBedManager.getAll()) {
@@ -623,7 +632,9 @@ export default class PicLinkerPlugin extends Plugin {
 		// 4. Settings 保存/加载测试
 		try {
 			const original = { ...this.settings };
-			await this.saveSettings();
+			// 诊断不应产生副作用：跳过 WebDAV 自动上传、不刷新本地编辑基准
+			if (this.webDAVSync) this.webDAVSync.skipAutoUpload = true;
+			await this.saveSettings({ markLocalModified: false });
 			await this.loadSettings();
 			const match = JSON.stringify(original) === JSON.stringify(this.settings);
 			add(match, "Settings 保存/加载一致性");

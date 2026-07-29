@@ -988,7 +988,7 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
         lastSyncedAt: (/* @__PURE__ */ new Date()).toISOString(),
         lastSyncSource: "download"
       };
-      await this.plugin.saveSettings();
+      await this.plugin.saveSettings({ markLocalModified: false });
       new import_obsidian4.Notice("\u5DF2\u4ECE WebDAV \u4E0B\u8F7D\u5E76\u5E94\u7528\u914D\u7F6E");
       void this.renderSettings();
     } catch (e) {
@@ -4174,7 +4174,6 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     }
     (_a = this.toolbarResizeObserver) == null ? void 0 : _a.disconnect();
     this.toolbarResizeObserver = null;
-    document.documentElement.style.removeProperty("--pic-toolbar-h");
     this.containerEl.empty();
   }
   async refresh() {
@@ -4203,7 +4202,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       void this.loadCloudData();
     } else {
       this.cloudDataResolvers.push(() => {
-        if (this.localImages.length > 0) {
+        if (!this.cloudLoaded && this.localImages.length > 0) {
           this.renderContent();
         }
       });
@@ -4461,6 +4460,11 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       allSections.forEach((s) => {
         s.setCssStyles({ display: shouldCollapse ? "none" : "" });
         if (!shouldCollapse) ensureLazyRendered(s);
+        const hdr = s.previousElementSibling;
+        if (hdr && hdr.classList.contains("pic-part-header")) {
+          hdr.toggleClass("pic-part-header--collapsed", shouldCollapse);
+          syncHeaderBorder(hdr, s);
+        }
       });
       allDirContents.forEach((d) => {
         d.setCssStyles({ display: shouldCollapse ? "none" : "" });
@@ -4598,9 +4602,9 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     this.setupStickyHeaders();
     scrollContainer.scrollTop = savedScrollTop;
   }
-  /** 收集当前所有选中的路径（用于 DOM 重建后恢复） */
+  /** 收集当前所有选中的路径及其所属 section（用于 DOM 重建后恢复） */
   collectCheckedPaths() {
-    const paths = /* @__PURE__ */ new Set();
+    const paths = /* @__PURE__ */ new Map();
     for (const section of [
       "localImages" /* LocalImages */,
       "cloudImages" /* CloudImages */,
@@ -4612,10 +4616,15 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       "emptyFolders" /* EmptyFolders */
     ]) {
       for (const path of this.selection.getSelected(section)) {
-        paths.add(path);
+        paths.set(path, section);
       }
     }
     return paths;
+  }
+  /** 由云端 URL 反查对象存储 fileKey（prefix || name），保证 deleteCloudFile 拿到的是 key 而非完整 URL（与 ItemRenderer 同一逻辑） */
+  resolveCloudFileKey(urlOrPath) {
+    const cf = this.cloudFiles.find((f) => f.url === urlOrPath);
+    return (cf == null ? void 0 : cf.prefix) || (cf == null ? void 0 : cf.name) || extractFileName(urlOrPath) || urlOrPath;
   }
   /** 按来源拆分图片：本地 / 云端 / 未找到 */
   splitImagesBySource() {
@@ -4877,17 +4886,19 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       if (selected.length > 0) void this.cleanupUnreferenced(selected);
     });
   }
-  /** 恢复选中状态：根据 SelectionManager 中的选中记录恢复复选框 checked 状态 */
+  /** 恢复选中状态：视觉（checkbox/class）与 SelectionManager 双回写，避免「看着选中、getCount=0」的假恢复 */
   restoreSelectionState(savedCheckedPaths) {
     const mainList = this.containerEl.querySelector("#pic-main-list");
     if (!mainList) return;
     mainList.querySelectorAll(".pic-item").forEach((item) => {
       const purePath = item.dataset.purePath;
       if (!purePath) return;
-      if (savedCheckedPaths.has(purePath)) {
+      const section = savedCheckedPaths.get(purePath);
+      if (section) {
         const cb = item.querySelector(".pic-cloud-checkbox");
         if (cb) cb.checked = true;
         item.toggleClass("pic-item--selected", true);
+        this.selection.select(section, [purePath]);
       }
     });
     mainList.querySelectorAll(".pic-file-tag").forEach((tag) => {
@@ -4937,8 +4948,17 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         }
       });
     };
-    this.stickyScrollHandler = update;
-    scrollContainer.addEventListener("scroll", update, { passive: true });
+    let rafPending = false;
+    const throttled = () => {
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(() => {
+        rafPending = false;
+        update();
+      });
+    };
+    this.stickyScrollHandler = throttled;
+    scrollContainer.addEventListener("scroll", throttled, { passive: true });
     update();
   }
   // ==================== 通用树渲染 ====================
@@ -5171,7 +5191,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             }
           } else {
             const bedType = item.bedType || this.selectedBed;
-            const result = await this.plugin.deleteCloudFile(item.url || item.path, bedType);
+            const result = await this.plugin.deleteCloudFile(this.resolveCloudFileKey(item.url || item.path), bedType);
             if (result.success) {
               ok = true;
             } else {
@@ -5459,6 +5479,8 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       const cloudFilesToProcess = [];
       for (const file of this.cloudFiles) {
         if (file.isDirectory) continue;
+        const ext = (file.name.split(".").pop() || "").toLowerCase();
+        if (!IMAGE_EXTENSIONS.has(ext)) continue;
         if (selectedOnly) {
           const cloudImgHit = selectedCloudPures.size > 0 && selectedCloudPures.has(file.url);
           if (selectedCloudNames.size === 0 && this.selection.getCount("cloudFiles" /* CloudFiles */) === 0 && !cloudImgHit) continue;
@@ -5493,6 +5515,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
           }
         };
         for (let i = 0; i < cloudFilesToProcess.length; i += CONCURRENCY) {
+          if (this.isClosed) return;
           const batch = cloudFilesToProcess.slice(i, i + CONCURRENCY);
           await Promise.allSettled(batch.map(downloadOne));
           done += batch.length;
@@ -5675,7 +5698,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
               }
             } else {
               const bedType = item.bedType || this.selectedBed;
-              const result = await this.plugin.deleteCloudFile(item.path, bedType);
+              const result = await this.plugin.deleteCloudFile(this.resolveCloudFileKey(item.path), bedType);
               if (result.success) {
                 this.plugin.dedupCache.remove(item.path);
                 ok = true;
@@ -5848,12 +5871,13 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             }
           } else {
             const bedType = item.bedType || this.selectedBed;
-            const result = await this.plugin.deleteCloudFile(item.path, bedType);
+            const result = await this.plugin.deleteCloudFile(this.resolveCloudFileKey(item.path), bedType);
             if (result.success) {
               this.plugin.dedupCache.remove(item.path);
               deleteSuccess++;
             } else {
               deleteFail++;
+              continue;
             }
           }
           const freshImg = this.localImages.find((i) => (i.resolvedPath || i.pure) === item.path);
@@ -6015,8 +6039,11 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
    * 获取云端未引用的图片（不被任何本地笔记引用的）
    */
   getCloudOnlyFiles() {
+    const referencedUrls = new Set(
+      this.localImages.filter((img) => img.type !== "local").map((img) => img.pure)
+    );
     return this.cloudFiles.filter(
-      (f) => !f.isDirectory && (this.fileNameRefCount.get(extractFileName(f.name) || f.name) || 0) === 0
+      (f) => !f.isDirectory && !referencedUrls.has(f.url)
     );
   }
   /**
@@ -6535,7 +6562,7 @@ async function sha256(data) {
 }
 function getRegion(endpoint) {
   const match = endpoint.match(/oss-([^.]+)\./);
-  return match ? match[1] : "oss-cn-hangzhou";
+  return match ? match[1] : "cn-hangzhou";
 }
 async function hmacSha256(key, msg) {
   if (hasNodeRequire()) {
@@ -6731,8 +6758,13 @@ var AliyunOssImageBed = class {
         for (const f of parsedFiles) {
           files.push({ ...f, isDirectory: false });
         }
-        const nextToken = ((_a = doc.querySelector("NextContinuationToken")) == null ? void 0 : _a.textContent) || "";
+        const rawNextToken = ((_a = doc.querySelector("NextContinuationToken")) == null ? void 0 : _a.textContent) || "";
         const isTruncated = ((_b = doc.querySelector("IsTruncated")) == null ? void 0 : _b.textContent) === "true";
+        let nextToken = rawNextToken;
+        try {
+          nextToken = rawNextToken ? decodeURIComponent(rawNextToken) : "";
+        } catch (e) {
+        }
         continuationToken = isTruncated ? nextToken : "";
       } while (continuationToken);
       const dirSet = /* @__PURE__ */ new Set();
@@ -6791,8 +6823,13 @@ var AliyunOssImageBed = class {
           const prefix = decodeURIComponent(((_a = node.textContent) == null ? void 0 : _a.trim()) || "");
           if (prefix) dirs.add(prefix);
         }
-        const nextToken = ((_b = xmlDoc.querySelector("NextContinuationToken")) == null ? void 0 : _b.textContent) || "";
+        const rawNextToken = ((_b = xmlDoc.querySelector("NextContinuationToken")) == null ? void 0 : _b.textContent) || "";
         const isTruncated = ((_c = xmlDoc.querySelector("IsTruncated")) == null ? void 0 : _c.textContent) === "true";
+        let nextToken = rawNextToken;
+        try {
+          nextToken = rawNextToken ? decodeURIComponent(rawNextToken) : "";
+        } catch (e) {
+        }
         continuationToken = isTruncated ? nextToken : "";
       } while (continuationToken);
     } catch (e) {
@@ -6912,7 +6949,8 @@ var AliyunOssImageBed = class {
       const response = await directFetch(url);
       if (!response.ok) {
         const errText = await response.text();
-        console.warn("[PicLinker] listBuckets: \u8BF7\u6C42\u5931\u8D25", response.status, errText.slice(0, 200));
+        const sanitized = this.accessKeyId ? errText.split(this.accessKeyId).join("***") : errText;
+        console.warn("[PicLinker] listBuckets: \u8BF7\u6C42\u5931\u8D25", response.status, sanitized.slice(0, 200));
         return [];
       }
       const xmlText = await response.text();
@@ -6967,7 +7005,8 @@ function buildEntries(record) {
   return Object.entries(record).map(([k, v]) => ({ encKey: camSafeUrlEncode(k.toLowerCase()), value: v })).sort((a, b) => a.encKey < b.encKey ? -1 : a.encKey > b.encKey ? 1 : 0);
 }
 async function signCosV1(params) {
-  const { method, path, host, secretId, secretKey, headers, queryParams } = params;
+  const { method, host, secretId, secretKey, headers, queryParams } = params;
+  const path = params.path.split("/").map(encodeURIComponent).join("/");
   const now = /* @__PURE__ */ new Date();
   const timestamp = Math.floor(now.getTime() / 1e3);
   const keyTime = `${timestamp};${timestamp + 3600}`;
@@ -8124,7 +8163,7 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
       this.getEncSaltB64(),
       async (updated) => {
         this.settings = updated;
-        await this.saveSettings();
+        await this.saveSettings({ markLocalModified: false });
       }
     );
     if (this._pendingWebdavMeta) {
@@ -8291,6 +8330,7 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
       if (leaves.length > 0 && this.view) {
         await this.view.refresh();
         const view = this.view;
+        if (this.cloudRefreshTimer) window.clearTimeout(this.cloudRefreshTimer);
         this.cloudRefreshTimer = window.setTimeout(() => {
           void (async () => {
             if (view && view.waitForCloudLoad) {
@@ -8320,7 +8360,7 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
   }
   async loadSettings() {
     const data = await this.loadData() || {};
-    const { _encSalt, _hashcache, _webdavmeta, _dedupcache, _scancache, ...settingsData } = data;
+    const { _encSalt, _hashcache, _webdavmeta, _dedupcache, _scancache, _bedTestResults, ...settingsData } = data;
     const deprecatedKeys = ["autoRefreshOnOpen", "showUnreferenced", "deleteConfirm", "debounceDelay"];
     for (const key of deprecatedKeys) {
       delete settingsData[key];
@@ -8368,7 +8408,8 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
     this.settings = working;
     if (persistMigration && this._encSaltB64) {
       try {
-        await this.saveData(this.buildSavePayload(this.settings, this._encSaltB64));
+        const encrypted = await encryptSensitiveFields(this.settings, this._encSaltB64);
+        await this.saveData(this.buildSavePayload(encrypted, this._encSaltB64, false));
       } catch (e) {
         console.warn("[PicLinker] \u8FC1\u79FB\u7ED3\u679C\u6301\u4E45\u5316\u5931\u8D25\uFF08\u4E0B\u6B21\u542F\u52A8\u5C06\u91CD\u8BD5\uFF09", e);
       }
@@ -8382,7 +8423,7 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
     return this._encSaltB64;
   }
   /** 构建完整保存负载（含加密字段、持久 salt 与各类缓存） */
-  buildSavePayload(encrypted, encSaltB64) {
+  buildSavePayload(encrypted, encSaltB64, markLocalModified = true) {
     var _a;
     const savePayload = { ...encrypted, _encSalt: encSaltB64 };
     if (this.hashCache.isDirty() || this.hashCache.size > 0) {
@@ -8393,7 +8434,9 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
       savePayload._dedupcache = this.dedupCache.serialize();
     }
     if ((_a = this.webDAVSync) == null ? void 0 : _a.meta) {
-      this.webDAVSync.meta.lastLocalModifiedAt = (/* @__PURE__ */ new Date()).toISOString();
+      if (markLocalModified) {
+        this.webDAVSync.meta.lastLocalModifiedAt = (/* @__PURE__ */ new Date()).toISOString();
+      }
       savePayload._webdavmeta = this.webDAVSync.meta;
     }
     try {
@@ -8403,11 +8446,11 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
     }
     return savePayload;
   }
-  async saveSettings() {
+  async saveSettings(options) {
     var _a, _b;
     const encSaltB64 = this.getEncSaltB64();
     const encrypted = await encryptSensitiveFields(this.settings, encSaltB64);
-    const savePayload = this.buildSavePayload(encrypted, encSaltB64);
+    const savePayload = this.buildSavePayload(encrypted, encSaltB64, (options == null ? void 0 : options.markLocalModified) !== false);
     await this.saveData(savePayload);
     for (const bed of this.imageBedManager.getAll()) {
       bed.configure(this.settings);
@@ -8530,7 +8573,8 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
     add(beds.length === 4, `\u56FE\u5E8A\u6CE8\u518C\u6570\u91CF: ${beds.length}/4`);
     try {
       const original = { ...this.settings };
-      await this.saveSettings();
+      if (this.webDAVSync) this.webDAVSync.skipAutoUpload = true;
+      await this.saveSettings({ markLocalModified: false });
       await this.loadSettings();
       const match = JSON.stringify(original) === JSON.stringify(this.settings);
       add(match, "Settings \u4FDD\u5B58/\u52A0\u8F7D\u4E00\u81F4\u6027");
