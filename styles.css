@@ -235,7 +235,6 @@
 /* ========== 设置页 ========== */
 
 .pic-collapsible-title,
-.pic-collapsible-subtitle,
 .pic-bed-status,
 .pic-guide-content,
 .pic-webdav-path-hint,
@@ -252,6 +251,7 @@
 	margin-bottom: var(--pic-section-gap);
 	overflow: hidden;
 	background: var(--pic-bg-primary);
+	padding: 12px 16px 16px 16px;
 }
 
 .pic-settings-card > .setting-item:first-child,
@@ -259,17 +259,10 @@
 	border-top: none;
 }
 
-/* 无边框无标题变体：功能开关分组直接作为设置项列表，不套卡片外壳 */
-.pic-settings-card--bare {
-	border: none;
-	border-radius: 0;
-	background: transparent;
-	margin-bottom: 0;
-	overflow: visible;
-}
-
-.pic-settings-card--bare > .pic-settings-table {
-	margin-top: 0;
+/* 套卡片外壳的功能开关表格：上下留白，左右由卡片 padding 统一控制，与图床卡片 content 对齐 */
+.pic-settings-card > .pic-settings-table {
+	width: 100%;
+	margin: 8px 0 0 0;
 }
 
 /* 折叠卡片 content 内首个设置项：去掉与灰底 header 之间的突兀贯穿线 */
@@ -286,7 +279,7 @@
 .pic-settings-table {
 	width: 100%;
 	border-collapse: collapse;
-	font-size: 13px;
+	font-size: 14px;
 }
 
 .pic-settings-table td {
@@ -371,7 +364,7 @@
 	gap: 4px;
 	background: var(--pic-bg-secondary);
 	transition: background 0.12s ease;
-	user-select: none;
+	user-select: text;
 }
 
 .pic-collapsible-header:hover {
@@ -412,12 +405,6 @@
 	font-size: 14px;
 	font-weight: 500;
 	color: var(--pic-text);
-}
-
-.pic-collapsible-subtitle {
-	font-size: 12px;
-	color: var(--pic-text-muted);
-	margin-left: 24px;
 }
 
 .pic-collapsible-content {
@@ -610,7 +597,7 @@
 	font-size: 12px;
 	color: var(--pic-warning);
 	background: var(--pic-warning-bg);
-	border-radius: var(--pic-radius-sm, 4px);
+	border-radius: var(--pic-radius-btn, 4px);
 	padding: 6px 10px;
 	margin-bottom: 12px;
 	line-height: 1.5;
@@ -914,6 +901,12 @@
 	flex-shrink: 0;
 }
 
+/* 折叠态 / 操作区应隐藏时统一 class 驱动；
+   避免内联 style.display 与滚动 handler 竞态残留（边框 bug 同源）。 */
+.pic-part-actions--hidden {
+	display: none;
+}
+
 .pic-part-clear-btn {
 	height: auto;
 	min-height: unset;
@@ -943,6 +936,18 @@
 	border-bottom: 1px solid var(--pic-border);
 	border-radius: 0 0 var(--pic-radius-card) var(--pic-radius-card);
 	overflow: hidden;
+}
+
+/* 折叠态：纯 class 驱动，避免内联 display:none 与滚动 handler 竞态 */
+.pic-part-content--collapsed,
+.pic-dir-content--collapsed {
+	display: none;
+}
+
+/* 折叠态视觉反馈：dir-header 加灰，与内容区折叠同步 */
+.pic-dir-header--collapsed {
+	opacity: 0.55;
+	background-color: var(--background-modifier-hover);
 }
 
 /* 首子项不画顶边（标题条无 border-bottom，首项顶部与标题条底部无缝衔接） */
@@ -1088,7 +1093,7 @@
 	flex-shrink: 0;
 }
 
-.pic-cloud-checkbox input[type="checkbox"] {
+input.pic-cloud-checkbox {
 	width: 15px;
 	height: 15px;
 }
@@ -1112,6 +1117,17 @@
 .pic-thumb-clickable:hover {
 	opacity: 0.85;
 	transform: scale(1.08);
+}
+
+/* 缩略图加载失败占位符：带 .pic-thumb 类仅继承 32×32 尺寸，背景与边框透明（不画框），只显示红色断链图标，避免露出灰底/边框 */
+.pic-thumb-broken {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	color: var(--pic-error);
+	background: transparent;
+	border-color: transparent;
 }
 
 /* 路径文本 */
@@ -1247,6 +1263,9 @@
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 	transition: transform 0.1s ease;
 	cursor: default;
+	touch-action: none; /* 禁止浏览器原生 pinch 缩放整个页面，让 JS 接管缩放手势 */
+	-webkit-user-drag: none;
+	-webkit-touch-callout: none;
 }
 
 /* ==================== 移动端适配 ==================== */
@@ -1361,6 +1380,9 @@
 	.pic-collapsible-content .setting-item .setting-item-control > * {
 		margin-right: 0;
 	}
+	.pic-settings-table td {
+		padding: 6px 6px;
+	}
 }
 
 /* 触屏：hover 不可用，行内按钮常驻 + active 反馈 */
@@ -1398,7 +1420,7 @@
 	.pic-dir-header      { padding: 4px 6px; }
 	.pic-collapsible-header { padding: 6px 8px; }
 	.pic-part-header     { padding: 5px 6px; }
-	.pic-cloud-checkbox input[type="checkbox"] {
+	input.pic-cloud-checkbox {
 		width: 15px;
 		height: 15px;
 	}
@@ -1536,3 +1558,17 @@
 }
 
 /* hot reload trigger */
+
+/* 未找到图片按笔记分组：折叠态 */
+.pic-notfound-content--collapsed {
+	display: none;
+}
+
+.pic-notfound-header {
+	cursor: pointer;
+	user-select: text;
+}
+
+.pic-notfound-header--collapsed {
+	opacity: 0.7;
+}

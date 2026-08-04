@@ -1,5 +1,6 @@
-import { SelectionSection } from "../SelectionManager";
-import { setSafeHTML, ensureLazyRendered, setLazyRendered, setLazyRenderFn, syncHeaderBorder } from "../utils/ViewUtils";
+import { SelectionManager, SelectionSection } from "../SelectionManager";
+import { createGroupCheckbox } from "./ItemRenderer";
+import { setSafeHTML, ensureLazyRendered, setLazyRendered, setLazyRenderFn, syncHeaderStuckClass } from "../utils/ViewUtils";
 
 /** 通用树节点接口 */
 export interface TreeNode<T> {
@@ -27,6 +28,14 @@ export interface TreeRendererContext {
 	updateLocalActions: () => void;
 	updateLocalUnrefActions: () => void;
 	updateParentDirCheckboxes: () => void;
+	/** 注入 SelectionManager（用于 dir-header checkbox 与 selection 双向同步，留空则降级到 selectedSet-only 旧逻辑）*/
+	selection?: SelectionManager;
+	/** 该树对应的 section（用于 createGroupCheckbox）*/
+	section?: SelectionSection;
+	/** 目录展开/折叠回调（通知 PicLinkerView 重置 isAllExpandedByGlobal）*/
+	onDirToggle?: () => void;
+	/** 全局「展开所有」按钮触发的临时展开标志 getter（与 dirExpanded 做 OR） */
+	getIsAllExpandedByGlobal?: () => boolean;
 }
 
 export class TreeRenderer {
@@ -83,53 +92,117 @@ export class TreeRenderer {
 		config: TreeRenderConfig<T>,
 		selectedSet?: Set<string>,
 		breadcrumb: string = "",
+		overrideSection?: SelectionSection,
 	) {
 		const { dirExpanded, saveExpandState, updateLocalActions, updateLocalUnrefActions, updateParentDirCheckboxes } = this.context;
+		const section = overrideSection ?? this.context.section;
 
 		// 渲染当前层级的文件（根目录文件需加分组头）
 		if (node.files.length > 0) {
 			const isRoot = depth === 0;
 			if (isRoot) {
 				const dirKey = breadcrumb || "__root__";
-				const expanded = !!this.searchKeyword || dirExpanded.has(dirKey);
+				const expanded = !!this.searchKeyword || this.context.getIsAllExpandedByGlobal?.() || dirExpanded.has(dirKey);
 				const dirHeader = container.createDiv({ cls: "pic-dir-header" });
 				dirHeader.setCssStyles({ paddingLeft: `${10 + depth * 16}px` });
 				dirHeader.dataset.depth = String(depth);
 				dirHeader.dataset.dirKey = dirKey;
 
 				let arrowEl: HTMLElement | null = null;
-				if (selectedSet) {
+				const allKeys = this.collectTreeFiles(node).map(config.getKey);
+				const selection = this.context.selection;
+				if (selection && section) {
+					createGroupCheckbox({
+						headerEl: dirHeader,
+						itemKeys: allKeys,
+						selection: selection,
+						section: section,
+						title: "全选/取消该目录所有图片",
+						onChange: () => {
+							// 确保 dirContent 自身及所有嵌套子目录都已渲染
+							ensureLazyRendered(dirContent);
+							const forceRender = (el: HTMLElement) => {
+								ensureLazyRendered(el);
+								el.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(child => {
+									forceRender(child);
+								});
+							};
+							forceRender(dirContent);
+							// 渲染完成后自动展开所有折叠子目录，让用户看到选了什么
+							const expandAll = (el: HTMLElement) => {
+								el.querySelectorAll<HTMLElement>(".pic-dir-content--collapsed").forEach(collapsed => {
+									collapsed.removeClass("pic-dir-content--collapsed");
+									const hdr = collapsed.previousElementSibling as HTMLElement | null;
+									if (hdr?.classList.contains("pic-dir-header")) {
+										hdr.removeClass("pic-dir-header--collapsed");
+										const arr = hdr.querySelector<HTMLElement>(".pic-dir-arrow");
+										if (arr) arr.textContent = "▽";
+										const dk = hdr.dataset.dirKey;
+										if (dk) dirExpanded.add(dk);
+									}
+								});
+								saveExpandState();
+							};
+							expandAll(dirContent);
+							const dirCb = dirHeader.querySelector<HTMLInputElement>("input[type=checkbox]")!;
+							// 同步子项 checkbox 的 DOM 视觉状态（仅叶子级 .pic-item，不碰子目录分组级 checkbox）
+							const syncNested = (el: HTMLElement) => {
+								el.querySelectorAll<HTMLInputElement>(".pic-item .pic-cloud-checkbox").forEach(cb => {
+									cb.checked = dirCb.checked;
+									const itemEl = cb.closest(".pic-item");
+									if (itemEl) itemEl.toggleClass("pic-item--selected", dirCb.checked);
+								});
+								el.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(childContent => syncNested(childContent));
+							};
+							syncNested(dirContent);
+							updateLocalUnrefActions();
+							updateLocalActions();
+							updateParentDirCheckboxes();
+						},
+					});
+				} else if (selectedSet) {
 					const dirCb = dirHeader.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
-					const allKeys = this.collectTreeFiles(node).map(config.getKey);
 					dirCb.checked = allKeys.length > 0 && allKeys.every(k => selectedSet.has(k));
 					dirCb.addEventListener("click", (e) => e.stopPropagation());
 					dirCb.addEventListener("change", () => {
-						for (const k of allKeys) { if (dirCb.checked) selectedSet.add(k); else selectedSet.delete(k); }
 						dirHeader.toggleClass("pic-dir-header--selected", dirCb.checked);
-						if (dirContent.style.display === "none") {
-							dirContent.setCssStyles({ display: "" });
-							if (arrowEl) arrowEl.textContent = "▽";
+						if (dirContent.classList.contains("pic-dir-content--collapsed")) {
+							dirContent.removeClass("pic-dir-content--collapsed");
+							arrowEl!.textContent = "▽";
 							dirExpanded.add(dirKey);
 							saveExpandState();
 						}
-						// Force lazy-render collapsed child directories so their checkboxes can be synced
-					const forceRender = (el: HTMLElement) => {
-						el.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(child => {
-							ensureLazyRendered(child);
-						});
-					};
-					forceRender(dirContent);
-					// Recursively sync all nested checkboxes (including collapsed children)
+						// 确保 dirContent 自身及所有嵌套子目录都已渲染
+						ensureLazyRendered(dirContent);
+						const forceRender = (el: HTMLElement) => {
+							ensureLazyRendered(el);
+							el.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(child => {
+								forceRender(child);
+							});
+						};
+						forceRender(dirContent);
+						// 渲染完成后展开所有子目录
+						const expandAll = (el: HTMLElement) => {
+							el.querySelectorAll<HTMLElement>(".pic-dir-content--collapsed").forEach(collapsed => {
+								collapsed.removeClass("pic-dir-content--collapsed");
+								const hdr = collapsed.previousElementSibling as HTMLElement | null;
+								if (hdr?.classList.contains("pic-dir-header")) {
+									hdr.removeClass("pic-dir-header--collapsed");
+									const arr = hdr.querySelector<HTMLElement>(".pic-dir-arrow");
+									if (arr) arr.textContent = "▽";
+									const dk = hdr.dataset.dirKey;
+									if (dk) dirExpanded.add(dk);
+								}
+							});
+							saveExpandState();
+						};
+						expandAll(dirContent);
+						// 同步子项 checkbox 的 DOM 视觉状态（仅叶子级，不碰子目录分组级 checkbox）
 						const syncNested = (el: HTMLElement) => {
-							el.querySelectorAll<HTMLInputElement>(".pic-cloud-checkbox").forEach(cb => {
+							el.querySelectorAll<HTMLInputElement>(".pic-item .pic-cloud-checkbox").forEach(cb => {
 								cb.checked = dirCb.checked;
-						const itemEl = cb.closest(".pic-item");
-						if (itemEl) {
-							itemEl.toggleClass("pic-item--selected", dirCb.checked);
-						} else {
-							const dirEl = cb.closest(".pic-dir-header");
-							if (dirEl) dirEl.toggleClass("pic-dir-header--selected", dirCb.checked);
-						}
+								const itemEl = cb.closest(".pic-item");
+								if (itemEl) itemEl.toggleClass("pic-item--selected", dirCb.checked);
 							});
 							el.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(childContent => syncNested(childContent));
 						};
@@ -140,18 +213,18 @@ export class TreeRenderer {
 					});
 				}
 
-				const arrow = dirHeader.createSpan({ cls: "pic-dir-arrow", text: expanded ? "▽" : "▶" });
-				arrowEl = arrow;
 				const iconSpan = dirHeader.createSpan({ cls: "pic-dir-icon" });
 				setSafeHTML(iconSpan, `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`);
 				dirHeader.createSpan({ cls: "pic-dir-name", text: "根目录" });
 				dirHeader.createSpan({ cls: "pic-dir-count", text: `(${node.files.length})` });
+				const arrow = dirHeader.createSpan({ cls: "pic-dir-arrow", text: expanded ? "▽" : "▶" });
+				arrowEl = arrow;
 
-				const dirContent = container.createDiv({ cls: "pic-dir-content" });
-				if (!expanded) dirContent.setCssStyles({ display: "none" });
-				dirHeader.addEventListener("click", () => {
-					const isCollapsed = dirContent.style.display === "none";
-					dirContent.setCssStyles({ display: isCollapsed ? "" : "none" });
+				const dirContent = container.createDiv({ cls: "pic-dir-content" + (expanded ? "" : " pic-dir-content--collapsed") });
+			dirHeader.addEventListener("click", () => {
+					const isCollapsed = dirContent.classList.contains("pic-dir-content--collapsed");
+					dirContent.toggleClass("pic-dir-content--collapsed", !isCollapsed);
+					dirHeader.toggleClass("pic-dir-header--collapsed", !isCollapsed);
 					arrow.textContent = isCollapsed ? "▽" : "▶";
 					if (isCollapsed) {
 						dirExpanded.add(dirKey);
@@ -160,6 +233,7 @@ export class TreeRenderer {
 						dirExpanded.delete(dirKey);
 						saveExpandState();
 					}
+					this.context.onDirToggle?.();
 				});
 
 				for (const item of node.files) {
@@ -179,7 +253,7 @@ export class TreeRenderer {
 			const allFiles = this.collectTreeFiles(childNode);
 			const childBreadcrumb = breadcrumb ? `${breadcrumb} / ${dirName}` : dirName;
 			const dirKey = childBreadcrumb;
-			const expanded = !!this.searchKeyword || dirExpanded.has(dirKey);
+			const expanded = !!this.searchKeyword || this.context.getIsAllExpandedByGlobal?.() || dirExpanded.has(dirKey);
 
 			// P1-9: 子目录（depth>0）加 pic-dir-nested 标记，供 CSS 增加缩进/引导线/分组底色等层级视觉区分
 			const dirHeader = container.createDiv({ cls: "pic-dir-header" + (depth > 0 ? " pic-dir-nested" : "") });
@@ -188,34 +262,104 @@ export class TreeRenderer {
 			dirHeader.dataset.dirKey = dirKey;
 
 			let arrowEl: HTMLElement | null = null;
-			if (selectedSet) {
+			const allKeys = this.collectTreeFiles(childNode).map(config.getKey);
+			const selection = this.context.selection;
+			if (selection && section) {
+				createGroupCheckbox({
+					headerEl: dirHeader,
+					itemKeys: allKeys,
+					selection: selection,
+					section: section,
+					title: "全选/取消该目录所有图片",
+					onChange: () => {
+						// 确保 dirContent 自身及所有嵌套子目录都已渲染
+						ensureLazyRendered(dirContent);
+						const forceRender = (el: HTMLElement) => {
+							ensureLazyRendered(el);
+							el.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(child => {
+								forceRender(child);
+							});
+						};
+						forceRender(dirContent);
+						// 渲染完成后自动展开所有折叠子目录
+						const expandAll = (el: HTMLElement) => {
+							el.querySelectorAll<HTMLElement>(".pic-dir-content--collapsed").forEach(collapsed => {
+								collapsed.removeClass("pic-dir-content--collapsed");
+								const hdr = collapsed.previousElementSibling as HTMLElement | null;
+								if (hdr?.classList.contains("pic-dir-header")) {
+									hdr.removeClass("pic-dir-header--collapsed");
+									const arr = hdr.querySelector<HTMLElement>(".pic-dir-arrow");
+									if (arr) arr.textContent = "▽";
+									const dk = hdr.dataset.dirKey;
+									if (dk) dirExpanded.add(dk);
+								}
+							});
+							saveExpandState();
+						};
+						expandAll(dirContent);
+						const dirCb = dirHeader.querySelector<HTMLInputElement>("input[type=checkbox]")!;
+						// 同步子项 checkbox 的 DOM 视觉状态（仅叶子级，不碰子目录分组级 checkbox）
+						const syncNested = (el: HTMLElement) => {
+							el.querySelectorAll<HTMLInputElement>(".pic-item .pic-cloud-checkbox").forEach(cb => {
+								cb.checked = dirCb.checked;
+								const itemEl = cb.closest(".pic-item");
+								if (itemEl) itemEl.toggleClass("pic-item--selected", dirCb.checked);
+							});
+							el.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(childContent => syncNested(childContent));
+						};
+						syncNested(dirContent);
+						updateLocalUnrefActions();
+						updateLocalActions();
+						updateParentDirCheckboxes();
+					},
+				});
+			} else if (selectedSet) {
 				const dirCb = dirHeader.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
-				const allKeys = allFiles.map(config.getKey);
 				dirCb.checked = allKeys.length > 0 && allKeys.every(k => selectedSet.has(k));
 				dirCb.addEventListener("click", (e) => e.stopPropagation());
 				dirCb.addEventListener("change", () => {
-					for (const k of allKeys) { if (dirCb.checked) selectedSet.add(k); else selectedSet.delete(k); }
 					dirHeader.toggleClass("pic-dir-header--selected", dirCb.checked);
-					if (dirContent.style.display === "none") {
-						dirContent.setCssStyles({ display: "" });
-						if (arrowEl) arrowEl.textContent = "▽";
+					if (dirContent.classList.contains("pic-dir-content--collapsed")) {
+						dirContent.removeClass("pic-dir-content--collapsed");
+						arrowEl!.textContent = "▽";
 						dirExpanded.add(dirKey);
 						saveExpandState();
 					}
-				// Force lazy-render collapsed child directories so their checkboxes can be synced
-					dirContent.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(child => {
-						ensureLazyRendered(child);
-					});
-					dirContent.querySelectorAll<HTMLInputElement>(".pic-cloud-checkbox").forEach(cb => {
-						cb.checked = dirCb.checked;
-						const itemEl = cb.closest(".pic-item");
-						if (itemEl) {
-							itemEl.toggleClass("pic-item--selected", dirCb.checked);
-						} else {
-							const dirEl = cb.closest(".pic-dir-header");
-							if (dirEl) dirEl.toggleClass("pic-dir-header--selected", dirCb.checked);
-						}
-					});
+					// 确保 dirContent 自身及所有嵌套子目录都已渲染
+					ensureLazyRendered(dirContent);
+					const forceRender = (el: HTMLElement) => {
+						ensureLazyRendered(el);
+						el.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(child => {
+							forceRender(child);
+						});
+					};
+					forceRender(dirContent);
+					// 渲染完成后展开所有子目录
+					const expandAll = (el: HTMLElement) => {
+						el.querySelectorAll<HTMLElement>(".pic-dir-content--collapsed").forEach(collapsed => {
+							collapsed.removeClass("pic-dir-content--collapsed");
+							const hdr = collapsed.previousElementSibling as HTMLElement | null;
+							if (hdr?.classList.contains("pic-dir-header")) {
+								hdr.removeClass("pic-dir-header--collapsed");
+								const arr = hdr.querySelector<HTMLElement>(".pic-dir-arrow");
+								if (arr) arr.textContent = "▽";
+								const dk = hdr.dataset.dirKey;
+								if (dk) dirExpanded.add(dk);
+							}
+						});
+						saveExpandState();
+					};
+					expandAll(dirContent);
+					// 同步子项 checkbox 的 DOM 视觉状态（仅叶子级，不碰子目录分组级 checkbox）
+					const syncNested = (el: HTMLElement) => {
+						el.querySelectorAll<HTMLInputElement>(".pic-item .pic-cloud-checkbox").forEach(cb => {
+							cb.checked = dirCb.checked;
+							const itemEl = cb.closest(".pic-item");
+							if (itemEl) itemEl.toggleClass("pic-item--selected", dirCb.checked);
+						});
+						el.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(childContent => syncNested(childContent));
+					};
+					syncNested(dirContent);
 					updateLocalUnrefActions();
 					updateLocalActions();
 					updateParentDirCheckboxes();
@@ -230,29 +374,29 @@ export class TreeRenderer {
 			dirHeader.createSpan({ cls: "pic-dir-count", text: `(${allFiles.length})` });
 
 			// P1-9: 与 header 一致的嵌套标记
-			const dirContent = container.createDiv({ cls: "pic-dir-content" + (depth > 0 ? " pic-dir-nested" : "") });
-			if (!expanded) dirContent.setCssStyles({ display: "none" });
+			const dirContent = container.createDiv({ cls: "pic-dir-content" + (depth > 0 ? " pic-dir-nested" : "") + (expanded ? "" : " pic-dir-content--collapsed") });
 
 			dirHeader.addEventListener("click", () => {
-				const isCollapsed = dirContent.style.display === "none";
-				dirContent.setCssStyles({ display: isCollapsed ? "" : "none" });
+				const isCollapsed = dirContent.classList.contains("pic-dir-content--collapsed");
+				dirContent.toggleClass("pic-dir-content--collapsed", !isCollapsed);
+				dirHeader.toggleClass("pic-dir-header--collapsed", !isCollapsed);
 				arrow.textContent = isCollapsed ? "▽" : "▶";
 				if (isCollapsed) {
-					// 展开前先触发嵌套子目录的懒渲染，避免折叠态直接同步建全部子孙 DOM
 					ensureLazyRendered(dirContent);
 					dirExpanded.add(dirKey);
 				} else {
 					dirExpanded.delete(dirKey);
 				}
 				saveExpandState();
+				this.context.onDirToggle?.();
 			});
 
 			// 嵌套目录懒渲染：折叠时不立即递归渲染子孙，展开时（dirHeader click / checkbox forceRender / section 展开）
 			// 由 ensureLazyRendered 触发。子目录自身也会按各自 expanded 再决定是否继续懒渲染（多层生效）。
 			if (!expanded) {
-				setLazyRenderFn(dirContent, () => this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb));
+				setLazyRenderFn(dirContent, () => this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb, overrideSection));
 			} else {
-				this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb);
+				this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb, overrideSection);
 			}
 		}
 	}
@@ -296,13 +440,12 @@ export class TreeRenderer {
 			header.createDiv({ cls: "pic-part-actions" });
 		}
 
-		const content = parent.createDiv({ cls: "pic-part-content", attr: { "data-section-key": sectionKey } });
+		const content = parent.createDiv({ cls: "pic-part-content" + (expanded ? "" : " pic-part-content--collapsed"), attr: { "data-section-key": sectionKey } });
 		if (!expanded) {
-			content.setCssStyles({ display: "none" });
 			header.addClass("pic-part-header--collapsed");
 		}
 		// 同步边框（收起态四边完整边框；展开态由 base/CSS 决定，这里显式保证一致）
-		syncHeaderBorder(header, content);
+		syncHeaderStuckClass(header, false);
 
 		setLazyRendered(content, expanded);
 
@@ -318,15 +461,15 @@ export class TreeRenderer {
 		});
 
 		const toggleSection = () => {
-			const isCollapsed = content.style.display === "none";
-			content.setCssStyles({ display: isCollapsed ? "" : "none" });
+			const isCollapsed = content.classList.contains("pic-part-content--collapsed");
+			content.toggleClass("pic-part-content--collapsed", !isCollapsed);
 			arrow.textContent = isCollapsed ? "▽" : "▶";
 			const actionsEl = header.querySelector<HTMLElement>(".pic-part-actions");
-			if (actionsEl) actionsEl.setCssStyles({ display: isCollapsed ? "" : "none" });
+			if (actionsEl) actionsEl.toggleClass("pic-part-actions--hidden", !isCollapsed);
 			header.setAttribute("aria-expanded", String(isCollapsed));
 			header.toggleClass("pic-part-header--collapsed", !isCollapsed);
 			// 同步边框（class 切换后立刻同步内联边框，避免视觉不刷新）
-			syncHeaderBorder(header, content);
+			syncHeaderStuckClass(header, header.classList.contains("pic-part-header--stuck"));
 			if (isCollapsed) {
 				sectionExpanded.delete(`!${sectionKey}`);
 				content.querySelectorAll<HTMLElement>(".pic-dir-header[data-dir-key]").forEach(h => {
@@ -335,7 +478,7 @@ export class TreeRenderer {
 					const dirContent = h.nextElementSibling as HTMLElement;
 					const arrow = h.querySelector<HTMLElement>(".pic-dir-arrow");
 					const isDirExpanded = dirExpanded.has(dirKey);
-					if (dirContent) dirContent.setCssStyles({ display: isDirExpanded ? "" : "none" });
+					if (dirContent) dirContent.toggleClass("pic-dir-content--collapsed", !isDirExpanded);
 					if (arrow) arrow.textContent = isDirExpanded ? "▽" : "▶";
 				});
 				saveExpandState();
@@ -345,7 +488,7 @@ export class TreeRenderer {
 				if (!this.searchKeyword) {
 					sectionExpanded.add(`!${sectionKey}`);
 					content.querySelectorAll<HTMLElement>(".pic-dir-content").forEach(d => {
-						d.setCssStyles({ display: "none" });
+						d.addClass("pic-dir-content--collapsed");
 					});
 					content.querySelectorAll<HTMLElement>(".pic-dir-arrow").forEach(a => {
 						a.textContent = "▶";

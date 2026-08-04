@@ -4,20 +4,9 @@ import { extractFileName } from "../../comparator/CloudComparator";
 import { detectBedTypeFromUrl, getBedFaviconSvg } from "../../icons";
 
 /**
- * 统一同步分区标题条的边框（内联样式直接生效，绕过 CSS 级联与 !important 冲突）。
- * 边框状态只取决于两个 class：
- *   - pic-part-header--collapsed：收起态，四边完整 1px 边框
- *   - pic-part-header--stuck：吸顶态（展开时），只留底边分隔线
- * 之前把边框交给 CSS class + !important 级联，--stuck 的 border:none 没有 !important，
- * 会被 --collapsed 的 border:1px !important 压掉，且 !important 又压制 JS 内联样式，
- * 导致展开/收起、吸顶切换时边框视觉不刷新。改为 JS 内联统一管理后彻底解决。
- * @param header 分区标题条元素
- * @param content 分区内容元素（当前未直接用于边框计算，保留以备扩展）
- */
-/**
- * 同步分区标题条的边框状态。
- * 关键设计：边框完全由 CSS class 驱动（.pic-part-header--collapsed / --stuck / 组合），
- * JS 只负责确保 class 与“是否吸顶”一致，绝不写内联 border。
+ * 仅对齐分区标题的吸顶态 class（吸顶由滚动检测决定，需 JS 同步）。
+ * 收起态由点击 handler 直接 toggle，本函数不触碰，避免与滚动 handler 竞态。
+ * 边框样式本身交给 CSS，见 styles.css 中 .pic-part-header / --collapsed / --stuck 规则。
  *
  * 为什么不能写内联 border：
  * 折叠时 toggleSection 会调 scrollIntoView，触发吸顶滚动 handler 再次进入本函数；
@@ -25,16 +14,11 @@ import { detectBedTypeFromUrl, getBedFaviconSvg } from "../../icons";
  * 盖住新状态，导致“点一下边框不对、刷新后才对”。改为纯 class 驱动后无残留、无竞态。
  *
  * @param header 分区标题条元素
- * @param content 分区内容元素（当前未直接用于边框计算，保留以备扩展）
  */
-export function syncHeaderBorder(header: HTMLElement, content: HTMLElement): void {
-	const collapsed = header.classList.contains("pic-part-header--collapsed");
-	const stuck = header.classList.contains("pic-part-header--stuck");
-	// 仅对齐吸顶态 class（吸顶由滚动检测决定，需 JS 同步）；收起态由点击 handler 直接 toggle。
-	// 边框样式本身交给 CSS，见 styles.css 中 .pic-part-header / --collapsed / --stuck 规则。
-	if (stuck && collapsed) {
+export function syncHeaderStuckClass(header: HTMLElement, isStuck: boolean): void {
+	if (isStuck) {
 		header.addClass("pic-part-header--stuck");
-	} else if (!stuck && header.classList.contains("pic-part-header--stuck")) {
+	} else {
 		header.removeClass("pic-part-header--stuck");
 	}
 	// collapsed 态的 class 已由点击 handler 维护，此处不触碰，避免与滚动 handler 竞态。
@@ -45,9 +29,13 @@ export function syncHeaderBorder(header: HTMLElement, content: HTMLElement): voi
  * 输入必须为插件自身受信任的 SVG/HTML 片段（图标、指南文本等），不含任何用户数据。
  */
 /**
- * 判断元素当前是否处于隐藏状态（用于折叠/展开切换）。
+ * 判断元素是否处于折叠状态。统一依据 CSS class，不依赖内联 style.display。
+ * 折叠态 class 在 styles.css 中以 --collapsed 后缀定义为 display:none。
  */
 export function isHidden(el: HTMLElement): boolean {
+	if (el.classList.contains("pic-part-content--collapsed")) return true;
+	if (el.classList.contains("pic-dir-content--collapsed")) return true;
+	if (el.classList.contains("pic-part-actions--hidden")) return true;
 	return el.style.display === "none";
 }
 
@@ -84,6 +72,18 @@ export function setSafeHTML(el: HTMLElement, html: string): void {
 	const frag = sanitizeHTMLToDom(html);
 	el.empty();
 	el.appendChild(frag);
+}
+
+/**
+ * 创建缩略图加载失败时的占位元素。
+ * 默认跟随 .pic-thumb 的 32×32 尺寸（mobile 28×28），套用 --pic-text-muted 颜色。
+ * 原有 img 需调用方手动隐藏。
+ */
+export function createThumbBrokenPlaceholder(parent: HTMLElement, title = "图片缺失 / 加载失败"): HTMLDivElement {
+	const placeholder = parent.createDiv({ cls: "pic-thumb pic-thumb-broken", attr: { title } });
+	// 与「未找到」区域一致的红色断链图标（方框 + 圆点 + 斜线），确保断链缩略图在各区域视觉统一
+	setSafeHTML(placeholder, '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="var(--pic-error)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>');
+	return placeholder;
 }
 
 /** 从 app localStorage 安全解析 JSON 数组 */

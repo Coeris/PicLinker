@@ -11,7 +11,7 @@ import { IMAGE_EXTENSIONS } from "../../parser/LinkParser";
 import { detectBedTypeFromUrl } from "../../icons";
 import { showImagePreview } from "../ImagePreview";
 import { SelectionManager, SelectionSection } from "../SelectionManager";
-import { formatDisplayPath, getFileExtension, expandRefs, setSafeHTML } from "../utils/ViewUtils";
+import { formatDisplayPath, getFileExtension, expandRefs, setSafeHTML, createThumbBrokenPlaceholder, type TagRef } from "../utils/ViewUtils";
 import { confirmAsync } from "../../utils/DangerConfirmModal";
 import { onAsyncClick } from "../../utils/AsyncHandler";
 
@@ -19,7 +19,7 @@ export interface ItemRenderContext {
 	app: App;
 	selection: SelectionManager;
 	compareResult: Map<string, { exists: boolean; url?: string; bedType?: ImageBedType }>;
-	cloudFiles: CloudFile[];
+	getCloudFiles: () => CloudFile[];
 	/** 复制图片路径 */
 	copyImagePath: (img: ImageLink) => void;
 	/** 跳转到文件引用位置 */
@@ -34,8 +34,10 @@ export interface ItemRenderContext {
 	updateDeleteSelectedBtn?: () => void;
 	/** 获取 CloudFiles 的删除函数 */
 	deleteCloudFile: (fileKey: string, bedType: ImageBedType) => Promise<{ success: boolean; error?: string }>;
-	/** 清理引用行 */
+	/** 清理引用行（按图片纯路径，整文件清理） */
 	removeImageFromMdFile: (filePath: string, urls: string[]) => Promise<number>;
+	/** 清理单行中的图片引用（按行号精确删除，返回清理后的行内容） */
+	removeImageFromLine: (lineContent: string, pure: string) => string;
 	/** 清理所有 MD 文件中的引用 */
 	removeImageFromAllMdFiles: (urls: string[]) => Promise<number>;
 	/** 刷新视图 */
@@ -76,7 +78,7 @@ export class ItemRenderer {
 
 	/** 渲染本地引用图片条目 */
 	renderLocalItem(container: HTMLElement, img: ImageLink, selectedSet?: Set<string>) {
-		const { selection, app, copyImagePath, updateLocalActions, updateParentDirCheckboxes } = this.ctx;
+		const { selection, app, copyImagePath, updateLocalActions, updateParentDirCheckboxes, showPath } = this.ctx;
 		const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } }) as LazyRenderableElement;
 		this.applySubdirGrouping(item, container);
 
@@ -144,7 +146,7 @@ export class ItemRenderer {
 					cls: "pic-thumb pic-thumb-clickable",
 					attr: { src: thumbSrc, loading: "lazy" },
 				});
-				thumb.addEventListener("error", () => { thumb.setCssStyles({ display: "none" }); });
+				thumb.addEventListener("error", () => { thumb.setCssStyles({ display: "none" }); createThumbBrokenPlaceholder(item); });
 				thumb.addEventListener("click", (e) => {
 					e.stopPropagation();
 					showImagePreview(thumbSrc);
@@ -156,8 +158,9 @@ export class ItemRenderer {
 		if (img.type !== "local") {
 			try { displayPath = new URL(img.pure).pathname.slice(1); } catch { /* keep original */ }
 		}
-		const shortPath = formatDisplayPath(displayPath);
-		const pathSpan = item.createSpan({ cls: "pic-path", text: shortPath, title: "双击复制完整路径" });
+		// showPath 关 = 仅文件名，开 = 完整相对路径（去截断后的 showText）
+		const showText = showPath ? formatDisplayPath(displayPath) : (extractFileName(displayPath) || displayPath);
+		const pathSpan = item.createSpan({ cls: "pic-path", text: showText, title: showText });
 		pathSpan.classList.add("clickable");
 		item.dataset.purePath = img.pure;
 
@@ -192,7 +195,7 @@ export class ItemRenderer {
 
 	/** 渲染引用标签（多标签时换行而非横向溢出） */
 	renderTags(container: HTMLElement, img: ImageLink, section: SelectionSection, keyPrefix: string): void {
-		const { selection, jumpToFile } = this.ctx;
+		const { selection, jumpToFile, updateLocalActions } = this.ctx;
 		const expandedRefs = expandRefs(img);
 		if (expandedRefs.length === 0) return;
 		// 用 .pic-tags 包裹容器承载多标签，借助 inline flex-wrap 在标签过多时换行，
@@ -221,6 +224,7 @@ export class ItemRenderer {
 					selection.select(section, [tagKey]);
 					tag.classList.add("pic-file-tag-focus");
 					tag.title = `再次单击跳转到 ${ref.file}:${ref.line}`;
+					updateLocalActions();
 				}
 			});
 		}
@@ -285,7 +289,10 @@ export class ItemRenderer {
 				cls: "pic-thumb pic-thumb-clickable",
 				attr: { src: thumbSrc, loading: "lazy" },
 			});
-			thumb.addEventListener("error", () => { thumb.setCssStyles({ display: "none" }); });
+			thumb.addEventListener("error", () => {
+				thumb.setCssStyles({ display: "none" });
+				createThumbBrokenPlaceholder(item);
+			});
 			thumb.addEventListener("click", (e) => {
 				e.stopPropagation();
 				showImagePreview(thumbSrc);
@@ -318,7 +325,7 @@ export class ItemRenderer {
 				new Notice("无法识别图床类型，已取消删除（笔记引用未清理）");
 				return;
 			}
-			const cloudFile = this.ctx.cloudFiles.find(cf => cf.url === img.pure);
+			const cloudFile = this.ctx.getCloudFiles().find(cf => cf.url === img.pure);
 			const fileKey = cloudFile?.prefix || cloudFile?.name || extractFileName(img.pure) || img.pure;
 
 			// 先删云端图，确认成功后再清理笔记引用（顺序反转，杜绝脏态）
@@ -337,33 +344,44 @@ export class ItemRenderer {
 	}
 
 	/** 未找到图片项 */
-	renderNotFoundItem(container: HTMLElement, img: ImageLink, selectedSet?: Set<string>) {
-		const { selection, removeImageFromMdFile, updateLocalActions, updateParentDirCheckboxes, refresh } = this.ctx;
+	/** 渲染单个未找到图片的引用行：每个引用行 = 一张图在某一笔记的某一行
+	 *  与原 renderNotFoundItem 不同：精确到 (img, file, line)，不再"一图一行"折叠所有引用
+	 */
+	renderNotFoundRefItem(container: HTMLElement, img: ImageLink, ref: TagRef) {
+		const { selection, removeImageFromMdFile, removeImageFromLine, updateLocalActions, updateParentDirCheckboxes, refresh, app, jumpToFile, showPath } = this.ctx;
 		const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } }) as LazyRenderableElement;
 		this.applySubdirGrouping(item, container);
 
-		const isChecked = selectedSet ? selectedSet.has(img.pure) : selection.isSelected(SelectionSection.NotFound, img.pure);
+		// 行级 key：与 batchDeleteNotFoundTags 兼容的 ::index 协议
+		// 通过 expandRefs 找到当前 ref 的索引（按 fileLines 顺序）
+		const expandedRefs = expandRefs(img);
+		const refIndex = expandedRefs.findIndex(r => r.file === ref.file && r.line === ref.line);
+		const itemKey = refIndex >= 0 ? `${img.pure}::${refIndex}` : `${img.pure}::0`;
+		const isChecked = selection.isSelected(SelectionSection.NotFoundRefs, itemKey);
 		const checkbox = item.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
 		checkbox.checked = isChecked;
 		checkbox.addEventListener("click", (e) => e.stopPropagation());
 		checkbox.addEventListener("change", (e) => {
 			e.stopPropagation();
-			if (checkbox.checked) {
-				if (selectedSet) selectedSet.add(img.pure);
-				else selection.select(SelectionSection.NotFound, [img.pure]);
-			} else {
-				if (selectedSet) selectedSet.delete(img.pure);
-				else selection.deselect(SelectionSection.NotFound, img.pure);
-			}
+			if (checkbox.checked) selection.select(SelectionSection.NotFoundRefs, [itemKey]);
+			else selection.deselect(SelectionSection.NotFoundRefs, itemKey);
 			item.toggleClass("pic-item--selected", checkbox.checked);
+			// 冒泡自定义事件：让外层分组（未找到区分组）能同步自身 checkbox 状态
+			item.dispatchEvent(new CustomEvent("pic-notfound-refitem-change", { bubbles: true }));
 			updateLocalActions();
 			updateParentDirCheckboxes();
+		});
+		// 组头全选/全清时，子项 checkbox 反向同步（createGroupCheckbox 只同步组头自身，不碰子项 DOM）
+		selection.onChange((changedSection: SelectionSection) => {
+			if (changedSection !== SelectionSection.NotFoundRefs) return;
+			const sel = selection.isSelected(SelectionSection.NotFoundRefs, itemKey);
+			checkbox.checked = sel;
+			item.toggleClass("pic-item--selected", sel);
 		});
 
 		item.addEventListener("click", (e) => {
 			const target = e.target as HTMLElement;
 			if (target.closest(".pic-file-tag, button, input")) return;
-			// 点击行 = 切换勾选 + 设为当前焦点行（保证后续 ↑/↓ 从此处开始）
 			this.ctx.setCurrentItem(item);
 			const cb = item.querySelector<HTMLInputElement>(".pic-cloud-checkbox");
 			if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event("change")); }
@@ -373,57 +391,103 @@ export class ItemRenderer {
 			const target = e.target as HTMLElement;
 			if (target.closest(".pic-file-tag, button, input")) return;
 			e.stopPropagation();
-			const fileName = extractFileName(img.resolvedPath || img.pure);
-			if (fileName) {
-				navigator.clipboard.writeText(fileName).then(
-					() => new Notice(`已复制图片名「${fileName}」`),
-					() => new Notice("PicLinker：复制失败，请重试"),
-				);
-			}
+			// 双击行 = 跳转到该笔记该行
+			jumpToFile(img, ref.file, ref.line);
 		});
 
 		const notFoundIcon = `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--pic-error)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
 		const iconWrapper = item.createSpan();
 		setSafeHTML(iconWrapper, notFoundIcon);
 
-		const displayPath = img.resolvedPath || img.pure;
-		const shortPath = formatDisplayPath(displayPath);
-		const pathSpan = item.createSpan({ cls: "pic-path", text: shortPath, title: displayPath });
+		const rawPath = img.resolvedPath || img.pure;
+		const fileName = extractFileName(rawPath) || rawPath;
+		// 未找到区路径显示：
+		//   showPath 关 = 仅文件名
+		//   showPath 开 = 引用该图的笔记名(基名) + "/" + 文件名（如「欢迎.md/20230918_114616.bmp」）
+		const refNoteName = ref.file.split("/").pop() || ref.file;
+		const showText = showPath ? `${refNoteName}/${fileName}` : fileName;
+		// title：完整 vault 路径 + 引用笔记 + 行号，方便 hover 时看清物理位置和上下文
+		const detailedTitle = `路径：${rawPath}\n引用：${ref.file}:${ref.line || "全文"}`;
+		const pathSpan = item.createSpan({ cls: "pic-path", text: showText, title: detailedTitle });
 		pathSpan.classList.add("clickable");
-		item.dataset.purePath = img.pure;
+		item.dataset.purePath = itemKey;
 		pathSpan.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
-			navigator.clipboard.writeText(displayPath).then(
+			// 双击路径 = 复制图片完整路径（图片本身的位置）
+			navigator.clipboard.writeText(rawPath).then(
 				() => new Notice(`已复制路径`),
 				() => new Notice("PicLinker：复制失败，请重试"),
 			);
 		});
 
-		this.renderTags(item, img, SelectionSection.NotFound, img.pure);
+		// 行号标签：让用户一眼看到该引用在笔记里的位置
+		const lineTag = item.createSpan({ cls: "pic-file-tag clickable", text: ref.line > 0 ? `L:${ref.line}` : `全文`, title: ref.line > 0 ? `引用位于 ${ref.file}:${ref.line}，单击跳转` : `引用位于 ${ref.file}（无行号），单击跳转` });
+		lineTag.addEventListener("click", (e) => {
+			e.stopPropagation();
+			jumpToFile(img, ref.file, ref.line);
+		});
 
-		// 行内删除按钮
+		// 行内删除按钮：精确删该笔记该行的引用
 		const actions = item.createDiv({ cls: "pic-actions" });
-		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除该图片的所有引用行" } });
+		const noteName = ref.file.split("/").pop() || ref.file;
+		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: `删除「${rawPath}」在 ${noteName} 中的引用行` } });
 		deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
 			e.stopPropagation();
-			if (img.files.length === 0) { new Notice("没有找到引用该图片的笔记"); return; }
-		const fileList = img.files.map(f => f.split("/").pop() || f).join("、");
-			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除「${displayPath}」在 ${img.files.length} 个笔记（${fileList}）中的所有引用行吗？`, title: "删除引用行" }))) return;
-			let successCount = 0;
-			let failCount = 0;
-			for (const fp of img.files) {
-				try {
-					const count = await removeImageFromMdFile(fp, [img.pure]);
-					if (count > 0) successCount += count;
-					else failCount++;
-				} catch { failCount++; }
+			const lineDesc = ref.line > 0 ? `第 ${ref.line} 行` : "全文中的引用行";
+			if (!(await confirmAsync(app, { message: `确定要删除「${rawPath}」在「${noteName}」${lineDesc}吗？`, title: "删除引用行" }))) return;
+			try {
+				if (ref.line > 0) {
+					// 精确行号删除：使用 removeImageFromLine
+					const abstractFile = app.vault.getAbstractFileByPath(ref.file);
+					if (!(abstractFile instanceof TFile)) {
+						new Notice(`PicLinker：笔记「${noteName}」不存在`);
+						return;
+					}
+					const content = await app.vault.read(abstractFile);
+					const contentLines = content.split("\n");
+					const idx = ref.line - 1;
+					const orig = contentLines[idx];
+					if (orig === undefined) {
+						new Notice(`PicLinker：第 ${ref.line} 行不存在`);
+						return;
+					}
+					const cleaned = removeImageFromLine(orig, img.pure);
+					if (!cleaned.trim()) {
+						contentLines.splice(idx, 1);
+					} else if (cleaned !== orig) {
+						contentLines[idx] = cleaned;
+					} else {
+						new Notice(`PicLinker：第 ${ref.line} 行未包含该图片`);
+						return;
+					}
+					await app.vault.modify(abstractFile, contentLines.join("\n"));
+					new Notice(`已删除「${noteName}」第 ${ref.line} 行的引用`);
+				} else {
+					// 无行号：退化为整文件删除该图片的所有引用行
+					const count = await removeImageFromMdFile(ref.file, [img.pure]);
+					new Notice(count > 0 ? `已删除「${noteName}」中的 ${count} 个引用行` : `PicLinker：「${noteName}」中未找到引用行`);
+				}
+				await refresh();
+			} catch (err) {
+				new Notice(`PicLinker：删除失败 - ${err instanceof Error ? err.message : String(err)}`);
 			}
-			const parts: string[] = [];
-			if (successCount > 0) parts.push(`${successCount} 行已删除`);
-			if (failCount > 0) parts.push(`${failCount} 行失败`);
-			new Notice(`批量删除完成：${parts.join("，")}`);
-			await refresh();
 		}));
+	}
+
+	/** 兼容旧调用：保留 renderNotFoundItem 名字，转发到新方法（无 ref 时退化为第一引用） */
+	renderNotFoundItem(container: HTMLElement, img: ImageLink, selectedSet?: Set<string>) {
+		// 按引用展开后渲染；保留旧 selection 兼容（基于 img.pure 选中 = 整图选中）
+		const refs = expandRefs(img);
+		for (const ref of refs) {
+			const item = container.createDiv({ cls: "pic-item" });
+			this.renderNotFoundRefItem(item, img, ref);
+			// 旧 selectedSet 兼容：如果该 img 已被选中，所有子项也置为选中态
+			if (selectedSet?.has(img.pure)) {
+				item.classList.add("pic-item--selected");
+				const cb = item.querySelector<HTMLInputElement>(".pic-cloud-checkbox");
+				if (cb) cb.checked = true;
+			}
+		}
 	}
 
 	/** 云端文件项 */
@@ -484,7 +548,10 @@ export class ItemRenderer {
 				cls: "pic-thumb pic-thumb-clickable",
 				attr: { src: file.url, loading: "lazy" },
 			});
-			thumb.addEventListener("error", () => { thumb.setCssStyles({ display: "none" }); });
+			thumb.addEventListener("error", () => {
+				thumb.setCssStyles({ display: "none" });
+				createThumbBrokenPlaceholder(item);
+			});
 			thumb.addEventListener("click", (e) => {
 				e.stopPropagation();
 				showImagePreview(file.url);
@@ -568,7 +635,10 @@ export class ItemRenderer {
 		if (IMAGE_EXTENSIONS.has(ext)) {
 			const thumbSrc = app.vault.getResourcePath(file);
 			const thumb = item.createEl("img", { cls: "pic-thumb pic-thumb-clickable", attr: { src: thumbSrc, loading: "lazy" } });
-			thumb.addEventListener("error", () => { thumb.setCssStyles({ display: "none" }); });
+			thumb.addEventListener("error", () => {
+				thumb.setCssStyles({ display: "none" });
+				createThumbBrokenPlaceholder(item);
+			});
 			thumb.addEventListener("click", (e) => {
 				e.stopPropagation();
 				showImagePreview(thumbSrc);
@@ -629,11 +699,94 @@ export class ItemRenderer {
 				cls: "pic-thumb pic-thumb-clickable",
 				attr: { src: thumbSrc, loading: "lazy" },
 			});
-			thumb.addEventListener("error", () => { thumb.setCssStyles({ display: "none" }); });
+			thumb.addEventListener("error", () => {
+				thumb.setCssStyles({ display: "none" });
+				createThumbBrokenPlaceholder(item);
+			});
 			thumb.addEventListener("click", (e) => {
 				e.stopPropagation();
 				showImagePreview(thumbSrc);
 			});
 		}
 	}
+}
+
+/**
+ * 创建分组级复选框（用于同名/去重/未找到/云端图床分组）
+ *
+ * 行为：
+ *   - 全未选 → ☐；部分选 → ▣；全选 → ☑️
+ *   - 点击 checkbox → 该组所有 itemKey 全选/全清（selection 同步）
+ *   - 反向：通过 selection.onChange 监听该 section 变化 → 自动同步 checkbox 状态
+ *     （调用方无需在子项 change 时手动 dispatch 事件）
+ *   - helper 会在点击 checkbox 时 stopPropagation，避免触发折叠
+ *
+ * 返回 syncCheckbox 函数，调用方在「外部 selection 变化后」（如批量删除、刷新）调用一次
+ */
+export interface GroupCheckboxOpts {
+	/** 组头容器（将 checkbox 插入到该元素最前）*/
+	headerEl: HTMLElement;
+	/** 该组所有 itemKey（用于 selection.select/deselect）*/
+	itemKeys: string[];
+	/** SelectionManager */
+	selection: SelectionManager;
+	/** 该组归属的 SelectionSection */
+	section: SelectionSection;
+	/** checkbox 的 tooltip */
+	title?: string;
+	/** 选中态变化后回调（用于更新工具栏 actions）*/
+	onChange?: () => void;
+	/** 子项 key 不属于 selection.isSelected 体系时（罕见），可选覆盖 hasChecked */
+	hasCheckedOverride?: (itemKey: string) => boolean;
+}
+
+export interface GroupCheckboxHandle {
+	checkbox: HTMLInputElement;
+	syncCheckbox: () => void;
+	/** helper 内部监听器，渲染卸载时建议调用 off 释放（避免内存泄漏）*/
+	off: () => void;
+}
+
+export function createGroupCheckbox(opts: GroupCheckboxOpts): GroupCheckboxHandle {
+	const { headerEl, itemKeys, selection, section, title, onChange, hasCheckedOverride } = opts;
+	const hasChecked = hasCheckedOverride ?? ((k: string) => selection.isSelected(section, k));
+
+	const checkbox = headerEl.createEl("input", {
+		type: "checkbox",
+		cls: "pic-cloud-checkbox",
+		attr: title ? { title } : {}
+	});
+	// 复选框置于组头最左侧（与子项复选框对齐，更显眼，便于「选中整组」）
+	headerEl.insertBefore(checkbox, headerEl.firstChild);
+	const syncCheckbox = () => {
+		const selectedCount = itemKeys.filter(hasChecked).length;
+		if (itemKeys.length === 0 || selectedCount === 0) {
+			checkbox.checked = false;
+			checkbox.indeterminate = false;
+		} else if (selectedCount === itemKeys.length) {
+			checkbox.checked = true;
+			checkbox.indeterminate = false;
+		} else {
+			checkbox.checked = false;
+			checkbox.indeterminate = true;
+		}
+	};
+	syncCheckbox();
+	checkbox.addEventListener("click", (e) => e.stopPropagation());
+	checkbox.addEventListener("change", () => {
+		if (checkbox.checked || checkbox.indeterminate) {
+			selection.select(section, itemKeys);
+		} else {
+			for (const k of itemKeys) selection.deselect(section, k);
+		}
+		syncCheckbox();
+		onChange?.();
+	});
+	// 通过 selection.onChange 监听该 section 反向同步（helper 自动跨区、跨组同步）
+	const onSelectionChange = (changedSection: SelectionSection) => {
+		if (changedSection === section) syncCheckbox();
+	};
+	selection.onChange(onSelectionChange);
+	const off = () => selection.off(onSelectionChange);
+	return { checkbox, syncCheckbox, off };
 }

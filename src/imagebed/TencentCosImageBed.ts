@@ -57,6 +57,7 @@ export class TencentCosImageBed implements ImageBed {
 		}
 
 		const files: CloudFile[] = [];
+		let partial = false;
 
 		try {
 			const baseUrl = this.getBaseUrl();
@@ -79,7 +80,8 @@ export class TencentCosImageBed implements ImageBed {
 				});
 
 				if (!response.ok) {
-					console.error("COS ListObjects failed:", response.status);
+					console.error("[PicLinker] COS ListObjects 失败:", response.status);
+					partial = true;
 					break;
 				}
 
@@ -87,7 +89,8 @@ export class TencentCosImageBed implements ImageBed {
 				const { doc, error } = parseXml(xmlText, response.status);
 
 				if (error) {
-					console.error("COS API Error:", error.code, error.message);
+					console.error("[PicLinker] COS API 错误:", error.code, error.message);
+					partial = true;
 					break;
 				}
 
@@ -124,9 +127,13 @@ export class TencentCosImageBed implements ImageBed {
 				}
 			}
 		} catch (e) {
-			console.error("COS listFiles error:", e instanceof Error ? e.message : String(e));
+			console.error("[PicLinker] COS listFiles 异常:", e instanceof Error ? e.message : String(e));
+			partial = true;
 		}
 
+		if (partial && files.length > 0 && !files[0]._partial) {
+			for (const file of files) file._partial = true;
+		}
 		return files;
 	}
 

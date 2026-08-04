@@ -86,6 +86,7 @@ export class AliyunOssImageBed implements ImageBed {
 
 		const files: CloudFile[] = [];
 		let continuationToken = "";
+		let partial = false;
 
 		try {
 			do {
@@ -107,7 +108,7 @@ export class AliyunOssImageBed implements ImageBed {
 
 				const response = await directFetch(url);
 				if (!response.ok) {
-					console.error("OSS ListObjects failed:", response.status);
+					console.error("[PicLinker] OSS ListObjects 失败:", response.status);
 					break;
 				}
 
@@ -115,7 +116,7 @@ export class AliyunOssImageBed implements ImageBed {
 				const { doc, error } = parseXml(xmlText, response.status);
 
 				if (error) {
-					console.error("OSS API Error:", error.code, error.message);
+					console.error("[PicLinker] OSS API 错误:", error.code, error.message);
 					break;
 				}
 
@@ -158,9 +159,13 @@ export class AliyunOssImageBed implements ImageBed {
 			}
 
 		} catch (e) {
-			console.error("OSS listFiles error:", e instanceof Error ? e.message : String(e));
+			console.error("[PicLinker] OSS listFiles 异常:", e instanceof Error ? e.message : String(e));
+			partial = true;
 		}
 
+		if (partial && files.length > 0 && !files[0]._partial) {
+			for (const file of files) file._partial = true;
+		}
 		return files;
 	}
 

@@ -33,6 +33,7 @@ export class DedupService {
 					source: item.source,
 					bedType: item.bedType,
 					referenced: item.referenced,
+					img: item.img ? { pure: item.img.pure, resolvedPath: item.img.resolvedPath } : undefined,
 				})),
 			}));
 			this.app.saveLocalStorage(this.getStorageKey("dedupGroups"), JSON.stringify(serialized));
@@ -54,12 +55,18 @@ export class DedupService {
 					type: group.type as "local" | "cloud" | "cross",
 					items: (group.items as Array<Record<string, unknown>>)
 						.filter((item) => item.path !== undefined && typeof item.path === "string" && !item.path.endsWith("/"))
-						.map((item) => ({
-							path: item.path as string,
-							source: item.source as "local" | "cloud",
-							bedType: item.bedType as ImageBedType | undefined,
-							referenced: item.referenced as number | undefined,
-						})),
+						.map((item) => {
+							const imgStub = item.img as Record<string, unknown> | undefined;
+							return {
+								path: item.path as string,
+								source: item.source as "local" | "cloud",
+								bedType: item.bedType as ImageBedType | undefined,
+								referenced: item.referenced as number | undefined,
+								img: imgStub && typeof imgStub.pure === "string"
+									? { pure: imgStub.pure as string, resolvedPath: imgStub.resolvedPath as string | undefined } as ImageLink
+									: undefined,
+							};
+						}),
 				})).filter((group) => group.items.length >= 2);
 		} catch (e) {
 			console.warn("[PicLinker] 加载去重数据失败，已重置", e);

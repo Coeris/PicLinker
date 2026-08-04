@@ -8,7 +8,7 @@ export enum SelectionSection {
 	CloudImages = "cloudImages",
 	LocalUnref = "localUnref",
 	CloudFiles = "cloudFiles",
-	NotFound = "notFound",
+	NotFoundRefs = "notFoundRefs",
 	Dedup = "dedup",
 	SameName = "sameName",
 	EmptyFolders = "emptyFolders",
@@ -39,6 +39,11 @@ export class SelectionManager {
 	/** 移除选中变化回调 */
 	off(callback: SelectionChangeCallback): void {
 		this.onChangeCallbacks = this.onChangeCallbacks.filter(cb => cb !== callback);
+	}
+
+	/** 清空所有 onChange 回调 —— 视图重建前调用，重新渲染后各组头会重新注册 */
+	removeAllListeners(): void {
+		this.onChangeCallbacks = [];
 	}
 
 	/** 触发变化通知 */

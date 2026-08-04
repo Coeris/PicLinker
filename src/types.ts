@@ -113,12 +113,16 @@ export interface CloudFile {
 	prefix?: string;
 	/** 来源图床类型 */
 	bedType?: ImageBedType;
+	/** 标记此文件列表来自不完整的分页拉取（请求中断/出错时设 true，调用方应据此禁用批量删除） */
+	_partial?: boolean;
 }
 
 export interface CompareResult {
 	exists: boolean;
 	url?: string;
 	bedType?: ImageBedType;
+	/** HEAD 探测失败时为 true：存在性未知，不应据此判定为「不存在」或触发删除 */
+	unknown?: boolean;
 }
 
 /** 去重组 */

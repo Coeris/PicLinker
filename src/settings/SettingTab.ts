@@ -13,10 +13,10 @@ import { ImageBedType, BedTestResults } from "../types";
 import { safeBtoa, BED_SETTINGS_KEYS } from "../utils/Common";
 import { getBedFaviconSvg } from "../icons";
 import type { RemoteConfigData } from "../sync/WebDAVSync";
+import type { PicLinkerSettings } from "../types";
 
 interface BedConfig {
 	name: string;
-	desc: string;
 	guide: string;
 	fields: { name: string; desc: string; placeholder: string; key: string; isSecret?: boolean; required?: boolean }[];
 }
@@ -32,7 +32,6 @@ const BED_NAME_TYPE_MAP: Record<string, ImageBedType> = {
 const BED_CONFIGS: BedConfig[] = [
 	{
 		name: "GitHub 图床",
-		desc: "将图片托管到 GitHub 仓库（需公开仓库）",
 		guide:
 			"【获取 Token】\n" +
 			"1. 打开 https://github.com/settings/tokens\n" +
@@ -54,7 +53,6 @@ const BED_CONFIGS: BedConfig[] = [
 	},
 	{
 		name: "阿里云 OSS",
-		desc: "将图片托管到阿里云对象存储",
 		guide:
 			"【获取密钥】\n" +
 			"1. 打开 https://ram.console.aliyun.com → AccessKey 管理\n" +
@@ -79,7 +77,6 @@ const BED_CONFIGS: BedConfig[] = [
 	},
 	{
 		name: "腾讯云 COS",
-		desc: "将图片托管到腾讯云对象存储",
 		guide:
 			"【获取密钥】\n" +
 			"1. 打开 https://console.cloud.tencent.com/cam → API 密钥管理\n" +
@@ -105,7 +102,6 @@ const BED_CONFIGS: BedConfig[] = [
 	},
 	{
 		name: "其他图床",
-		desc: "兼容支持 S3 协议的自定义图床",
 		guide:
 			"【支持的图床】\n" +
 			"1. SM.MS：免费图床，只需填写 Token\n" +
@@ -137,6 +133,9 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 	private plugin: PicLinkerPlugin;
 	/** 防抖保存计时器 */
 	private settingsSaveTimer: number | null = null;
+
+	/** WebDAV 状态提示定时器 */
+	private webdavStatusTimeout: number | null = null;
 
 	/** 同步操作进行中标志，防止重复点击 */
 	private syncing = false;
@@ -200,12 +199,27 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		this.renderSettings();
 	}
 
+	/**
+	 * 设置面板关闭时清理防抖定时器，避免关闭后仍触发 saveSettings
+	 */
+	hide(): void {
+		if (this.settingsSaveTimer) {
+			clearTimeout(this.settingsSaveTimer);
+			this.settingsSaveTimer = null;
+		}
+		if (this.webdavStatusTimeout) {
+			clearTimeout(this.webdavStatusTimeout);
+			this.webdavStatusTimeout = null;
+		}
+	}
+
 	// ========== 通用设置 ==========
 
 	private renderGeneralSettings(container: HTMLElement) {
-		new Setting(container)
+		const card = container.createDiv({ cls: "pic-settings-card" });
+		new Setting(card)
 			.setName("显示路径")
-			.setDesc('开启后显示"根目录/image/photo.jpg"，关闭则只显示"photo.jpg"')
+			.setDesc('开启后显示完整相对路径（如 image/photo.jpg），关闭则只显示文件名')
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.showPath)
 				.onChange((value) => {
@@ -223,8 +237,8 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 	// ========== 插件功能 ==========
 
 	private renderSectionVisibilitySettings(container: HTMLElement) {
-		// 卡片容器：与图床/WebDAV 折叠卡片统一的视觉语言，但此处不需要外圈边框与标题
-		const card = container.createDiv({ cls: "pic-settings-card pic-settings-card--bare" });
+		// 卡片容器：与图床/WebDAV 折叠卡片同款卡片外壳，保持设置页层级一致
+		const card = container.createDiv({ cls: "pic-settings-card" });
 
 		// 功能项列表
 		const items = [
@@ -268,8 +282,6 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 			});
 		}
 
-		// 添加分割线
-		card.createDiv({ cls: "pic-section-divider" });
 	}
 
 	// ========== WebDAV 同步 ==========
@@ -285,8 +297,6 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		// 同步状态指示
 		const syncStatus = titleRow.createSpan({ cls: "pic-webdav-header-status" });
 		this.updateWebdavHeaderStatus(syncStatus);
-
-		header.createSpan({ cls: "pic-collapsible-subtitle", text: "" });
 
 		const content = collapsible.createDiv({ cls: "pic-collapsible-content" });
 		collapsible.classList.add("is-collapsed");
@@ -492,14 +502,17 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 			}
 
 			// 合并远程图床配置到本地
+			// 跳过空字符串，避免 WebDAV 旧路径空串清空本地凭据（对齐 WebDAVSync.ts:197）
 			for (const k of BED_SETTINGS_KEYS) {
-				if (k in remoteData && typeof remoteData[k] === "string") {
+				if (k in remoteData && typeof remoteData[k] === "string" && remoteData[k] !== "") {
 					this.plugin.settings[k] = remoteData[k];
 				}
 			}
 
 			// 更新同步元数据（必须在 saveSettings 之前，否则元数据不会被持久化）
+			// 展开并保留旧 meta 中的 lastLocalModifiedAt / lastRemoteModifiedAt，避免冲突检测基线被重置。
 			this.plugin.webDAVSync.meta = {
+				...this.plugin.webDAVSync.meta,
 				lastSyncedAt: new Date().toISOString(),
 				lastSyncSource: "download",
 			};
@@ -596,8 +609,6 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		// 配置状态指示器
 		const statusSpan = titleRow.createSpan({ cls: "pic-bed-status" });
 		this.updateBedStatus(statusSpan, config);
-
-		header.createSpan({ cls: "pic-collapsible-subtitle", text: config.desc });
 
 		const content = collapsible.createDiv({ cls: "pic-collapsible-content" });
 		collapsible.classList.add("is-collapsed");
@@ -716,7 +727,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 	/** 更新图床配置状态指示器 */
 	private updateBedStatus(statusSpan: HTMLElement, config: BedConfig) {
 		// 检查所有必填字段是否都已填写
-		const allFieldsFilled = config.fields.every((field) => {
+		const allFieldsFilled = config.fields.filter(f => f.required).every((field) => {
 			const value = this.plugin.settings[field.key];
 			return value && typeof value === "string" && value.trim().length > 0;
 		});

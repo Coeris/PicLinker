@@ -22,7 +22,14 @@ export function getRegion(endpoint: string): string {
 	const match = endpoint.match(/oss-([^.]+)\./);
 	// 兜底值必须与匹配分支同格式（不带 oss- 前缀），否则自定义域名时
 	// signServiceUrl 会拼出 oss-oss-cn-hangzhou.aliyuncs.com，签名与 host 全错
-	return match ? match[1] : "cn-hangzhou";
+	if (!match) {
+		console.warn(
+			"[PicLinker] 无法从 endpoint 提取区域（endpoint=%s），已回退为 cn-hangzhou。如使用的是 CNAME/自定义域名，请确认签名配置正确。",
+			endpoint,
+		);
+		return "cn-hangzhou";
+	}
+	return match[1];
 }
 
 /** HMAC-SHA256 签名（Node.js / Web Crypto 双路径） */

@@ -43,7 +43,8 @@ export class ActionsRenderer {
 	 */
 	private isSectionCollapsed(header: HTMLElement): boolean {
 		const content = header.nextElementSibling as HTMLElement | null;
-		return !!content && content.style.display === "none";
+		// 折叠态：content 带 --collapsed class；双轨保护，兼容旧内联 display:none。
+		return !!content && (content.classList.contains("pic-part-content--collapsed") || content.style.display === "none");
 	}
 
 	/** 设置删除行按钮引用（按钮在 render 中晚于 ActionsRenderer 创建） */
@@ -70,16 +71,21 @@ export class ActionsRenderer {
 				if (section === SelectionSection.Dedup) {
 					count += selection.getCount(SelectionSection.DedupTags);
 				}
-				// NotFound 的标签与文件共用 SelectionSection.NotFound，无需额外加计数
+				// NotFoundRefs 拆出后不再与其他区共用 section，计数仅取自身
 				const actions = clearBtn.parentElement;
 				const collapsed = this.isSectionCollapsed(header);
 				if (collapsed) {
-					// 折叠态：彻底隐藏整个操作区（含清除按钮），不保留无效 display 赋值
-					clearBtn.setCssStyles({ display: "none" });
-					if (actions) actions.setCssStyles({ display: "none" });
+					// 折叠态：彻底隐藏整个操作区（含清除按钮），CSS .pic-part-actions--hidden { display: none }。
+					// addClass 已足够防御 B-4-1；不需 setCssStyles 写内联 display，避免 class/内联竞态。
+					clearBtn.addClass("pic-part-actions--hidden");
+					if (actions) actions.addClass("pic-part-actions--hidden");
 				} else {
+					clearBtn.removeClass("pic-part-actions--hidden");
 					clearBtn.setCssStyles({ display: count > 0 ? "" : "none" });
-					if (actions) actions.setCssStyles({ display: "" });
+					if (actions) {
+						actions.removeClass("pic-part-actions--hidden");
+						actions.setCssStyles({ display: "" });
+					}
 				}
 			}
 		}
@@ -94,16 +100,18 @@ export class ActionsRenderer {
 			actions = header.createDiv({ cls: "pic-part-actions" });
 		}
 		const clearBtn = actions.querySelector<HTMLElement>(".pic-part-clear-btn");
+		const clearCacheBtn = actions.querySelector<HTMLElement>(".pic-part-clear-cache-btn");
 		const buttons = getButtons();
 		Array.from(actions.children).forEach(child => {
-			if (child !== clearBtn) child.remove();
+			if (child !== clearBtn && child !== clearCacheBtn) child.remove();
 		});
-		actions.setCssStyles({ display: this.isSectionCollapsed(header) ? "none" : "" });
+		actions.toggleClass("pic-part-actions--hidden", this.isSectionCollapsed(header));
 		for (const btn of buttons) {
 			const el = actions.createEl("button", { text: btn.text, cls: btn.cls, attr: { title: btn.title } });
 			el.addEventListener("click", (e) => { e.stopPropagation(); btn.onClick(); });
 		}
 		if (clearBtn) actions.appendChild(clearBtn);
+		if (clearCacheBtn) actions.appendChild(clearCacheBtn);
 	}
 
 	/** 更新工具栏「删除行」按钮显隐与文案 */
@@ -116,7 +124,7 @@ export class ActionsRenderer {
 			+ selection.getCount(SelectionSection.DedupTags);
 		if (tagCount > 0) {
 			deleteLineBtn.setCssStyles({ display: "" });
-			deleteLineBtn.textContent = `删除行 (${tagCount})`;
+			deleteLineBtn.textContent = `清理引用 (${tagCount})`;
 		} else {
 			deleteLineBtn.setCssStyles({ display: "none" });
 		}
@@ -126,10 +134,10 @@ export class ActionsRenderer {
 	updateLocalActions() {
 		this.updateDeleteLineBtn();
 		this.updateClearButtons();
-		const [localBtns, cloudBtns, notFoundBtns] = this.ctx.getLocalActions();
+		const [localBtns, cloudBtns, notFoundRefsBtns] = this.ctx.getLocalActions();
 		this.updateSectionActions(SelectionSection.LocalImages, () => localBtns);
 		this.updateSectionActions(SelectionSection.CloudImages, () => cloudBtns);
-		this.updateSectionActions(SelectionSection.NotFound, () => notFoundBtns);
+		this.updateSectionActions(SelectionSection.NotFoundRefs, () => notFoundRefsBtns);
 	}
 
 	/** 动态更新未引用图片区域的操作按钮 */

@@ -199,8 +199,10 @@ export class WebDAVSync {
 				}
 			}
 
-			// 更新同步元数据
+			// 更新同步元数据：展开并保留旧 meta 中的 lastLocalModifiedAt 等字段，
+			// 避免三方冲突检测基线被重置（修复下载覆盖导致冲突误判）。
 			this.meta = {
+				...this.meta,
 				lastSyncedAt: new Date().toISOString(),
 				lastSyncSource: "download",
 				lastRemoteModifiedAt: remoteSyncedAt,

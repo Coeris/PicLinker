@@ -27,10 +27,21 @@ export class DedupCache {
 		}
 	}
 
-	/** 获取缓存的哈希（LRU：更新访问顺序） */
+	/**
+	 * 获取缓存的哈希（LRU：更新访问顺序）。
+	 * 云端条目在写入时记录 cachedAt 时间戳，读取时 TTL 超时（24h）返回 null，避免脏缓存。
+	 */
 	get(path: string): DedupHashEntry | null {
 		const entry = this.cache.get(path);
 		if (entry) {
+			// 云端条目 TTL 24h：过期后判为无效，防止图床数据变更后仍命中旧缓存
+			if (entry.source === "cloud" && entry.computedAt) {
+				const age = Date.now() - entry.computedAt;
+				if (age > 24 * 60 * 60 * 1000) {
+					this.cache.delete(path);
+					return null;
+				}
+			}
 			this.cache.delete(path);
 			this.cache.set(path, entry);
 		}

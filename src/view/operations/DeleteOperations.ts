@@ -2,7 +2,7 @@
  * DeleteOperations — 批量删除操作
  * 从 PicLinkerView 提取：
  *   batchDeleteWithCleanup, batchDeleteLocalUnref, batchDeleteLocalFiles,
- *   batchDeleteReferenceLines, batchDeleteNotFoundImages, batchDeleteNotFoundTags, batchDeleteCloudImages,
+ *   batchDeleteReferenceLines, batchDeleteNotFoundTags, batchDeleteCloudImages,
  *   batchDeleteEmptyFolders
  *
  * dedupDeleteSelected / deleteSelectedSameName 留在主类（需直接修改 Group 结构）
@@ -38,12 +38,13 @@ export interface DeleteOperationsContext {
 
 export class DeleteOperations {
 	private ctx: DeleteOperationsContext;
+	private isDeleting = false;
 
 	constructor(ctx: DeleteOperationsContext) {
 		this.ctx = ctx;
 	}
 
-	/** 3) 统一的删除结果汇总 Notice（替代各处零散的“X 行已删除”格式，保持一致） */
+	/** 3) 统一的删除结果汇总 Notice（替代各处零散的"X 行已删除"格式，保持一致） */
 	private showDeleteSummary(label: string, success: number, fail: number) {
 		if (success === 0 && fail === 0) return;
 		const parts: string[] = [];
@@ -77,6 +78,9 @@ export class DeleteOperations {
 		onDeleteCloud?: (path: string, bedType: ImageBedType) => Promise<boolean>;
 		onAfterDelete?: (deletedKeys: Set<string>) => Promise<void>;
 	}): Promise<BatchDeleteResult> {
+		if (this.isDeleting) return { referencesDeleted: 0, referencesFailed: 0, filesDeleted: 0, filesFailed: 0 };
+		this.isDeleting = true;
+		try {
 		const result: BatchDeleteResult = { referencesDeleted: 0, referencesFailed: 0, filesDeleted: 0, filesFailed: 0 };
 		const { selection, localImages, removeImageFromMdFile, refresh } = this.ctx;
 
@@ -146,7 +150,7 @@ export class DeleteOperations {
 
 		// 第三步：清理选中状态
 		selection.clear(options.section);
-		if (options.section === SelectionSection.LocalImages || options.section === SelectionSection.NotFound) {
+		if (options.section === SelectionSection.LocalImages) {
 			selection.clear(SelectionSection.LocalTags);
 		} else if (options.section === SelectionSection.CloudImages) {
 			selection.clear(SelectionSection.CloudTags);
@@ -173,10 +177,16 @@ export class DeleteOperations {
 		if (parts.length > 0) new Notice(`批量删除完成：${parts.join("，")}`);
 
 		return result;
+		} finally {
+			this.isDeleting = false;
+		}
 	}
 
 	/** 批量删除选中的本地未引用图片 */
 	async batchDeleteLocalUnref(localUnreferenced: TFile[]) {
+		if (this.isDeleting) return;
+		this.isDeleting = true;
+		try {
 		const { selection, app } = this.ctx;
 		if (selection.getCount(SelectionSection.LocalUnref) === 0) { new Notice("请先选择要删除的图片"); return; }
 		const toDelete = localUnreferenced.filter(f => selection.isSelected(SelectionSection.LocalUnref, f.path));
@@ -193,10 +203,16 @@ export class DeleteOperations {
 				return false;
 			},
 		});
+		} finally {
+			this.isDeleting = false;
+		}
 	}
 
 	/** 批量删除选中的本地图片文件 */
 	async batchDeleteLocalFiles(localImages: ImageLink[]) {
+		if (this.isDeleting) return;
+		this.isDeleting = true;
+		try {
 		const { selection, app } = this.ctx;
 		if (selection.getCount(SelectionSection.LocalImages) === 0) { new Notice("请先选择要删除的图片"); return; }
 		const toDelete = localImages.filter(img => selection.isSelected(SelectionSection.LocalImages, img.pure));
@@ -217,6 +233,9 @@ export class DeleteOperations {
 				return false;
 			},
 		});
+		} finally {
+			this.isDeleting = false;
+		}
 	}
 
 	/** 批量删除引用行（删除笔记中引用选中图片的行） */
@@ -232,6 +251,9 @@ export class DeleteOperations {
 
 	/** 删除当前区域标签对应的引用行 —— 供区域标题栏按钮调用 */
 	async deleteReferenceLinesForSections(tagSections: SelectionSection[]) {
+		if (this.isDeleting) return;
+		this.isDeleting = true;
+		try {
 		const { selection, localImages, app, removeImageFromLine, refresh } = this.ctx;
 
 		const refsToDelete: { img: ImageLink; file: string; line: number }[] = [];
@@ -309,50 +331,26 @@ export class DeleteOperations {
 		}
 		await refresh();
 		this.showDeleteSummary("行", successCount, failCount);
-	}
-
-	/** 批量删除未找到图片（图片级选中：删除整条图片的所有引用行） */
-	async batchDeleteNotFoundImages() {
-		const { selection, localImages, removeImageFromMdFile, refresh } = this.ctx;
-		const selectedKeys = selection.getSelected(SelectionSection.NotFound);
-		const imageKeys = selectedKeys.filter(k => !k.includes("::"));
-		if (imageKeys.length === 0) { new Notice("请先选择要删除的图片"); return; }
-		const images = localImages().filter(img => img.found === false);
-		const imageMap = new Map<string, ImageLink>();
-		for (const img of images) imageMap.set(img.pure, img);
-		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${imageKeys.length} 个断链图片的所有引用行吗？`, title: "删除断链引用" }))) return;
-
-		let successCount = 0;
-		let failCount = 0;
-		for (const pure of imageKeys) {
-			const img = imageMap.get(pure);
-			if (!img) { failCount++; continue; }
-			for (const fp of img.files) {
-				selection.deselect(SelectionSection.NotFound, pure);
-				try {
-					const count = await removeImageFromMdFile(fp, [pure]);
-					if (count > 0) successCount += count;
-					else failCount++;
-				} catch { failCount++; }
-			}
+		} finally {
+			this.isDeleting = false;
 		}
-
-		await refresh();
-		this.showDeleteSummary("行", successCount, failCount);
 	}
 
 	/** 批量删除未找到图片标签引用行（标签级选中：只删选中的行） */
 	async batchDeleteNotFoundTags() {
+		if (this.isDeleting) return;
+		this.isDeleting = true;
+		try {
 		const { selection, localImages, app, removeImageFromLine, refresh } = this.ctx;
-		const selectedKeys = selection.getSelected(SelectionSection.NotFound);
+		const selectedKeys = selection.getSelected(SelectionSection.NotFoundRefs);
 		const tagKeys = selectedKeys.filter(k => k.includes("::"));
 		if (tagKeys.length === 0) { new Notice("请先选择要删除的引用标签"); return; }
 		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${tagKeys.length} 个引用行吗？`, title: "删除引用行" }))) return;
 
 		const images = localImages().filter(img => img.found === false);
 
-		// 收集按文件分组的行号
-		const perFile = new Map<string, { pure: string; lines: Set<number> }>();
+		// 收集按文件分组的行号（每张图独立 pure，同文件多图存为数组）
+		const perFile = new Map<string, { pure: string; lines: Set<number> }[]>();
 		for (const tagKey of tagKeys) {
 			const parsed = parseTagKey(tagKey);
 			if (!parsed) continue;
@@ -361,29 +359,33 @@ export class DeleteOperations {
 			const expandedRefs = expandRefs(img);
 			if (parsed.index < expandedRefs.length) {
 				const ref = expandedRefs[parsed.index];
-				if (!perFile.has(ref.file)) perFile.set(ref.file, { pure: img.pure, lines: new Set() });
-				perFile.get(ref.file)!.lines.add(ref.line);
+				if (!perFile.has(ref.file)) perFile.set(ref.file, []);
+				perFile.get(ref.file)!.push({ pure: img.pure, lines: new Set([ref.line]) });
 			}
 		}
 
 		let successCount = 0;
 		let failCount = 0;
-		for (const [filePath, info] of perFile) {
+		for (const [filePath, imgInfoList] of perFile) {
 			const abstractFile = app.vault.getAbstractFileByPath(filePath);
-			if (!(abstractFile instanceof TFile)) { failCount += info.lines.size; continue; }
+			const totalRefs = imgInfoList.reduce((s, x) => s + x.lines.size, 0);
+			if (!(abstractFile instanceof TFile)) { failCount += totalRefs; continue; }
 			try {
 				const content = await app.vault.read(abstractFile);
 				const contentLines = content.split("\n");
 				const linesToDelete = new Set<number>();
 				const linesToModify = new Map<number, string>();
-				for (const lineNum of info.lines) {
-					if (lineNum > 0) {
-						const idx = lineNum - 1;
-						const orig = contentLines[idx];
-						if (orig !== undefined) {
-							const cleaned = removeImageFromLine(orig, info.pure);
-							if (!cleaned.trim()) linesToDelete.add(idx);
-							else if (cleaned !== orig) linesToModify.set(idx, cleaned);
+				// 逐张图片用各自的 pure 清理对应行，合并到同一文件的一次 modify
+				for (const imgInfo of imgInfoList) {
+					for (const lineNum of imgInfo.lines) {
+						if (lineNum > 0) {
+							const idx = lineNum - 1;
+							const orig = contentLines[idx];
+							if (orig !== undefined) {
+								const cleaned = removeImageFromLine(orig, imgInfo.pure);
+								if (!cleaned.trim()) linesToDelete.add(idx);
+								else if (cleaned !== orig) linesToModify.set(idx, cleaned);
+							}
 						}
 					}
 				}
@@ -393,16 +395,22 @@ export class DeleteOperations {
 					await app.vault.modify(abstractFile, newLines.join("\n"));
 					successCount += linesToModify.size + linesToDelete.size;
 				}
-			} catch { failCount += info.lines.size; }
+			} catch { failCount += totalRefs; }
 		}
 
-		selection.clear(SelectionSection.NotFound);
+		selection.clear(SelectionSection.NotFoundRefs);
 		await refresh();
 		this.showDeleteSummary("行", successCount, failCount);
+		} finally {
+			this.isDeleting = false;
+		}
 	}
 
 	/** 批量删除选中的云端图片（删除引用行 + 删除云端文件） */
 	async batchDeleteCloudImages() {
+		if (this.isDeleting) return;
+		this.isDeleting = true;
+		try {
 		const { selection, localImages, cloudFiles, compareResult, selectedBed, deleteCloudFile } = this.ctx;
 		if (selection.getCount(SelectionSection.CloudImages) === 0) { new Notice("请先选择要删除的图片"); return; }
 		const selected = localImages().filter(img => selection.isSelected(SelectionSection.CloudImages, img.pure));
@@ -432,12 +440,18 @@ export class DeleteOperations {
 				return deleteResult.success;
 			},
 		});
+		} finally {
+			this.isDeleting = false;
+		}
 	}
 
 	/** 批量删除空白文件夹 */
 	async batchDeleteEmptyFolders(
 		parseEmptyFolder: (folderPath: string) => { isCloud: boolean; path: string; bedType?: ImageBedType },
 	) {
+		if (this.isDeleting) return;
+		this.isDeleting = true;
+		try {
 		const { selection, app, deleteCloudFile, refresh } = this.ctx;
 		if (selection.getCount(SelectionSection.EmptyFolders) === 0) { new Notice("请先选择要删除的文件夹"); return; }
 		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${selection.getCount(SelectionSection.EmptyFolders)} 个空白文件夹吗？`, title: "删除文件夹" }))) return;
@@ -476,6 +490,9 @@ export class DeleteOperations {
 			const names = failedFolders.map(f => f.split("/").pop() || f);
 			console.warn(`[PicLinker] ${failCount} 个文件夹删除失败:`, failedFolders);
 			new Notice(`${failCount} 个文件夹删除失败（如非空文件夹）：${names.join("、")}`, 8000);
+		}
+		} finally {
+			this.isDeleting = false;
 		}
 }
 }

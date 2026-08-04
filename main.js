@@ -22,13 +22,13 @@ __export(main_exports, {
   default: () => PicLinkerPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian12 = require("obsidian");
+var import_obsidian13 = require("obsidian");
 
 // src/settings/SettingTab.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 
 // src/view/utils/ViewUtils.ts
-var import_obsidian2 = require("obsidian");
+var import_obsidian3 = require("obsidian");
 
 // src/types.ts
 var ImageBedType = /* @__PURE__ */ ((ImageBedType2) => {
@@ -38,6 +38,9 @@ var ImageBedType = /* @__PURE__ */ ((ImageBedType2) => {
   ImageBedType2["Other"] = "\u5176\u4ED6\u56FE\u5E8A";
   return ImageBedType2;
 })(ImageBedType || {});
+
+// src/comparator/CloudComparator.ts
+var import_obsidian2 = require("obsidian");
 
 // src/icons.ts
 var DOMAIN_BED_MAP = {
@@ -73,7 +76,7 @@ var BED_FAVICON_SVGS = {
   ["\u817E\u8BAF\u4E91 COS" /* Tencent */]: `<svg viewBox="0 0 1402 1024" width="14" height="14"><path fill="#00A3FF" d="M1215.521013 836.730667c-22.304 22.698667-66.906667 56.746667-144.96 56.746666h-479.493333c144.96-141.872 267.621333-261.045333 278.773333-272.394666 11.146667-11.349333 39.024-39.722667 66.901334-62.421334 55.754667-51.077333 100.362667-56.746667 139.386666-56.746666 55.76 0 100.362667 22.693333 139.392 56.746666 78.053333 73.770667 78.053333 204.293333 0 278.069334z m94.778667-368.869334c-55.754667-62.421333-139.386667-102.149333-228.592-102.149333-78.058667 0-144.96 28.373333-206.293333 73.776-22.304 22.698667-55.754667 45.397333-83.626667 79.445333-22.309333 22.698667-501.797333 499.392-501.797333 499.392C317.86768 1024 351.32368 1024 379.19568 1024h607.728c44.602667 0 78.053333 0 111.509333-5.674667 72.48-5.674667 144.96-34.048 206.293334-90.8 128.234667-124.848 128.234667-334.816 5.573333-459.664z"/><path fill="#00C8DC" d="M517.921013 434.405333c-61.674667-45.792-123.349333-68.693333-196.234666-68.693333-89.706667 0-173.797333 40.069333-229.866667 103.04-123.344 131.658667-123.344 337.728 5.605333 469.386667 56.069333 51.52 112.133333 80.138667 179.413334 85.861333l128.949333-125.930667H332.902347c-72.885333-5.728-117.738667-28.624-145.770667-57.242666-78.490667-80.138667-78.490667-206.074667-5.605333-286.213334 39.242667-40.069333 84.096-57.242667 140.16-57.242666 33.642667 0 84.101333 5.722667 134.56 57.242666 22.426667 22.896 84.096 68.693333 106.522666 91.589334h5.605334l84.101333-85.866667v-5.722667c-39.248-40.069333-100.922667-91.589333-134.56-120.208"/><path fill="#006EFF" d="M1111.62768 286.944C1049.17968 118.154667 884.55568 0 697.233013 0c-221.386667 0-397.354667 163.162667-431.413333 365.712 17.029333 0 34.058667-5.621333 56.762667-5.621333 22.709333 0 51.093333 5.621333 73.797333 5.621333 28.378667-140.656 153.264-241.930667 300.853333-241.930667 124.885333 0 232.736 73.141333 283.824 180.042667 0 0 5.68 5.626667 5.68 0 39.733333-5.626667 85.146667-16.88 124.88-16.88 0 5.626667 0 5.626667 0 0"/></svg>`,
   ["\u5176\u4ED6\u56FE\u5E8A" /* Other */]: `<svg viewBox="0 0 1024 1024" width="14" height="14"><path fill="#11AA66" d="M955.733333 238.933333a170.666667 170.666667 0 1 0-341.333333 0 170.666667 170.666667 0 0 0 341.333333 0zM448.7168 290.816a34.133333 34.133333 0 0 0-59.255467 0L38.673067 904.635733A34.133333 34.133333 0 0 0 68.3008 955.733333h701.576533a34.133333 34.133333 0 0 0 29.627734-51.063466L448.750933 290.781867z"/><path fill="#FFAA44" d="M721.3056 529.749333a34.133333 34.133333 0 0 1 59.255467 0l214.254933 374.920534A34.133333 34.133333 0 0 1 965.188267 955.733333H536.6784a34.133333 34.133333 0 0 1-29.627733-51.063466l214.254933-374.954667z"/></svg>`
 };
-var LOCAL_ICON_SVG = `<svg viewBox="0 0 1024 1024" width="14" height="14"><path fill="currentColor" d="M825.683285 791.051243a2941.372556 2941.031364 0 0 0 79.241815-125.985102 34.545678 34.545678 0 0 0-2.644237-38.384086c-22.006876-29.214555-64.144074-88.496644-87.089228-143.385888-23.584889-56.339309-27.124755-143.940325-27.29535-186.674608a72.801818 72.801818 0 0 0-15.268337-44.781434l-136.391454-173.325476a159.6778 159.6778 0 0 1-3.241323 23.158399c-4.520792 21.45244-13.093238 42.819581-22.859856 63.973478-5.714964 12.368206-12.368206 25.589391-19.021448 38.981172l-13.221185 26.698265c-22.006876 45.549116-42.521038 94.97929-48.278651 153.109856-5.288474 53.737721 1.961853 116.431729 34.758923 191.110103 5.45907 0.469139 10.960789 1.066225 16.462508 1.876555a271.375492 271.375492 0 0 1 141.850524 64.186723c39.06647 33.692698 74.37983 81.971349 102.997299 149.271447zM349.891208 962.969302c3.113376 0.511788 6.226752 0.85298 9.382776 0.85298 33.266208 1.023576 89.349624 3.923707 134.770793 12.368206 37.104617 6.823838 110.588818 27.29535 171.022431 44.994679 46.188851 13.477079 93.742469-23.371644 100.438359-70.967911 4.861984-34.716274 14.074165-73.995989 30.920515-110.034382l-0.42649 0.213245c-28.57482-79.753602-64.911755-131.273576-103.039948-164.155944a225.826376 225.826376 0 0 0-118.478881-53.609774c-65.679437-9.212181-125.899804 8.103307-163.772103 19.192043 22.68926 94.595449 15.694827 205.951949-60.774803 321.189507zM236.189013 424.269971c-0.980927 4.264899-2.388343 8.40185-4.1796 12.368206L120.482317 685.324409a68.323674 68.323674 0 0 0 13.349132 75.574002l175.543223 180.831697c89.690816-132.254503 76.597577-256.74689 35.654551-353.986577-31.048461-73.782744-78.132941-131.401523-108.754912-163.388262zM397.70072 597.936639c26.229126-7.804764 68.49427-19.831778 117.071464-22.774558-29.129257-73.569499-36.166339-137.884169-30.536673-195.204405 6.567944-66.191225 29.85429-121.421661 52.671496-168.463491 4.819335-10.022512 9.510724-19.362639 13.988867-28.318926 6.354699-12.666749 12.282908-24.608464 17.869925-36.678128 9.25483-20.045023 16.163965-37.744352 19.618533-54.164211 3.411919-16.206614 3.411919-30.707269-0.597085-44.482891-4.051654-13.86092-12.666749-28.788065-29.00131-45.207924a68.238376 68.238376 0 0 0-62.907253 15.353634l-211.112477 189.873282a68.323674 68.323674 0 0 0-21.878929 40.601834l-18.211117 120.696628c28.660118 25.162901 99.286837 98.77505 142.234366 200.919368 3.838409 8.956287 7.463572 18.339064 10.790193 27.849788z"/></svg>`;
+var LOCAL_ICON_SVG = `<svg viewBox="0 0 1024 1024" width="14" height="14"><path fill="#7C3AED" d="M825.683285 791.051243a2941.372556 2941.031364 0 0 0 79.241815-125.985102 34.545678 34.545678 0 0 0-2.644237-38.384086c-22.006876-29.214555-64.144074-88.496644-87.089228-143.385888-23.584889-56.339309-27.124755-143.940325-27.29535-186.674608a72.801818 72.801818 0 0 0-15.268337-44.781434l-136.391454-173.325476a159.6778 159.6778 0 0 1-3.241323 23.158399c-4.520792 21.45244-13.093238 42.819581-22.859856 63.973478-5.714964 12.368206-12.368206 25.589391-19.021448 38.981172l-13.221185 26.698265c-22.006876 45.549116-42.521038 94.97929-48.278651 153.109856-5.288474 53.737721 1.961853 116.431729 34.758923 191.110103 5.45907 0.469139 10.960789 1.066225 16.462508 1.876555a271.375492 271.375492 0 0 1 141.850524 64.186723c39.06647 33.692698 74.37983 81.971349 102.997299 149.271447zM349.891208 962.969302c3.113376 0.511788 6.226752 0.85298 9.382776 0.85298 33.266208 1.023576 89.349624 3.923707 134.770793 12.368206 37.104617 6.823838 110.588818 27.29535 171.022431 44.994679 46.188851 13.477079 93.742469-23.371644 100.438359-70.967911 4.861984-34.716274 14.074165-73.995989 30.920515-110.034382l-0.42649 0.213245c-28.57482-79.753602-64.911755-131.273576-103.039948-164.155944a225.826376 225.826376 0 0 0-118.478881-53.609774c-65.679437-9.212181-125.899804 8.103307-163.772103 19.192043 22.68926 94.595449 15.694827 205.951949-60.774803 321.189507zM236.189013 424.269971c-0.980927 4.264899-2.388343 8.40185-4.1796 12.368206L120.482317 685.324409a68.323674 68.323674 0 0 0 13.349132 75.574002l175.543223 180.831697c89.690816-132.254503 76.597577-256.74689 35.654551-353.986577-31.048461-73.782744-78.132941-131.401523-108.754912-163.388262zM397.70072 597.936639c26.229126-7.804764 68.49427-19.831778 117.071464-22.774558-29.129257-73.569499-36.166339-137.884169-30.536673-195.204405 6.567944-66.191225 29.85429-121.421661 52.671496-168.463491 4.819335-10.022512 9.510724-19.362639 13.988867-28.318926 6.354699-12.666749 12.282908-24.608464 17.869925-36.678128 9.25483-20.045023 16.163965-37.744352 19.618533-54.164211 3.411919-16.206614 3.411919-30.707269-0.597085-44.482891-4.051654-13.86092-12.666749-28.788065-29.00131-45.207924a68.238376 68.238376 0 0 0-62.907253 15.353634l-211.112477 189.873282a68.323674 68.323674 0 0 0-21.878929 40.601834l-18.211117 120.696628c28.660118 25.162901 99.286837 98.77505 142.234366 200.919368 3.838409 8.956287 7.463572 18.339064 10.790193 27.849788z"/></svg>`;
 
 // src/utils/http.ts
 var import_obsidian = require("obsidian");
@@ -86,6 +89,7 @@ async function fallbackRequest(url, options) {
     method: options.method || "GET",
     headers: options.headers || {},
     body: options.body,
+    throw: false,
     ...options.timeout !== void 0 ? { timeout: options.timeout } : {}
   });
   const buf = resp.arrayBuffer;
@@ -140,9 +144,24 @@ function nodeFetch(url, options, urlModule, redirectCount) {
         }
         const nextUrl = new urlModule.URL(location, url).toString();
         const nextMethod = statusCode === 303 ? "GET" : options.method || "GET";
+        const nextHeaders = { ...options.headers || {} };
+        let originalHost;
+        let nextHost;
+        try {
+          originalHost = new urlModule.URL(url).hostname;
+          nextHost = new urlModule.URL(nextUrl).hostname;
+        } catch (e) {
+        }
+        if (originalHost && nextHost && originalHost !== nextHost) {
+          for (const sensitive of ["authorization", "cookie", "proxy-authorization"]) {
+            delete nextHeaders[sensitive];
+            delete nextHeaders[sensitive.charAt(0).toUpperCase() + sensitive.slice(1)];
+          }
+        }
         const nextOptions = {
           ...options,
           method: nextMethod,
+          headers: nextHeaders,
           body: nextMethod === "GET" ? void 0 : options.body
         };
         (_b = res.destroy) == null ? void 0 : _b.call(res);
@@ -242,7 +261,7 @@ var CloudComparator = class {
    * @param pathPrefix 可选的云端路径前缀（来自 frontmatter image-path）
    */
   async compare(localImages, bedType = "GitHub" /* GitHub */, cloudFiles, pathPrefix) {
-    var _a, _b, _c;
+    var _a;
     const result = /* @__PURE__ */ new Map();
     if (!this.isBedSupported(bedType)) {
       for (const img of localImages) {
@@ -251,12 +270,10 @@ var CloudComparator = class {
       return result;
     }
     if ((bedType === "\u963F\u91CC\u4E91 OSS" /* Aliyun */ || bedType === "\u817E\u8BAF\u4E91 COS" /* Tencent */ || bedType === "\u5176\u4ED6\u56FE\u5E8A" /* Other */) && cloudFiles) {
-      const cloudFileNames = /* @__PURE__ */ new Set();
       const cloudFileMap = /* @__PURE__ */ new Map();
       for (const f of cloudFiles) {
         if (!f.isDirectory && f.prefix) {
           const name = (f.prefix.split("/").pop() || f.name).toLowerCase();
-          cloudFileNames.add(name);
           const list = (_a = cloudFileMap.get(name)) != null ? _a : [];
           if (f.url && !list.includes(f.url)) list.push(f.url);
           cloudFileMap.set(name, list);
@@ -271,10 +288,24 @@ var CloudComparator = class {
           }
           continue;
         }
-        const fileName = (_b = extractFileName(img.pure)) == null ? void 0 : _b.toLowerCase();
+        const fileName = extractFileName(img.pure);
         const expectedUrl = this.generateExpectedUrl(img.pure, bedType, pathPrefix);
-        if (fileName && cloudFileNames.has(fileName)) {
-          const urls = (_c = cloudFileMap.get(fileName)) != null ? _c : [];
+        if (!fileName) {
+          result.set(img.pure, { exists: false, url: expectedUrl });
+          continue;
+        }
+        let lookupKey;
+        if (bedType === "\u963F\u91CC\u4E91 OSS" /* Aliyun */) {
+          const base = (pathPrefix || this.settings.aliyunPath || "images").replace(/^\/+|\/+$/g, "");
+          lookupKey = base + "/" + fileName;
+        } else if (bedType === "\u817E\u8BAF\u4E91 COS" /* Tencent */) {
+          const base = (pathPrefix || this.settings.tencentPath || "images").replace(/^\/+|\/+$/g, "");
+          lookupKey = base + "/" + fileName;
+        } else {
+          lookupKey = fileName;
+        }
+        const urls = cloudFileMap.get(lookupKey);
+        if (urls) {
           const matched = urls.find((u) => u === expectedUrl) || urls[0] || expectedUrl;
           result.set(img.pure, { exists: true, url: matched });
         } else {
@@ -304,12 +335,25 @@ var CloudComparator = class {
       const settled = await Promise.allSettled(batch);
       settledResults.push(...settled);
     }
+    let failedCount = 0;
     for (const r of settledResults) {
       if (r.status === "fulfilled") {
         result.set(r.value.key, r.value.value);
       } else {
+        failedCount++;
         console.warn("[PicLinker] compare HEAD request failed:", r.reason);
       }
+    }
+    for (let i = 0; i < localImages.length; i++) {
+      const settled = settledResults[i];
+      if (settled && settled.status === "rejected" && !result.has(localImages[i].pure)) {
+        result.set(localImages[i].pure, { exists: false, unknown: true });
+      }
+    }
+    if (failedCount > 0) {
+      new import_obsidian2.Notice(
+        `PicLinker\uFF1A\u4E91\u7AEF\u6BD4\u5BF9\u6709 ${failedCount} \u4E2A\u56FE\u7247\u63A2\u6D4B\u5931\u8D25\uFF08\u53EF\u80FD\u4E3A\u9650\u6D41/CORS/\u7F51\u7EDC\u95EE\u9898\uFF09\uFF0C\u5DF2\u6807\u8BB0\u4E3A\u300C\u72B6\u6001\u672A\u77E5\u300D\uFF0C\u8BF7\u52FF\u636E\u6B64\u6279\u91CF\u5220\u9664\u3002`
+      );
     }
     for (const img of localImages) {
       if (!result.has(img.pure)) {
@@ -360,7 +404,7 @@ var CloudComparator = class {
     if (!aliyunEndpoint || !aliyunBucket) return void 0;
     const fileName = extractFileName(localPure);
     if (!fileName) return void 0;
-    const basePath = pathPrefix ? `${pathPrefix.replace(/^\/+|\/+$/g, "")}/` : "images/";
+    const basePath = pathPrefix ? `${pathPrefix.replace(/^\/+|\/+$/g, "")}/` : (this.settings.aliyunPath || "images").replace(/^\/+|\/+$/g, "") + "/";
     const ep = aliyunEndpoint.replace(/^https?:\/\//, "");
     return `https://${aliyunBucket}.${ep}/${basePath}${fileName}`;
   }
@@ -369,7 +413,7 @@ var CloudComparator = class {
     if (!tencentBucket || !tencentRegion) return void 0;
     const fileName = extractFileName(localPure);
     if (!fileName) return void 0;
-    const basePath = pathPrefix ? `${pathPrefix.replace(/^\/+|\/+$/g, "")}/` : "images/";
+    const basePath = pathPrefix ? `${pathPrefix.replace(/^\/+|\/+$/g, "")}/` : (this.settings.tencentPath || "images").replace(/^\/+|\/+$/g, "") + "/";
     return `https://${tencentBucket}.cos.${tencentRegion}.myqcloud.com/${basePath}${fileName}`;
   }
   /**
@@ -396,16 +440,17 @@ function extractFileName(localPure) {
 }
 
 // src/view/utils/ViewUtils.ts
-function syncHeaderBorder(header, content) {
-  const collapsed = header.classList.contains("pic-part-header--collapsed");
-  const stuck = header.classList.contains("pic-part-header--stuck");
-  if (stuck && collapsed) {
+function syncHeaderStuckClass(header, isStuck) {
+  if (isStuck) {
     header.addClass("pic-part-header--stuck");
-  } else if (!stuck && header.classList.contains("pic-part-header--stuck")) {
+  } else {
     header.removeClass("pic-part-header--stuck");
   }
 }
 function isHidden(el) {
+  if (el.classList.contains("pic-part-content--collapsed")) return true;
+  if (el.classList.contains("pic-dir-content--collapsed")) return true;
+  if (el.classList.contains("pic-part-actions--hidden")) return true;
   return el.style.display === "none";
 }
 function ensureLazyRendered(el) {
@@ -422,9 +467,14 @@ function setLazyRendered(el, value) {
   el._lazyRendered = value;
 }
 function setSafeHTML(el, html) {
-  const frag = (0, import_obsidian2.sanitizeHTMLToDom)(html);
+  const frag = (0, import_obsidian3.sanitizeHTMLToDom)(html);
   el.empty();
   el.appendChild(frag);
+}
+function createThumbBrokenPlaceholder(parent, title = "\u56FE\u7247\u7F3A\u5931 / \u52A0\u8F7D\u5931\u8D25") {
+  const placeholder = parent.createDiv({ cls: "pic-thumb pic-thumb-broken", attr: { title } });
+  setSafeHTML(placeholder, '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="var(--pic-error)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>');
+  return placeholder;
 }
 function formatDisplayPath(fullPath) {
   const MAX_LEN = 60;
@@ -455,21 +505,6 @@ function getTopBedIcon(urls, gray = false) {
   }
   const icon = getBedFaviconSvg(topBed);
   return gray ? icon.replace(/fill="[^"]*"/g, 'fill="currentColor"') : icon;
-}
-function bedTypeLabel(bedType, url) {
-  if (bedType) return bedType;
-  if (url) {
-    try {
-      let host = new URL(url).hostname.toLowerCase();
-      const parts = host.split(".");
-      if (parts.length >= 3 && /^(www|img\d*|cdn\d*|i\d*|pic\d*|photo\d*|res\d*|static|assets)$/.test(parts[0])) {
-        host = parts.slice(1).join(".");
-      }
-      if (host) return host;
-    } catch (e) {
-    }
-  }
-  return "\u672A\u77E5";
 }
 function getFileExtension(filename) {
   const parts = filename.split(".");
@@ -519,7 +554,7 @@ function buildFileNameRefCount(localImages) {
 }
 
 // src/utils/DangerConfirmModal.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 function confirmAsync(app, options) {
   return new Promise((resolve) => {
     const modal = new ConfirmModal(app, {
@@ -531,7 +566,7 @@ function confirmAsync(app, options) {
     modal.open();
   });
 }
-var ConfirmModal = class extends import_obsidian3.Modal {
+var ConfirmModal = class extends import_obsidian4.Modal {
   constructor(app, options) {
     var _a, _b;
     super(app);
@@ -676,7 +711,6 @@ var BED_NAME_TYPE_MAP = {
 var BED_CONFIGS = [
   {
     name: "GitHub \u56FE\u5E8A",
-    desc: "\u5C06\u56FE\u7247\u6258\u7BA1\u5230 GitHub \u4ED3\u5E93\uFF08\u9700\u516C\u5F00\u4ED3\u5E93\uFF09",
     guide: "\u3010\u83B7\u53D6 Token\u3011\n1. \u6253\u5F00 https://github.com/settings/tokens\n2. Generate new token (classic) \u2192 \u52FE\u9009 repo \u6743\u9650 \u2192 \u751F\u6210\u5E76\u590D\u5236 Token\n\n\u3010\u521B\u5EFA\u4ED3\u5E93\u3011\n3. \u6253\u5F00 https://github.com/new \u521B\u5EFA\u516C\u5F00\u4ED3\u5E93\uFF08Public\uFF09\n4. \u586B\u5199\u4E0B\u65B9\u914D\u7F6E\uFF1A\n   - Owner\uFF1AGitHub \u7528\u6237\u540D\n   - Repo\uFF1A\u4ED3\u5E93\u540D\n   - Branch\uFF1A\u5206\u652F\uFF08\u9ED8\u8BA4 main\uFF09\n   - Path\uFF1A\u5B50\u76EE\u5F55\uFF08\u9ED8\u8BA4 images\uFF09",
     fields: [
       { name: "Token", desc: "Personal Access Token\uFF08\u9700 repo \u6743\u9650\uFF09", placeholder: "ghp_xxxx", key: "githubToken", isSecret: true, required: true },
@@ -688,7 +722,6 @@ var BED_CONFIGS = [
   },
   {
     name: "\u963F\u91CC\u4E91 OSS",
-    desc: "\u5C06\u56FE\u7247\u6258\u7BA1\u5230\u963F\u91CC\u4E91\u5BF9\u8C61\u5B58\u50A8",
     guide: "\u3010\u83B7\u53D6\u5BC6\u94A5\u3011\n1. \u6253\u5F00 https://ram.console.aliyun.com \u2192 AccessKey \u7BA1\u7406\n2. \u521B\u5EFA AccessKey\uFF08\u5EFA\u8BAE\u4F7F\u7528 RAM \u5B50\u8D26\u53F7\uFF0C\u4EC5\u6388\u4E88 OSS \u6743\u9650\uFF09\n3. \u586B\u5199 AccessKey ID \u548C Secret\n\n\u3010\u81EA\u52A8\u83B7\u53D6 Bucket\u3011\n4. \u586B\u5199\u5BC6\u94A5\u540E\u81EA\u52A8\u83B7\u53D6 Bucket \u5217\u8868\n5. \u9009\u62E9 Bucket \u540E\u81EA\u52A8\u586B\u5165 Endpoint\n6. \u5982\u679C\u81EA\u52A8\u83B7\u53D6\u5931\u8D25\uFF0C\u53EF\u624B\u52A8\u586B\u5199 Bucket \u548C Endpoint\n\n\u3010\u521B\u5EFA Bucket\u3011\n7. \u6253\u5F00 https://oss.console.aliyun.com \u2192 \u521B\u5EFA Bucket\n8. \u8BFB\u5199\u6743\u9650\u8BBE\u4E3A\u300C\u516C\u5171\u8BFB\u300D\uFF08\u56FE\u7247\u9700\u8981\u516C\u5F00\u8BBF\u95EE\uFF09\n\n\u3010\u914D\u7F6E\u8DE8\u57DF\u3011\n9. Bucket \u2192 \u6570\u636E\u5B89\u5168 \u2192 \u8DE8\u57DF\u8BBE\u7F6E \u2192 \u521B\u5EFA\u89C4\u5219\n10. \u6765\u6E90\uFF1Aapp://obsidian.md\n11. \u65B9\u6CD5\uFF1AGET, PUT, DELETE\n12. \u5141\u8BB8 Header\uFF1A*",
     fields: [
       { name: "AccessKey ID", desc: "AccessKey \u7BA1\u7406\u9875\u9762\u83B7\u53D6", placeholder: "LTAI...", key: "aliyunAccessKeyId", required: true },
@@ -697,7 +730,6 @@ var BED_CONFIGS = [
   },
   {
     name: "\u817E\u8BAF\u4E91 COS",
-    desc: "\u5C06\u56FE\u7247\u6258\u7BA1\u5230\u817E\u8BAF\u4E91\u5BF9\u8C61\u5B58\u50A8",
     guide: "\u3010\u83B7\u53D6\u5BC6\u94A5\u3011\n1. \u6253\u5F00 https://console.cloud.tencent.com/cam \u2192 API \u5BC6\u94A5\u7BA1\u7406\n2. \u65B0\u5EFA\u5BC6\u94A5\uFF08\u5EFA\u8BAE\u4F7F\u7528 CAM \u5B50\u7528\u6237\uFF0C\u4EC5\u6388\u4E88 COS \u6743\u9650\uFF09\n3. \u586B\u5199 SecretId \u548C SecretKey\n\n\u3010\u81EA\u52A8\u83B7\u53D6 Bucket\u3011\n4. \u586B\u5199\u5BC6\u94A5\u540E\u81EA\u52A8\u83B7\u53D6 Bucket \u5217\u8868\n5. \u9009\u62E9 Bucket \u540E\u81EA\u52A8\u586B\u5165 Region\n6. \u5982\u679C\u81EA\u52A8\u83B7\u53D6\u5931\u8D25\uFF0C\u53EF\u624B\u52A8\u586B\u5199 Bucket \u548C Region\n\n\u3010\u521B\u5EFA\u5B58\u50A8\u6876\u3011\n7. \u6253\u5F00 https://console.cloud.tencent.com/cos \u2192 \u521B\u5EFA\u5B58\u50A8\u6876\n8. \u8BBF\u95EE\u6743\u9650\u8BBE\u4E3A\u300C\u516C\u6709\u8BFB\u79C1\u6709\u5199\u300D\n9. Bucket \u683C\u5F0F\uFF1A\u540D\u79F0-APPID\uFF08\u5982 my-images-1250000000\uFF09\n\n\u3010\u914D\u7F6E\u8DE8\u57DF\u3011\n10. \u5B58\u50A8\u6876 \u2192 \u57FA\u7840\u914D\u7F6E \u2192 \u8DE8\u57DF\u8BBF\u95EE CORS \u2192 \u6DFB\u52A0\u89C4\u5219\n11. \u6765\u6E90\uFF1Aapp://obsidian.md\n12. \u65B9\u6CD5\uFF1AGET, PUT, DELETE\n13. \u5141\u8BB8 Header\uFF1A*",
     fields: [
       { name: "SecretId", desc: "API \u5BC6\u94A5\u7BA1\u7406\u9875\u9762\u83B7\u53D6", placeholder: "AKID...", key: "tencentSecretId", isSecret: true, required: true },
@@ -706,7 +738,6 @@ var BED_CONFIGS = [
   },
   {
     name: "\u5176\u4ED6\u56FE\u5E8A",
-    desc: "\u517C\u5BB9\u652F\u6301 S3 \u534F\u8BAE\u7684\u81EA\u5B9A\u4E49\u56FE\u5E8A",
     guide: "\u3010\u652F\u6301\u7684\u56FE\u5E8A\u3011\n1. SM.MS\uFF1A\u514D\u8D39\u56FE\u5E8A\uFF0C\u53EA\u9700\u586B\u5199 Token\n2. \u5170\u7A7A\u56FE\u5E8A Lsky Pro\uFF1A\u81EA\u5EFA\u56FE\u5E8A\uFF0C\u9700\u8981 API URL + Token \u6216\u7528\u6237\u540D\u5BC6\u7801\n3. EasyImage\uFF1A\u7B80\u5355\u56FE\u5E8A\uFF0C\u9700\u8981 API URL + Token\n4. Chevereto\uFF1A\u5546\u4E1A\u56FE\u5E8A\uFF0C\u9700\u8981 API URL + Token\n5. \u5176\u4ED6\u81EA\u5EFA\u56FE\u5E8A\uFF1A\u9700\u8981 API URL + \u8BA4\u8BC1\u4FE1\u606F\n\n\u3010SM.MS Token \u83B7\u53D6\u3011\n1. \u6253\u5F00 https://sm.ms \u2192 \u6CE8\u518C\u5E76\u767B\u5F55\n2. Dashboard \u2192 API Token \u2192 \u590D\u5236 Token\n\n\u3010\u81EA\u5EFA\u56FE\u5E8A\u914D\u7F6E\u3011\n3. Name\uFF1A\u81EA\u5B9A\u4E49\u540D\u79F0\uFF08\u4FBF\u4E8E\u8BC6\u522B\uFF09\n4. API URL\uFF1A\u56FE\u5E8A\u63A5\u53E3\u5730\u5740\uFF08\u5982 https://your-domain.com/api/v1/upload\uFF09\n5. Token\uFF1A\u8BA4\u8BC1\u5BC6\u94A5\uFF08\u90E8\u5206\u56FE\u5E8A\u4E0D\u9700\u8981\uFF09\n6. Username/Password\uFF1A\u90E8\u5206\u56FE\u5E8A\u9700\u8981\n7. Path\uFF1A\u56FE\u7247\u5B58\u50A8\u5B50\u76EE\u5F55\uFF08\u53EF\u9009\uFF09",
     fields: [
       { name: "Name", desc: "\u81EA\u5B9A\u4E49\u540D\u79F0\uFF0C\u4FBF\u4E8E\u8BC6\u522B", placeholder: "SM.MS", key: "otherBedName" },
@@ -718,11 +749,13 @@ var BED_CONFIGS = [
     ]
   }
 ];
-var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.PluginSettingTab {
+var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian5.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     /** 防抖保存计时器 */
     this.settingsSaveTimer = null;
+    /** WebDAV 状态提示定时器 */
+    this.webdavStatusTimeout = null;
     /** 同步操作进行中标志，防止重复点击 */
     this.syncing = false;
     /** 同步状态元素引用 */
@@ -768,9 +801,23 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
   display() {
     this.renderSettings();
   }
+  /**
+   * 设置面板关闭时清理防抖定时器，避免关闭后仍触发 saveSettings
+   */
+  hide() {
+    if (this.settingsSaveTimer) {
+      clearTimeout(this.settingsSaveTimer);
+      this.settingsSaveTimer = null;
+    }
+    if (this.webdavStatusTimeout) {
+      clearTimeout(this.webdavStatusTimeout);
+      this.webdavStatusTimeout = null;
+    }
+  }
   // ========== 通用设置 ==========
   renderGeneralSettings(container) {
-    new import_obsidian4.Setting(container).setName("\u663E\u793A\u8DEF\u5F84").setDesc('\u5F00\u542F\u540E\u663E\u793A"\u6839\u76EE\u5F55/image/photo.jpg"\uFF0C\u5173\u95ED\u5219\u53EA\u663E\u793A"photo.jpg"').addToggle(
+    const card = container.createDiv({ cls: "pic-settings-card" });
+    new import_obsidian5.Setting(card).setName("\u663E\u793A\u8DEF\u5F84").setDesc("\u5F00\u542F\u540E\u663E\u793A\u5B8C\u6574\u76F8\u5BF9\u8DEF\u5F84\uFF08\u5982 image/photo.jpg\uFF09\uFF0C\u5173\u95ED\u5219\u53EA\u663E\u793A\u6587\u4EF6\u540D").addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.showPath).onChange((value) => {
         this.plugin.settings.showPath = value;
         this.plugin.refreshView();
@@ -782,7 +829,7 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
   // 插件设置已移至顶部独立设置项
   // ========== 插件功能 ==========
   renderSectionVisibilitySettings(container) {
-    const card = container.createDiv({ cls: "pic-settings-card pic-settings-card--bare" });
+    const card = container.createDiv({ cls: "pic-settings-card" });
     const items = [
       { key: "showLocalImages", name: "\u672C\u5730\u56FE\u7247" },
       { key: "showCloudImages", name: "\u4E91\u7AEF\u56FE\u7247" },
@@ -813,7 +860,6 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
         this.debouncedSaveSettings();
       });
     }
-    card.createDiv({ cls: "pic-section-divider" });
   }
   // ========== WebDAV 同步 ==========
   renderWebdavSettings(container) {
@@ -824,12 +870,11 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
     titleRow.createSpan({ cls: "pic-collapsible-title", text: "WebDAV \u540C\u6B65\u8BBE\u7F6E" });
     const syncStatus = titleRow.createSpan({ cls: "pic-webdav-header-status" });
     this.updateWebdavHeaderStatus(syncStatus);
-    header.createSpan({ cls: "pic-collapsible-subtitle", text: "" });
     const content = collapsible.createDiv({ cls: "pic-collapsible-content" });
     collapsible.classList.add("is-collapsed");
     content.createDiv({ cls: "pic-webdav-security-hint", text: "\u26A0 \u540C\u6B65\u6570\u636E\u5305\u542B\u56FE\u5E8A\u51ED\u636E\uFF0C\u8BF7\u786E\u4FDD WebDAV \u670D\u52A1\u5668\u4E3A\u4F60\u4FE1\u4EFB\u7684\u79C1\u6709\u670D\u52A1\uFF0C\u52FF\u4F7F\u7528\u516C\u5171\u670D\u52A1\u5668\u3002" });
     content.createDiv({ cls: "pic-setting-category-title", text: "\u670D\u52A1\u5668\u914D\u7F6E" });
-    new import_obsidian4.Setting(content).setName("\u670D\u52A1\u5668\u5730\u5740").addText((text) => {
+    new import_obsidian5.Setting(content).setName("\u670D\u52A1\u5668\u5730\u5740").addText((text) => {
       text.inputEl.addClass("pic-webdav-url-input");
       text.setPlaceholder("https://dav.jianguoyun.com/dav/").setValue(this.plugin.settings.webdavUrl).onChange((value) => {
         this.plugin.settings.webdavUrl = value;
@@ -841,7 +886,7 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
       cls: "pic-webdav-path-hint",
       text: `\u914D\u7F6E\u6587\u4EF6\u5B58\u50A8\u8DEF\u5F84\uFF1A${this.plugin.settings.webdavRemotePath || "/PicLinker/settings.json"}`
     });
-    new import_obsidian4.Setting(content).setName("\u7528\u6237\u540D").addText((text) => {
+    new import_obsidian5.Setting(content).setName("\u7528\u6237\u540D").addText((text) => {
       text.inputEl.addClass("pic-webdav-username-input");
       text.setPlaceholder("username").setValue(this.plugin.settings.webdavUsername).onChange((value) => {
         this.plugin.settings.webdavUsername = value;
@@ -849,7 +894,7 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
       });
       return text;
     });
-    const pwdSetting = new import_obsidian4.Setting(content).setName("\u5BC6\u7801").addText((text) => {
+    const pwdSetting = new import_obsidian5.Setting(content).setName("\u5BC6\u7801").addText((text) => {
       text.inputEl.type = "password";
       text.inputEl.addClass("pic-webdav-userpwd-input");
       text.inputEl.placeholder = "\u8F93\u5165\u5BC6\u7801";
@@ -872,7 +917,7 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
         }
       });
     });
-    new import_obsidian4.Setting(content).setName("\u81EA\u52A8\u4E0A\u4F20").setDesc("\u4FDD\u5B58\u8BBE\u7F6E\u65F6\u81EA\u52A8\u540C\u6B65\u5230 WebDAV \u670D\u52A1\u5668").addToggle((toggle) => {
+    new import_obsidian5.Setting(content).setName("\u81EA\u52A8\u4E0A\u4F20").setDesc("\u4FDD\u5B58\u8BBE\u7F6E\u65F6\u81EA\u52A8\u540C\u6B65\u5230 WebDAV \u670D\u52A1\u5668").addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.webdavAutoSync).onChange((value) => {
         this.plugin.settings.webdavAutoSync = value;
         void this.plugin.saveSettings();
@@ -940,15 +985,15 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
     try {
       const result = await this.plugin.webDAVSync.uploadToWebdav();
       if (result.ok) {
-        new import_obsidian4.Notice("\u5DF2\u4E0A\u4F20\u914D\u7F6E\u5230 WebDAV");
+        new import_obsidian5.Notice("\u5DF2\u4E0A\u4F20\u914D\u7F6E\u5230 WebDAV");
         this.updateSyncStatus(`\u4E0A\u4F20\u6210\u529F (${(/* @__PURE__ */ new Date()).toLocaleTimeString()})`);
       } else {
         const msg = result.message || `PicLinker\uFF1A\u4E0A\u4F20\u5931\u8D25\uFF08HTTP ${result.status}\uFF09`;
-        new import_obsidian4.Notice(msg);
+        new import_obsidian5.Notice(msg);
         this.updateSyncStatus(msg);
       }
     } catch (e) {
-      new import_obsidian4.Notice("PicLinker\uFF1A\u4E0A\u4F20\u5931\u8D25", 15e3);
+      new import_obsidian5.Notice("PicLinker\uFF1A\u4E0A\u4F20\u5931\u8D25", 15e3);
       this.updateSyncStatus(`\u4E0A\u4F20\u5F02\u5E38: ${e}`);
     } finally {
       this.syncing = false;
@@ -957,11 +1002,11 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
   }
   async syncFromRemote() {
     if (!this.plugin.settings.webdavUrl || !this.plugin.settings.webdavUsername || !this.plugin.settings.webdavPassword) {
-      new import_obsidian4.Notice("\u8BF7\u5148\u586B\u5199 WebDAV \u670D\u52A1\u5668\u914D\u7F6E");
+      new import_obsidian5.Notice("\u8BF7\u5148\u586B\u5199 WebDAV \u670D\u52A1\u5668\u914D\u7F6E");
       return;
     }
     if (!this.plugin.settings.webdavUrl.startsWith("https://")) {
-      new import_obsidian4.Notice("WebDAV \u4EC5\u652F\u6301 HTTPS \u8FDE\u63A5");
+      new import_obsidian5.Notice("WebDAV \u4EC5\u652F\u6301 HTTPS \u8FDE\u63A5");
       return;
     }
     try {
@@ -971,28 +1016,29 @@ var _PicLinkerSettingTab = class _PicLinkerSettingTab extends import_obsidian4.P
         headers: { Authorization: `Basic ${auth}` }
       });
       if (!response.ok) {
-        new import_obsidian4.Notice(`PicLinker\uFF1A\u4E0B\u8F7D\u5931\u8D25\uFF08HTTP ${response.status}\uFF09`);
+        new import_obsidian5.Notice(`PicLinker\uFF1A\u4E0B\u8F7D\u5931\u8D25\uFF08HTTP ${response.status}\uFF09`);
         return;
       }
       const remoteData = await response.json();
       if (!remoteData || typeof remoteData !== "object") {
-        new import_obsidian4.Notice("PicLinker\uFF1A\u8FDC\u7A0B\u6570\u636E\u683C\u5F0F\u65E0\u6548");
+        new import_obsidian5.Notice("PicLinker\uFF1A\u8FDC\u7A0B\u6570\u636E\u683C\u5F0F\u65E0\u6548");
         return;
       }
       for (const k of BED_SETTINGS_KEYS) {
-        if (k in remoteData && typeof remoteData[k] === "string") {
+        if (k in remoteData && typeof remoteData[k] === "string" && remoteData[k] !== "") {
           this.plugin.settings[k] = remoteData[k];
         }
       }
       this.plugin.webDAVSync.meta = {
+        ...this.plugin.webDAVSync.meta,
         lastSyncedAt: (/* @__PURE__ */ new Date()).toISOString(),
         lastSyncSource: "download"
       };
       await this.plugin.saveSettings({ markLocalModified: false });
-      new import_obsidian4.Notice("\u5DF2\u4ECE WebDAV \u4E0B\u8F7D\u5E76\u5E94\u7528\u914D\u7F6E");
+      new import_obsidian5.Notice("\u5DF2\u4ECE WebDAV \u4E0B\u8F7D\u5E76\u5E94\u7528\u914D\u7F6E");
       void this.renderSettings();
     } catch (e) {
-      new import_obsidian4.Notice(`PicLinker\uFF1A\u4E0B\u8F7D\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
+      new import_obsidian5.Notice(`PicLinker\uFF1A\u4E0B\u8F7D\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
     }
   }
   /**
@@ -1017,11 +1063,11 @@ ${msg}` })) return;
         return;
       }
       if (result.success) {
-        new import_obsidian4.Notice("\u5DF2\u4E0E WebDAV \u914D\u7F6E\u667A\u80FD\u5408\u5E76");
+        new import_obsidian5.Notice("\u5DF2\u4E0E WebDAV \u914D\u7F6E\u667A\u80FD\u5408\u5E76");
         this.updateSyncStatus(`\u540C\u6B65\u6210\u529F (${(/* @__PURE__ */ new Date()).toLocaleTimeString()})`);
         void this.renderSettings();
       } else {
-        new import_obsidian4.Notice(result.error ? `PicLinker\uFF1A\u540C\u6B65\u5931\u8D25\uFF1A${result.error}` : "PicLinker\uFF1A\u540C\u6B65\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+        new import_obsidian5.Notice(result.error ? `PicLinker\uFF1A\u540C\u6B65\u5931\u8D25\uFF1A${result.error}` : "PicLinker\uFF1A\u540C\u6B65\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
         this.updateSyncStatus(result.error || "\u540C\u6B65\u5931\u8D25");
       }
     } finally {
@@ -1061,11 +1107,10 @@ ${msg}` })) return;
     titleRow.createSpan({ cls: "pic-collapsible-title", text: config.name });
     const statusSpan = titleRow.createSpan({ cls: "pic-bed-status" });
     this.updateBedStatus(statusSpan, config);
-    header.createSpan({ cls: "pic-collapsible-subtitle", text: config.desc });
     const content = collapsible.createDiv({ cls: "pic-collapsible-content" });
     collapsible.classList.add("is-collapsed");
     for (const field of config.fields) {
-      const setting = new import_obsidian4.Setting(content).setDesc(field.desc);
+      const setting = new import_obsidian5.Setting(content).setDesc(field.desc);
       if (field.required) {
         setSafeHTML(setting.nameEl, `${field.name} <span class="pic-required">*</span>`);
       } else {
@@ -1153,7 +1198,7 @@ ${msg}` })) return;
   }
   /** 更新图床配置状态指示器 */
   updateBedStatus(statusSpan, config) {
-    const allFieldsFilled = config.fields.every((field) => {
+    const allFieldsFilled = config.fields.filter((f) => f.required).every((field) => {
       const value = this.plugin.settings[field.key];
       return value && typeof value === "string" && value.trim().length > 0;
     });
@@ -1210,7 +1255,7 @@ ${msg}` })) return;
     container.empty();
     container.createDiv({ cls: "pic-setting-category-title", text: "\u5B58\u50A8\u6876\u914D\u7F6E" });
     if (buckets.length > 0) {
-      const bucketSetting = new import_obsidian4.Setting(container).setName("Bucket").setDesc("\u9009\u62E9\u5B58\u50A8\u6876\uFF08\u81EA\u52A8\u83B7\u53D6\u5217\u8868\uFF09");
+      const bucketSetting = new import_obsidian5.Setting(container).setName("Bucket").setDesc("\u9009\u62E9\u5B58\u50A8\u6876\uFF08\u81EA\u52A8\u83B7\u53D6\u5217\u8868\uFF09");
       const bucketControl = bucketSetting.controlEl;
       bucketControl.empty();
       const bucketSelect = bucketControl.createEl("select", { cls: "pic-bed-input" });
@@ -1222,7 +1267,7 @@ ${msg}` })) return;
       if (buckets.some((b) => b.name === currentBucket)) {
         bucketSelect.value = currentBucket;
       }
-      const dirSetting = new import_obsidian4.Setting(container).setName("\u65B0\u5EFA\u6587\u4EF6\u5939").setDesc("\u5728\u5F53\u524D Bucket \u4E2D\u521B\u5EFA\u6587\u4EF6\u5939");
+      const dirSetting = new import_obsidian5.Setting(container).setName("\u65B0\u5EFA\u6587\u4EF6\u5939").setDesc("\u5728\u5F53\u524D Bucket \u4E2D\u521B\u5EFA\u6587\u4EF6\u5939");
       const dirControl = dirSetting.controlEl;
       dirControl.empty();
       const dirInput = dirControl.createEl("input", {
@@ -1236,13 +1281,13 @@ ${msg}` })) return;
       dirBtn.addEventListener("click", onAsyncClick(async () => {
         const dir = dirInput.value.trim().replace(/\/+$/, "");
         if (!dir) {
-          new import_obsidian4.Notice("\u8BF7\u8F93\u5165\u6587\u4EF6\u5939\u540D");
+          new import_obsidian5.Notice("\u8BF7\u8F93\u5165\u6587\u4EF6\u5939\u540D");
           dirInput.focus();
           return;
         }
         const bucketName = bucketSelect.value;
         if (!bucketName) {
-          new import_obsidian4.Notice("\u8BF7\u5148\u9009\u62E9 Bucket");
+          new import_obsidian5.Notice("\u8BF7\u5148\u9009\u62E9 Bucket");
           return;
         }
         dirBtn.disabled = true;
@@ -1254,13 +1299,13 @@ ${msg}` })) return;
           if (bed) bed.configure(this.plugin.settings);
           const result = await this.plugin.createCloudDirectory(dir, "\u963F\u91CC\u4E91 OSS" /* Aliyun */);
           if (result.success) {
-            new import_obsidian4.Notice(`\u6587\u4EF6\u5939\u300C${dir}\u300D\u5DF2\u521B\u5EFA`);
+            new import_obsidian5.Notice(`\u6587\u4EF6\u5939\u300C${dir}\u300D\u5DF2\u521B\u5EFA`);
             dirInput.value = "";
           } else {
-            new import_obsidian4.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${result.error}`);
+            new import_obsidian5.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${result.error}`);
           }
         } catch (e) {
-          new import_obsidian4.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
+          new import_obsidian5.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
         } finally {
           dirBtn.disabled = false;
         }
@@ -1269,7 +1314,7 @@ ${msg}` })) return;
         if (e.key === "Enter") dirBtn.click();
       });
       let endpointInputEl = null;
-      new import_obsidian4.Setting(container).setName("Endpoint").setDesc("\u9009\u62E9 Bucket \u540E\u81EA\u52A8\u586B\u5165").addText((text) => {
+      new import_obsidian5.Setting(container).setName("Endpoint").setDesc("\u9009\u62E9 Bucket \u540E\u81EA\u52A8\u586B\u5165").addText((text) => {
         text.inputEl.addClass("pic-bed-input");
         text.setValue(this.plugin.settings.aliyunEndpoint).setPlaceholder("https://oss-cn-hangzhou.aliyuncs.com").onChange((value) => {
           this.plugin.settings.aliyunEndpoint = value;
@@ -1290,7 +1335,7 @@ ${msg}` })) return;
         this.updateBedStatus(statusSpan, config);
       });
     } else {
-      new import_obsidian4.Setting(container).setName("Endpoint").setDesc("\u65E0\u6CD5\u81EA\u52A8\u83B7\u53D6\uFF0C\u8BF7\u624B\u52A8\u586B\u5199").addText((text) => {
+      new import_obsidian5.Setting(container).setName("Endpoint").setDesc("\u65E0\u6CD5\u81EA\u52A8\u83B7\u53D6\uFF0C\u8BF7\u624B\u52A8\u586B\u5199").addText((text) => {
         text.inputEl.addClass("pic-bed-input");
         text.setValue(this.plugin.settings.aliyunEndpoint).setPlaceholder("https://oss-cn-hangzhou.aliyuncs.com").onChange((value) => {
           this.plugin.settings.aliyunEndpoint = value;
@@ -1372,7 +1417,7 @@ ${msg}` })) return;
     container.empty();
     container.createDiv({ cls: "pic-setting-category-title", text: "\u5B58\u50A8\u6876\u914D\u7F6E" });
     if (buckets.length > 0) {
-      const bucketSetting = new import_obsidian4.Setting(container).setName("Bucket").setDesc("\u9009\u62E9\u5B58\u50A8\u6876\uFF08\u81EA\u52A8\u83B7\u53D6\u5217\u8868\uFF09");
+      const bucketSetting = new import_obsidian5.Setting(container).setName("Bucket").setDesc("\u9009\u62E9\u5B58\u50A8\u6876\uFF08\u81EA\u52A8\u83B7\u53D6\u5217\u8868\uFF09");
       const bucketControl = bucketSetting.controlEl;
       bucketControl.empty();
       const bucketSelect = bucketControl.createEl("select", { cls: "pic-bed-input" });
@@ -1384,7 +1429,7 @@ ${msg}` })) return;
       if (buckets.some((b) => b.name === currentBucket)) {
         bucketSelect.value = currentBucket;
       }
-      const dirSetting = new import_obsidian4.Setting(container).setName("\u65B0\u5EFA\u6587\u4EF6\u5939").setDesc("\u5728\u5F53\u524D Bucket \u4E2D\u521B\u5EFA\u6587\u4EF6\u5939");
+      const dirSetting = new import_obsidian5.Setting(container).setName("\u65B0\u5EFA\u6587\u4EF6\u5939").setDesc("\u5728\u5F53\u524D Bucket \u4E2D\u521B\u5EFA\u6587\u4EF6\u5939");
       const dirControl = dirSetting.controlEl;
       dirControl.empty();
       const dirInput = dirControl.createEl("input", {
@@ -1398,13 +1443,13 @@ ${msg}` })) return;
       dirBtn.addEventListener("click", onAsyncClick(async () => {
         const dir = dirInput.value.trim().replace(/\/+$/, "");
         if (!dir) {
-          new import_obsidian4.Notice("\u8BF7\u8F93\u5165\u6587\u4EF6\u5939\u540D");
+          new import_obsidian5.Notice("\u8BF7\u8F93\u5165\u6587\u4EF6\u5939\u540D");
           dirInput.focus();
           return;
         }
         const bucketName = bucketSelect.value;
         if (!bucketName) {
-          new import_obsidian4.Notice("\u8BF7\u5148\u9009\u62E9 Bucket");
+          new import_obsidian5.Notice("\u8BF7\u5148\u9009\u62E9 Bucket");
           return;
         }
         dirBtn.disabled = true;
@@ -1416,13 +1461,13 @@ ${msg}` })) return;
           if (bed) bed.configure(this.plugin.settings);
           const result = await this.plugin.createCloudDirectory(dir, "\u817E\u8BAF\u4E91 COS" /* Tencent */);
           if (result.success) {
-            new import_obsidian4.Notice(`\u6587\u4EF6\u5939\u300C${dir}\u300D\u5DF2\u521B\u5EFA`);
+            new import_obsidian5.Notice(`\u6587\u4EF6\u5939\u300C${dir}\u300D\u5DF2\u521B\u5EFA`);
             dirInput.value = "";
           } else {
-            new import_obsidian4.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${result.error}`);
+            new import_obsidian5.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${result.error}`);
           }
         } catch (e) {
-          new import_obsidian4.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
+          new import_obsidian5.Notice(`PicLinker\uFF1A\u6587\u4EF6\u5939\u521B\u5EFA\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
         } finally {
           dirBtn.disabled = false;
         }
@@ -1431,7 +1476,7 @@ ${msg}` })) return;
         if (e.key === "Enter") dirBtn.click();
       });
       let regionInputEl = null;
-      new import_obsidian4.Setting(container).setName("Region").setDesc("\u9009\u62E9 Bucket \u540E\u81EA\u52A8\u586B\u5165").addText((text) => {
+      new import_obsidian5.Setting(container).setName("Region").setDesc("\u9009\u62E9 Bucket \u540E\u81EA\u52A8\u586B\u5165").addText((text) => {
         text.inputEl.addClass("pic-bed-input");
         text.setValue(this.plugin.settings.tencentRegion).setPlaceholder("ap-guangzhou").onChange((value) => {
           this.plugin.settings.tencentRegion = value;
@@ -1451,7 +1496,7 @@ ${msg}` })) return;
         this.updateBedStatus(statusSpan, config);
       });
     } else {
-      new import_obsidian4.Setting(container).setName("Bucket").setDesc("\u65E0\u6CD5\u81EA\u52A8\u83B7\u53D6\uFF0C\u8BF7\u624B\u52A8\u586B\u5199").addText((text) => {
+      new import_obsidian5.Setting(container).setName("Bucket").setDesc("\u65E0\u6CD5\u81EA\u52A8\u83B7\u53D6\uFF0C\u8BF7\u624B\u52A8\u586B\u5199").addText((text) => {
         text.inputEl.addClass("pic-bed-input");
         text.setValue(this.plugin.settings.tencentBucket).setPlaceholder("bucket-1250000000").onChange((value) => {
           this.plugin.settings.tencentBucket = value;
@@ -1459,7 +1504,7 @@ ${msg}` })) return;
           this.updateBedStatus(statusSpan, config);
         });
       });
-      new import_obsidian4.Setting(container).setName("Region").setDesc("\u65E0\u6CD5\u81EA\u52A8\u83B7\u53D6\uFF0C\u8BF7\u624B\u52A8\u586B\u5199").addText((text) => {
+      new import_obsidian5.Setting(container).setName("Region").setDesc("\u65E0\u6CD5\u81EA\u52A8\u83B7\u53D6\uFF0C\u8BF7\u624B\u52A8\u586B\u5199").addText((text) => {
         text.inputEl.addClass("pic-bed-input");
         text.setValue(this.plugin.settings.tencentRegion).setPlaceholder("ap-guangzhou").onChange((value) => {
           this.plugin.settings.tencentRegion = value;
@@ -1534,7 +1579,7 @@ _PicLinkerSettingTab.tencentBucketsCacheKey = "";
 var PicLinkerSettingTab = _PicLinkerSettingTab;
 
 // src/view/PicLinkerView.ts
-var import_obsidian9 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 
 // src/utils/FrontmatterParser.ts
 var BED_ALIASES = {
@@ -1816,7 +1861,7 @@ var LinkParser = class {
 };
 
 // src/utils/HashCache.ts
-var import_obsidian5 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 
 // src/utils/nodeCrypto.ts
 function hasNodeRequire() {
@@ -1865,7 +1910,7 @@ var HashCache = class _HashCache {
    * @param app  仅当 file 为 TFile 且需要分块读取时必填（用于获取 adapter）
    */
   static async computeHash(file, app) {
-    if (file instanceof import_obsidian5.TFile) {
+    if (file instanceof import_obsidian6.TFile) {
       return _HashCache.computeHashOfTFile(file, app);
     }
     const buffer = file instanceof ArrayBuffer ? file : await file.arrayBuffer();
@@ -2003,6 +2048,9 @@ function showImagePreview(src) {
   let startY = 0;
   let startTx = 0;
   let startTy = 0;
+  let pinchStartDist = 0;
+  let pinchStartScale = 1;
+  let lastTapTime = 0;
   const applyTransform = () => {
     img.setCssStyles({ transform: `translate(${tx}px, ${ty}px) scale(${scale})` });
   };
@@ -2021,12 +2069,66 @@ function showImagePreview(src) {
     ty = 0;
     applyTransform();
   };
+  const touchDist = (t1, t2) => {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.hypot(dx, dy);
+  };
+  const onTouchStart = (e) => {
+    e.stopPropagation();
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      dragging = true;
+      startX = t.clientX;
+      startY = t.clientY;
+      startTx = tx;
+      startTy = ty;
+      const now = Date.now();
+      const dt = now - lastTapTime;
+      if (dt < 300 && dt > 0) {
+        scale = 1;
+        tx = 0;
+        ty = 0;
+        applyTransform();
+        lastTapTime = 0;
+      } else {
+        lastTapTime = now;
+      }
+    } else if (e.touches.length === 2) {
+      dragging = false;
+      pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+      pinchStartScale = scale;
+    }
+  };
+  const onTouchMoveImg = (e) => {
+    if (e.touches.length === 1 && dragging) {
+      const t = e.touches[0];
+      tx = startTx + (t.clientX - startX);
+      ty = startTy + (t.clientY - startY);
+      applyTransform();
+    } else if (e.touches.length === 2 && pinchStartDist > 0) {
+      const d = touchDist(e.touches[0], e.touches[1]);
+      if (d > 0) {
+        const newScale = pinchStartScale * (d / pinchStartDist);
+        scale = Math.min(Math.max(newScale, 0.1), 10);
+        applyTransform();
+      }
+    }
+  };
+  const onTouchEnd = () => {
+    dragging = false;
+    pinchStartDist = 0;
+    startX = 0;
+    startY = 0;
+    startTx = 0;
+    startTy = 0;
+  };
   const onOverlayClick = () => close();
   const onKeyDown = (e) => {
     if (e.key === "Escape") close();
   };
   const onTouchMove = (e) => {
-    e.preventDefault();
+    if (e.touches.length === 1) e.preventDefault();
   };
   const onImgError = () => {
     img.setCssStyles({ display: "none" });
@@ -2062,6 +2164,9 @@ function showImagePreview(src) {
     img.removeEventListener("click", onImgClick);
     img.removeEventListener("dblclick", onImgDblClick);
     img.removeEventListener("mousedown", onImgMouseDown);
+    img.removeEventListener("touchstart", onTouchStart);
+    img.removeEventListener("touchmove", onTouchMoveImg);
+    img.removeEventListener("touchend", onTouchEnd);
     img.removeEventListener("error", onImgError);
   };
   overlay.addEventListener("wheel", onWheel);
@@ -2073,6 +2178,9 @@ function showImagePreview(src) {
   img.addEventListener("click", onImgClick);
   img.addEventListener("dblclick", onImgDblClick);
   img.addEventListener("mousedown", onImgMouseDown);
+  img.addEventListener("touchstart", onTouchStart);
+  img.addEventListener("touchmove", onTouchMoveImg, { passive: false });
+  img.addEventListener("touchend", onTouchEnd);
   img.addEventListener("error", onImgError);
   overlay.appendChild(img);
   rootEl.appendChild(overlay);
@@ -2084,7 +2192,7 @@ var SelectionSection = /* @__PURE__ */ ((SelectionSection2) => {
   SelectionSection2["CloudImages"] = "cloudImages";
   SelectionSection2["LocalUnref"] = "localUnref";
   SelectionSection2["CloudFiles"] = "cloudFiles";
-  SelectionSection2["NotFound"] = "notFound";
+  SelectionSection2["NotFoundRefs"] = "notFoundRefs";
   SelectionSection2["Dedup"] = "dedup";
   SelectionSection2["SameName"] = "sameName";
   SelectionSection2["EmptyFolders"] = "emptyFolders";
@@ -2109,6 +2217,10 @@ var SelectionManager = class {
   /** 移除选中变化回调 */
   off(callback) {
     this.onChangeCallbacks = this.onChangeCallbacks.filter((cb) => cb !== callback);
+  }
+  /** 清空所有 onChange 回调 —— 视图重建前调用，重新渲染后各组头会重新注册 */
+  removeAllListeners() {
+    this.onChangeCallbacks = [];
   }
   /** 触发变化通知 */
   notify(section) {
@@ -2198,7 +2310,8 @@ var DedupService = class {
           path: item.path,
           source: item.source,
           bedType: item.bedType,
-          referenced: item.referenced
+          referenced: item.referenced,
+          img: item.img ? { pure: item.img.pure, resolvedPath: item.img.resolvedPath } : void 0
         }))
       }));
       this.app.saveLocalStorage(this.getStorageKey("dedupGroups"), JSON.stringify(serialized));
@@ -2215,12 +2328,16 @@ var DedupService = class {
       return parsed.map((group) => ({
         hash: group.hash,
         type: group.type,
-        items: group.items.filter((item) => item.path !== void 0 && typeof item.path === "string" && !item.path.endsWith("/")).map((item) => ({
-          path: item.path,
-          source: item.source,
-          bedType: item.bedType,
-          referenced: item.referenced
-        }))
+        items: group.items.filter((item) => item.path !== void 0 && typeof item.path === "string" && !item.path.endsWith("/")).map((item) => {
+          const imgStub = item.img;
+          return {
+            path: item.path,
+            source: item.source,
+            bedType: item.bedType,
+            referenced: item.referenced,
+            img: imgStub && typeof imgStub.pure === "string" ? { pure: imgStub.pure, resolvedPath: imgStub.resolvedPath } : void 0
+          };
+        })
       })).filter((group) => group.items.length >= 2);
     } catch (e) {
       console.warn("[PicLinker] \u52A0\u8F7D\u53BB\u91CD\u6570\u636E\u5931\u8D25\uFF0C\u5DF2\u91CD\u7F6E", e);
@@ -2311,6 +2428,667 @@ var DedupService = class {
   }
 };
 
+// src/view/components/ItemRenderer.ts
+var import_obsidian7 = require("obsidian");
+var ItemRenderer = class {
+  constructor(ctx) {
+    this.ctx = ctx;
+  }
+  /** 判断容器是否处于子目录（非顶层）层级：
+   *  其所在的 .pic-dir-content 之上仍存在 .pic-dir-content 祖先。
+   *  用于为子目录直接文件追加分组视觉标识（不依赖 styles.css 新增样式）。 */
+  isSubdirLevel(container) {
+    const dc = container.closest(".pic-dir-content");
+    if (!dc) return false;
+    return !!(dc.parentElement && dc.parentElement.closest(".pic-dir-content"));
+  }
+  /** 为子目录层级的条目追加轻微分组视觉标识（左侧内阴影引导线）。
+   *  复用主题变量，不使用新增 CSS，且不影响 :hover 背景与折叠/点击逻辑。 */
+  applySubdirGrouping(item, container) {
+    void item;
+    void container;
+  }
+  /** 渲染本地引用图片条目 */
+  renderLocalItem(container, img, selectedSet) {
+    var _a;
+    const { selection, app, copyImagePath, updateLocalActions, updateParentDirCheckboxes, showPath } = this.ctx;
+    const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } });
+    this.applySubdirGrouping(item, container);
+    if (selectedSet) {
+      item.addEventListener("click", (e) => {
+        const target = e.target;
+        if (target.closest("input, img, .pic-file-tag, button")) return;
+        this.ctx.setCurrentItem(item);
+        const cb = item.querySelector(".pic-cloud-checkbox");
+        if (cb) {
+          cb.checked = !cb.checked;
+          cb.dispatchEvent(new Event("change"));
+        }
+      });
+    }
+    item.addEventListener("dblclick", (e) => {
+      const target = e.target;
+      if (target.closest("input, img, .pic-file-tag, button")) return;
+      e.stopPropagation();
+      const fileName = extractFileName(img.resolvedPath || img.pure);
+      if (fileName) {
+        navigator.clipboard.writeText(fileName).then(
+          () => new import_obsidian7.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
+          () => new import_obsidian7.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
+        );
+      }
+    });
+    if (selectedSet) {
+      const checkbox = item.createEl("input", {
+        type: "checkbox",
+        cls: "pic-cloud-checkbox"
+      });
+      checkbox.checked = selectedSet.has(img.pure);
+      checkbox.addEventListener("click", (e) => e.stopPropagation());
+      checkbox.addEventListener("change", (e) => {
+        e.stopPropagation();
+        if (checkbox.checked) {
+          selectedSet.add(img.pure);
+          selection.select("localImages" /* LocalImages */, [img.pure]);
+        } else {
+          selectedSet.delete(img.pure);
+          selection.deselect("localImages" /* LocalImages */, img.pure);
+        }
+        item.toggleClass("pic-item--selected", checkbox.checked);
+        updateLocalActions();
+        updateParentDirCheckboxes();
+      });
+    }
+    const resolvedPath = img.resolvedPath || img.pure;
+    const ext = ((_a = resolvedPath.split(".").pop()) == null ? void 0 : _a.toLowerCase()) || "";
+    const isImage = IMAGE_EXTENSIONS.has(ext);
+    if (isImage) {
+      let thumbSrc;
+      if (img.type === "local") {
+        const file = app.vault.getAbstractFileByPath(resolvedPath);
+        if (file instanceof import_obsidian7.TFile) {
+          thumbSrc = app.vault.getResourcePath(file);
+        }
+      } else {
+        thumbSrc = img.pure;
+      }
+      if (thumbSrc) {
+        const thumb = item.createEl("img", {
+          cls: "pic-thumb pic-thumb-clickable",
+          attr: { src: thumbSrc, loading: "lazy" }
+        });
+        thumb.addEventListener("error", () => {
+          thumb.setCssStyles({ display: "none" });
+          createThumbBrokenPlaceholder(item);
+        });
+        thumb.addEventListener("click", (e) => {
+          e.stopPropagation();
+          showImagePreview(thumbSrc);
+        });
+      }
+    }
+    let displayPath = img.resolvedPath || img.pure;
+    if (img.type !== "local") {
+      try {
+        displayPath = new URL(img.pure).pathname.slice(1);
+      } catch (e) {
+      }
+    }
+    const showText = showPath ? formatDisplayPath(displayPath) : extractFileName(displayPath) || displayPath;
+    const pathSpan = item.createSpan({ cls: "pic-path", text: showText, title: showText });
+    pathSpan.classList.add("clickable");
+    item.dataset.purePath = img.pure;
+    pathSpan.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      copyImagePath(img);
+    });
+    this.renderTags(item, img, "localTags" /* LocalTags */, img.pure);
+    const actions = item.createDiv({ cls: "pic-actions" });
+    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u56FE\u7247\u5E76\u6E05\u7406\u5F15\u7528\u884C" } });
+    deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
+      e.stopPropagation();
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${img.pure}\u300D\u5417\uFF1F
+\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`, title: "\u5220\u9664\u56FE\u7247" })) return;
+      for (const fp of img.files) {
+        await this.ctx.removeImageFromMdFile(fp, [img.pure]);
+      }
+      const filePath = img.resolvedPath || img.pure;
+      const file = app.vault.getAbstractFileByPath(filePath);
+      if (file instanceof import_obsidian7.TFile) {
+        await app.fileManager.trashFile(file);
+        new import_obsidian7.Notice(`\u5DF2\u5220\u9664\u300C${extractFileName(filePath) || filePath}\u300D`);
+      }
+      selection.deselect("localImages" /* LocalImages */, img.pure);
+      for (const tagKey of selection.getSelected("localTags" /* LocalTags */)) {
+        if (tagKey.startsWith(img.pure + "::")) selection.deselect("localTags" /* LocalTags */, tagKey);
+      }
+      await this.ctx.refresh();
+    }));
+  }
+  /** 渲染引用标签（多标签时换行而非横向溢出） */
+  renderTags(container, img, section, keyPrefix) {
+    const { selection, jumpToFile, updateLocalActions } = this.ctx;
+    const expandedRefs = expandRefs(img);
+    if (expandedRefs.length === 0) return;
+    const tagsWrap = container.createDiv({ cls: "pic-tags" });
+    tagsWrap.setCssStyles({ display: "flex", flexWrap: "wrap", gap: "4px", minWidth: "0" });
+    for (let i = 0; i < expandedRefs.length; i++) {
+      const ref = expandedRefs[i];
+      const tagKey = `${keyPrefix}::${i}`;
+      const isSelected = selection.isSelected(section, tagKey);
+      const fileName = ref.file.split("/").pop() || ref.file;
+      const tagText = ref.line > 0 ? `${fileName}:${ref.line}` : fileName;
+      const tag = container.createSpan({
+        cls: `pic-file-tag${isSelected ? " pic-file-tag-focus" : ""}`,
+        text: tagText
+      });
+      tag.dataset.tagRef = tagText;
+      tag.title = isSelected ? `\u518D\u6B21\u5355\u51FB\u8DF3\u8F6C\u5230 ${ref.file}:${ref.line}` : `\u5355\u51FB\u9009\u4E2D`;
+      tag.classList.add("clickable");
+      tagsWrap.appendChild(tag);
+      tag.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (selection.isSelected(section, tagKey)) {
+          jumpToFile(img, ref.file, ref.line);
+        } else {
+          selection.select(section, [tagKey]);
+          tag.classList.add("pic-file-tag-focus");
+          tag.title = `\u518D\u6B21\u5355\u51FB\u8DF3\u8F6C\u5230 ${ref.file}:${ref.line}`;
+          updateLocalActions();
+        }
+      });
+    }
+  }
+  /** 云端引用图片项 */
+  renderCloudReferencedItem(container, img, selectedSet) {
+    const { selection, copyImagePath, deleteCloudFile, removeImageFromMdFile, updateLocalActions, updateParentDirCheckboxes } = this.ctx;
+    const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } });
+    this.applySubdirGrouping(item, container);
+    if (selectedSet) {
+      item.addEventListener("click", (e) => {
+        const target = e.target;
+        if (target.closest("input, img, button")) return;
+        this.ctx.setCurrentItem(item);
+        const cb = item.querySelector(".pic-cloud-checkbox");
+        if (cb) {
+          cb.checked = !cb.checked;
+          cb.dispatchEvent(new Event("change"));
+        }
+      });
+    }
+    item.addEventListener("dblclick", (e) => {
+      const target = e.target;
+      if (target.closest("input, img, button")) return;
+      e.stopPropagation();
+      const fileName = extractFileName(img.pure);
+      if (fileName) {
+        navigator.clipboard.writeText(fileName).then(
+          () => new import_obsidian7.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
+          () => new import_obsidian7.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
+        );
+      }
+    });
+    if (selectedSet) {
+      const checkbox = item.createEl("input", {
+        type: "checkbox",
+        cls: "pic-cloud-checkbox"
+      });
+      checkbox.checked = selectedSet.has(img.pure);
+      checkbox.addEventListener("click", (e) => e.stopPropagation());
+      checkbox.addEventListener("change", (e) => {
+        e.stopPropagation();
+        if (checkbox.checked) {
+          selectedSet.add(img.pure);
+          selection.select("cloudImages" /* CloudImages */, [img.pure]);
+        } else {
+          selectedSet.delete(img.pure);
+          selection.deselect("cloudImages" /* CloudImages */, img.pure);
+        }
+        item.toggleClass("pic-item--selected", checkbox.checked);
+        updateLocalActions();
+        updateParentDirCheckboxes();
+      });
+    }
+    let thumbSrc;
+    try {
+      thumbSrc = img.pure;
+    } catch (e) {
+    }
+    if (thumbSrc) {
+      const thumb = item.createEl("img", {
+        cls: "pic-thumb pic-thumb-clickable",
+        attr: { src: thumbSrc, loading: "lazy" }
+      });
+      thumb.addEventListener("error", () => {
+        thumb.setCssStyles({ display: "none" });
+        createThumbBrokenPlaceholder(item);
+      });
+      thumb.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showImagePreview(thumbSrc);
+      });
+    }
+    let displayPath;
+    try {
+      displayPath = new URL(img.pure).pathname.slice(1);
+    } catch (e) {
+      displayPath = img.pure;
+    }
+    const shortPath = formatDisplayPath(displayPath);
+    const pathSpan = item.createSpan({ cls: "pic-path", text: shortPath, title: "\u53CC\u51FB\u590D\u5236\u5B8C\u6574\u8DEF\u5F84" });
+    pathSpan.classList.add("clickable");
+    item.dataset.purePath = img.pure;
+    pathSpan.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      copyImagePath(img);
+    });
+    this.renderTags(item, img, "cloudTags" /* CloudTags */, img.pure);
+    const actions = item.createDiv({ cls: "pic-actions" });
+    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u4E91\u7AEF\u56FE\u7247\u5E76\u6E05\u7406\u5F15\u7528\u884C" } });
+    deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
+      var _a, _b;
+      e.stopPropagation();
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${img.pure}\u300D\u5417\uFF1F
+\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`, title: "\u5220\u9664\u56FE\u7247" })) return;
+      const bedType = (_a = detectBedTypeFromUrl(img.pure)) != null ? _a : void 0;
+      if (!bedType) {
+        new import_obsidian7.Notice("\u65E0\u6CD5\u8BC6\u522B\u56FE\u5E8A\u7C7B\u578B\uFF0C\u5DF2\u53D6\u6D88\u5220\u9664\uFF08\u7B14\u8BB0\u5F15\u7528\u672A\u6E05\u7406\uFF09");
+        return;
+      }
+      const cloudFile = this.ctx.getCloudFiles().find((cf) => cf.url === img.pure);
+      const fileKey = (cloudFile == null ? void 0 : cloudFile.prefix) || (cloudFile == null ? void 0 : cloudFile.name) || extractFileName(img.pure) || img.pure;
+      const result = await deleteCloudFile(fileKey, bedType);
+      if (!result.success) {
+        new import_obsidian7.Notice(`\u4E91\u7AEF\u56FE\u7247\u5220\u9664\u5931\u8D25\uFF0C\u5DF2\u53D6\u6D88\u6E05\u7406\u5F15\u7528\uFF1A${(_b = result.error) != null ? _b : "\u672A\u77E5\u9519\u8BEF"}`);
+        return;
+      }
+      for (const fp of img.files) {
+        await removeImageFromMdFile(fp, [img.pure]);
+      }
+      new import_obsidian7.Notice(`\u5DF2\u5220\u9664\u300C${extractFileName(img.pure) || img.pure}\u300D`);
+      selection.deselect("cloudImages" /* CloudImages */, img.pure);
+      await this.ctx.refresh();
+    }));
+  }
+  /** 未找到图片项 */
+  /** 渲染单个未找到图片的引用行：每个引用行 = 一张图在某一笔记的某一行
+   *  与原 renderNotFoundItem 不同：精确到 (img, file, line)，不再"一图一行"折叠所有引用
+   */
+  renderNotFoundRefItem(container, img, ref) {
+    const { selection, removeImageFromMdFile, removeImageFromLine, updateLocalActions, updateParentDirCheckboxes, refresh, app, jumpToFile, showPath } = this.ctx;
+    const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } });
+    this.applySubdirGrouping(item, container);
+    const expandedRefs = expandRefs(img);
+    const refIndex = expandedRefs.findIndex((r) => r.file === ref.file && r.line === ref.line);
+    const itemKey = refIndex >= 0 ? `${img.pure}::${refIndex}` : `${img.pure}::0`;
+    const isChecked = selection.isSelected("notFoundRefs" /* NotFoundRefs */, itemKey);
+    const checkbox = item.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
+    checkbox.checked = isChecked;
+    checkbox.addEventListener("click", (e) => e.stopPropagation());
+    checkbox.addEventListener("change", (e) => {
+      e.stopPropagation();
+      if (checkbox.checked) selection.select("notFoundRefs" /* NotFoundRefs */, [itemKey]);
+      else selection.deselect("notFoundRefs" /* NotFoundRefs */, itemKey);
+      item.toggleClass("pic-item--selected", checkbox.checked);
+      item.dispatchEvent(new CustomEvent("pic-notfound-refitem-change", { bubbles: true }));
+      updateLocalActions();
+      updateParentDirCheckboxes();
+    });
+    selection.onChange((changedSection) => {
+      if (changedSection !== "notFoundRefs" /* NotFoundRefs */) return;
+      const sel = selection.isSelected("notFoundRefs" /* NotFoundRefs */, itemKey);
+      checkbox.checked = sel;
+      item.toggleClass("pic-item--selected", sel);
+    });
+    item.addEventListener("click", (e) => {
+      const target = e.target;
+      if (target.closest(".pic-file-tag, button, input")) return;
+      this.ctx.setCurrentItem(item);
+      const cb = item.querySelector(".pic-cloud-checkbox");
+      if (cb) {
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event("change"));
+      }
+    });
+    item.addEventListener("dblclick", (e) => {
+      const target = e.target;
+      if (target.closest(".pic-file-tag, button, input")) return;
+      e.stopPropagation();
+      jumpToFile(img, ref.file, ref.line);
+    });
+    const notFoundIcon = `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--pic-error)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
+    const iconWrapper = item.createSpan();
+    setSafeHTML(iconWrapper, notFoundIcon);
+    const rawPath = img.resolvedPath || img.pure;
+    const fileName = extractFileName(rawPath) || rawPath;
+    const refNoteName = ref.file.split("/").pop() || ref.file;
+    const showText = showPath ? `${refNoteName}/${fileName}` : fileName;
+    const detailedTitle = `\u8DEF\u5F84\uFF1A${rawPath}
+\u5F15\u7528\uFF1A${ref.file}:${ref.line || "\u5168\u6587"}`;
+    const pathSpan = item.createSpan({ cls: "pic-path", text: showText, title: detailedTitle });
+    pathSpan.classList.add("clickable");
+    item.dataset.purePath = itemKey;
+    pathSpan.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(rawPath).then(
+        () => new import_obsidian7.Notice(`\u5DF2\u590D\u5236\u8DEF\u5F84`),
+        () => new import_obsidian7.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
+      );
+    });
+    const lineTag = item.createSpan({ cls: "pic-file-tag clickable", text: ref.line > 0 ? `L:${ref.line}` : `\u5168\u6587`, title: ref.line > 0 ? `\u5F15\u7528\u4F4D\u4E8E ${ref.file}:${ref.line}\uFF0C\u5355\u51FB\u8DF3\u8F6C` : `\u5F15\u7528\u4F4D\u4E8E ${ref.file}\uFF08\u65E0\u884C\u53F7\uFF09\uFF0C\u5355\u51FB\u8DF3\u8F6C` });
+    lineTag.addEventListener("click", (e) => {
+      e.stopPropagation();
+      jumpToFile(img, ref.file, ref.line);
+    });
+    const actions = item.createDiv({ cls: "pic-actions" });
+    const noteName = ref.file.split("/").pop() || ref.file;
+    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: `\u5220\u9664\u300C${rawPath}\u300D\u5728 ${noteName} \u4E2D\u7684\u5F15\u7528\u884C` } });
+    deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
+      e.stopPropagation();
+      const lineDesc = ref.line > 0 ? `\u7B2C ${ref.line} \u884C` : "\u5168\u6587\u4E2D\u7684\u5F15\u7528\u884C";
+      if (!await confirmAsync(app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${rawPath}\u300D\u5728\u300C${noteName}\u300D${lineDesc}\u5417\uFF1F`, title: "\u5220\u9664\u5F15\u7528\u884C" })) return;
+      try {
+        if (ref.line > 0) {
+          const abstractFile = app.vault.getAbstractFileByPath(ref.file);
+          if (!(abstractFile instanceof import_obsidian7.TFile)) {
+            new import_obsidian7.Notice(`PicLinker\uFF1A\u7B14\u8BB0\u300C${noteName}\u300D\u4E0D\u5B58\u5728`);
+            return;
+          }
+          const content = await app.vault.read(abstractFile);
+          const contentLines = content.split("\n");
+          const idx = ref.line - 1;
+          const orig = contentLines[idx];
+          if (orig === void 0) {
+            new import_obsidian7.Notice(`PicLinker\uFF1A\u7B2C ${ref.line} \u884C\u4E0D\u5B58\u5728`);
+            return;
+          }
+          const cleaned = removeImageFromLine(orig, img.pure);
+          if (!cleaned.trim()) {
+            contentLines.splice(idx, 1);
+          } else if (cleaned !== orig) {
+            contentLines[idx] = cleaned;
+          } else {
+            new import_obsidian7.Notice(`PicLinker\uFF1A\u7B2C ${ref.line} \u884C\u672A\u5305\u542B\u8BE5\u56FE\u7247`);
+            return;
+          }
+          await app.vault.modify(abstractFile, contentLines.join("\n"));
+          new import_obsidian7.Notice(`\u5DF2\u5220\u9664\u300C${noteName}\u300D\u7B2C ${ref.line} \u884C\u7684\u5F15\u7528`);
+        } else {
+          const count = await removeImageFromMdFile(ref.file, [img.pure]);
+          new import_obsidian7.Notice(count > 0 ? `\u5DF2\u5220\u9664\u300C${noteName}\u300D\u4E2D\u7684 ${count} \u4E2A\u5F15\u7528\u884C` : `PicLinker\uFF1A\u300C${noteName}\u300D\u4E2D\u672A\u627E\u5230\u5F15\u7528\u884C`);
+        }
+        await refresh();
+      } catch (err) {
+        new import_obsidian7.Notice(`PicLinker\uFF1A\u5220\u9664\u5931\u8D25 - ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }));
+  }
+  /** 兼容旧调用：保留 renderNotFoundItem 名字，转发到新方法（无 ref 时退化为第一引用） */
+  renderNotFoundItem(container, img, selectedSet) {
+    const refs = expandRefs(img);
+    for (const ref of refs) {
+      const item = container.createDiv({ cls: "pic-item" });
+      this.renderNotFoundRefItem(item, img, ref);
+      if (selectedSet == null ? void 0 : selectedSet.has(img.pure)) {
+        item.classList.add("pic-item--selected");
+        const cb = item.querySelector(".pic-cloud-checkbox");
+        if (cb) cb.checked = true;
+      }
+    }
+  }
+  /** 云端文件项 */
+  renderCloudItem(container, file, indent = "") {
+    const { selection, deleteCloudFile, removeImageFromAllMdFiles, updateLocalUnrefActions, updateLocalActions, updateParentDirCheckboxes, updateDeleteSelectedBtn, showPath } = this.ctx;
+    const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } });
+    this.applySubdirGrouping(item, container);
+    const fileKey = file.prefix || file.name;
+    item.addEventListener("click", (e) => {
+      const target = e.target;
+      if (target.closest("input, img, .pic-file-tag, button")) return;
+      this.ctx.setCurrentItem(item);
+      const cb = item.querySelector(".pic-cloud-checkbox");
+      if (cb) {
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event("change"));
+      }
+    });
+    item.addEventListener("dblclick", (e) => {
+      const target = e.target;
+      if (target.closest("input, img, .pic-file-tag, button")) return;
+      e.stopPropagation();
+      const fileName = extractFileName(file.name);
+      if (fileName) {
+        navigator.clipboard.writeText(fileName).then(
+          () => new import_obsidian7.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
+          () => new import_obsidian7.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
+        );
+      }
+    });
+    const checkbox = item.createEl("input", {
+      type: "checkbox",
+      cls: "pic-cloud-checkbox"
+    });
+    checkbox.checked = selection.isSelected("cloudFiles" /* CloudFiles */, fileKey);
+    checkbox.addEventListener("click", (e) => e.stopPropagation());
+    checkbox.addEventListener("change", (e) => {
+      e.stopPropagation();
+      if (checkbox.checked) {
+        selection.select("cloudFiles" /* CloudFiles */, [fileKey]);
+      } else {
+        selection.deselect("cloudFiles" /* CloudFiles */, fileKey);
+      }
+      item.toggleClass("pic-item--selected", checkbox.checked);
+      updateDeleteSelectedBtn == null ? void 0 : updateDeleteSelectedBtn();
+      updateLocalUnrefActions();
+      updateLocalActions();
+      updateParentDirCheckboxes();
+    });
+    const cloudBedType = detectBedTypeFromUrl(file.url);
+    const ext = getFileExtension(file.name);
+    const isImage = IMAGE_EXTENSIONS.has(ext);
+    if (isImage) {
+      const thumb = item.createEl("img", {
+        cls: "pic-thumb pic-thumb-clickable",
+        attr: { src: file.url, loading: "lazy" }
+      });
+      thumb.addEventListener("error", () => {
+        thumb.setCssStyles({ display: "none" });
+        createThumbBrokenPlaceholder(item);
+      });
+      thumb.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showImagePreview(file.url);
+      });
+    } else {
+      item.createSpan({ cls: "pic-cloud-file-icon", text: "\u{1F4C4}" });
+    }
+    const cloudDisplayName = showPath ? file.prefix || file.name : extractFileName(file.name) || file.name;
+    const pathSpan = item.createSpan({ cls: "pic-path", text: `${indent}${cloudDisplayName}` });
+    pathSpan.classList.add("clickable");
+    item.dataset.purePath = fileKey;
+    pathSpan.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(file.url).then(
+        () => new import_obsidian7.Notice("\u5DF2\u590D\u5236\u8DEF\u5F84"),
+        () => new import_obsidian7.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
+      );
+    });
+    const actions = item.createDiv({ cls: "pic-actions" });
+    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u4E91\u7AEF\u56FE\u7247\u5E76\u6E05\u7406\u5F15\u7528\u884C" } });
+    deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
+      var _a;
+      e.stopPropagation();
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u4E91\u7AEF\u56FE\u7247\u300C${file.name}\u300D\u5417\uFF1F
+\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`, title: "\u5220\u9664\u4E91\u7AEF\u56FE\u7247" })) return;
+      if (!cloudBedType) {
+        new import_obsidian7.Notice("PicLinker\uFF1A\u4E91\u7AEF\u56FE\u7247\u672A\u5220\u9664\uFF1A\u65E0\u6CD5\u8BC6\u522B\u56FE\u5E8A\u7C7B\u578B");
+        return;
+      }
+      const result = await deleteCloudFile(file.prefix || file.name, cloudBedType);
+      if (!result.success) {
+        new import_obsidian7.Notice(`\u4E91\u7AEF\u56FE\u7247\u5220\u9664\u5931\u8D25\uFF0C\u5DF2\u53D6\u6D88\u6E05\u7406\u5F15\u7528\uFF1A${(_a = result.error) != null ? _a : "\u672A\u77E5\u9519\u8BEF"}`);
+        return;
+      }
+      await removeImageFromAllMdFiles([file.url]);
+      new import_obsidian7.Notice(`\u5DF2\u5220\u9664\u300C${file.name}\u300D`);
+      await this.ctx.refresh();
+    }));
+  }
+  /** 渲染本地未引用图片项 */
+  renderLocalUnrefItem(container, file) {
+    const { selection, app, deleteLocalUnrefFile, updateLocalUnrefActions, updateLocalActions, updateParentDirCheckboxes } = this.ctx;
+    const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } });
+    this.applySubdirGrouping(item, container);
+    item.addEventListener("click", (e) => {
+      const target = e.target;
+      if (target.closest("input, img, .pic-file-tag, button")) return;
+      this.ctx.setCurrentItem(item);
+      const cb = item.querySelector(".pic-cloud-checkbox");
+      if (cb) {
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event("change"));
+      }
+    });
+    item.addEventListener("dblclick", (e) => {
+      const target = e.target;
+      if (target.closest("input, img, .pic-file-tag, button")) return;
+      e.stopPropagation();
+      navigator.clipboard.writeText(file.name).then(
+        () => new import_obsidian7.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${file.name}\u300D`),
+        () => new import_obsidian7.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
+      );
+    });
+    const checkbox = item.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
+    checkbox.checked = selection.isSelected("localUnref" /* LocalUnref */, file.path);
+    checkbox.addEventListener("click", (e) => e.stopPropagation());
+    checkbox.addEventListener("change", (e) => {
+      e.stopPropagation();
+      if (checkbox.checked) selection.select("localUnref" /* LocalUnref */, [file.path]);
+      else selection.deselect("localUnref" /* LocalUnref */, file.path);
+      item.toggleClass("pic-item--selected", checkbox.checked);
+      updateLocalUnrefActions();
+      updateLocalActions();
+      updateParentDirCheckboxes();
+    });
+    const ext = file.extension.toLowerCase();
+    if (IMAGE_EXTENSIONS.has(ext)) {
+      const thumbSrc = app.vault.getResourcePath(file);
+      const thumb = item.createEl("img", { cls: "pic-thumb pic-thumb-clickable", attr: { src: thumbSrc, loading: "lazy" } });
+      thumb.addEventListener("error", () => {
+        thumb.setCssStyles({ display: "none" });
+        createThumbBrokenPlaceholder(item);
+      });
+      thumb.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showImagePreview(thumbSrc);
+      });
+    }
+    const shortName = formatDisplayPath(file.path);
+    const pathSpan = item.createSpan({ cls: "pic-path", text: shortName });
+    pathSpan.classList.add("clickable");
+    item.dataset.purePath = file.path;
+    pathSpan.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(file.path).then(
+        () => new import_obsidian7.Notice(`\u5DF2\u590D\u5236\u8DEF\u5F84`),
+        () => new import_obsidian7.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
+      );
+    });
+    const actions = item.createDiv({ cls: "pic-actions" });
+    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u79FB\u5165\u56DE\u6536\u7AD9" } });
+    deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
+      e.stopPropagation();
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5C06\u300C${file.name}\u300D\u79FB\u5165\u56DE\u6536\u7AD9\u5417\uFF1F`, title: "\u79FB\u5165\u56DE\u6536\u7AD9" })) return;
+      if (deleteLocalUnrefFile) {
+        await deleteLocalUnrefFile(file);
+      } else {
+        await app.fileManager.trashFile(file);
+        new import_obsidian7.Notice(`\u5DF2\u79FB\u5165\u56DE\u6536\u7AD9\u300C${file.name}\u300D`);
+      }
+      await this.ctx.refresh();
+    }));
+  }
+  /** 添加缩略图 */
+  addThumbnail(item, img) {
+    var _a, _b, _c;
+    const { app } = this.ctx;
+    const resolvedPath = img.resolvedPath || img.pure;
+    const ext = ((_a = resolvedPath.split(".").pop()) == null ? void 0 : _a.toLowerCase()) || "";
+    const isImage = IMAGE_EXTENSIONS.has(ext);
+    if (!isImage) return;
+    let thumbSrc;
+    if (img.type === "local") {
+      let file = app.vault.getAbstractFileByPath(resolvedPath);
+      if (!(file instanceof import_obsidian7.TFile)) {
+        const fileName = extractFileName(resolvedPath);
+        if (fileName) {
+          file = (_b = app.vault.getFiles().find((f) => f.name === fileName && f.path === resolvedPath)) != null ? _b : null;
+          if (!file) file = (_c = app.vault.getFiles().find((f) => f.name === fileName)) != null ? _c : null;
+        }
+      }
+      if (file instanceof import_obsidian7.TFile) {
+        thumbSrc = app.vault.getResourcePath(file);
+      }
+    } else {
+      thumbSrc = img.pure;
+    }
+    if (thumbSrc) {
+      const thumb = item.createEl("img", {
+        cls: "pic-thumb pic-thumb-clickable",
+        attr: { src: thumbSrc, loading: "lazy" }
+      });
+      thumb.addEventListener("error", () => {
+        thumb.setCssStyles({ display: "none" });
+        createThumbBrokenPlaceholder(item);
+      });
+      thumb.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showImagePreview(thumbSrc);
+      });
+    }
+  }
+};
+function createGroupCheckbox(opts) {
+  const { headerEl, itemKeys, selection, section, title, onChange, hasCheckedOverride } = opts;
+  const hasChecked = hasCheckedOverride != null ? hasCheckedOverride : ((k) => selection.isSelected(section, k));
+  const checkbox = headerEl.createEl("input", {
+    type: "checkbox",
+    cls: "pic-cloud-checkbox",
+    attr: title ? { title } : {}
+  });
+  headerEl.insertBefore(checkbox, headerEl.firstChild);
+  const syncCheckbox = () => {
+    const selectedCount = itemKeys.filter(hasChecked).length;
+    if (itemKeys.length === 0 || selectedCount === 0) {
+      checkbox.checked = false;
+      checkbox.indeterminate = false;
+    } else if (selectedCount === itemKeys.length) {
+      checkbox.checked = true;
+      checkbox.indeterminate = false;
+    } else {
+      checkbox.checked = false;
+      checkbox.indeterminate = true;
+    }
+  };
+  syncCheckbox();
+  checkbox.addEventListener("click", (e) => e.stopPropagation());
+  checkbox.addEventListener("change", () => {
+    if (checkbox.checked || checkbox.indeterminate) {
+      selection.select(section, itemKeys);
+    } else {
+      for (const k of itemKeys) selection.deselect(section, k);
+    }
+    syncCheckbox();
+    onChange == null ? void 0 : onChange();
+  });
+  const onSelectionChange = (changedSection) => {
+    if (changedSection === section) syncCheckbox();
+  };
+  selection.onChange(onSelectionChange);
+  const off = () => selection.off(onSelectionChange);
+  return { checkbox, syncCheckbox, off };
+}
+
 // src/view/components/TreeRenderer.ts
 var TreeRenderer = class {
   constructor(context) {
@@ -2353,51 +3131,108 @@ var TreeRenderer = class {
     return result;
   }
   /** 通用树节点渲染 */
-  renderTreeNodeGeneric(container, node, depth, config, selectedSet, breadcrumb = "") {
+  renderTreeNodeGeneric(container, node, depth, config, selectedSet, breadcrumb = "", overrideSection) {
+    var _a, _b, _c, _d;
     const { dirExpanded, saveExpandState, updateLocalActions, updateLocalUnrefActions, updateParentDirCheckboxes } = this.context;
+    const section = overrideSection != null ? overrideSection : this.context.section;
     if (node.files.length > 0) {
       const isRoot = depth === 0;
       if (isRoot) {
         const dirKey = breadcrumb || "__root__";
-        const expanded = !!this.searchKeyword || dirExpanded.has(dirKey);
+        const expanded = !!this.searchKeyword || ((_b = (_a = this.context).getIsAllExpandedByGlobal) == null ? void 0 : _b.call(_a)) || dirExpanded.has(dirKey);
         const dirHeader = container.createDiv({ cls: "pic-dir-header" });
         dirHeader.setCssStyles({ paddingLeft: `${10 + depth * 16}px` });
         dirHeader.dataset.depth = String(depth);
         dirHeader.dataset.dirKey = dirKey;
         let arrowEl = null;
-        if (selectedSet) {
+        const allKeys = this.collectTreeFiles(node).map(config.getKey);
+        const selection = this.context.selection;
+        if (selection && section) {
+          createGroupCheckbox({
+            headerEl: dirHeader,
+            itemKeys: allKeys,
+            selection,
+            section,
+            title: "\u5168\u9009/\u53D6\u6D88\u8BE5\u76EE\u5F55\u6240\u6709\u56FE\u7247",
+            onChange: () => {
+              ensureLazyRendered(dirContent);
+              const forceRender = (el) => {
+                ensureLazyRendered(el);
+                el.querySelectorAll(".pic-dir-content").forEach((child) => {
+                  forceRender(child);
+                });
+              };
+              forceRender(dirContent);
+              const expandAll = (el) => {
+                el.querySelectorAll(".pic-dir-content--collapsed").forEach((collapsed) => {
+                  collapsed.removeClass("pic-dir-content--collapsed");
+                  const hdr = collapsed.previousElementSibling;
+                  if (hdr == null ? void 0 : hdr.classList.contains("pic-dir-header")) {
+                    hdr.removeClass("pic-dir-header--collapsed");
+                    const arr = hdr.querySelector(".pic-dir-arrow");
+                    if (arr) arr.textContent = "\u25BD";
+                    const dk = hdr.dataset.dirKey;
+                    if (dk) dirExpanded.add(dk);
+                  }
+                });
+                saveExpandState();
+              };
+              expandAll(dirContent);
+              const dirCb = dirHeader.querySelector("input[type=checkbox]");
+              const syncNested = (el) => {
+                el.querySelectorAll(".pic-item .pic-cloud-checkbox").forEach((cb) => {
+                  cb.checked = dirCb.checked;
+                  const itemEl = cb.closest(".pic-item");
+                  if (itemEl) itemEl.toggleClass("pic-item--selected", dirCb.checked);
+                });
+                el.querySelectorAll(".pic-dir-content").forEach((childContent) => syncNested(childContent));
+              };
+              syncNested(dirContent);
+              updateLocalUnrefActions();
+              updateLocalActions();
+              updateParentDirCheckboxes();
+            }
+          });
+        } else if (selectedSet) {
           const dirCb = dirHeader.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
-          const allKeys = this.collectTreeFiles(node).map(config.getKey);
           dirCb.checked = allKeys.length > 0 && allKeys.every((k) => selectedSet.has(k));
           dirCb.addEventListener("click", (e) => e.stopPropagation());
           dirCb.addEventListener("change", () => {
-            for (const k of allKeys) {
-              if (dirCb.checked) selectedSet.add(k);
-              else selectedSet.delete(k);
-            }
             dirHeader.toggleClass("pic-dir-header--selected", dirCb.checked);
-            if (dirContent.style.display === "none") {
-              dirContent.setCssStyles({ display: "" });
-              if (arrowEl) arrowEl.textContent = "\u25BD";
+            if (dirContent.classList.contains("pic-dir-content--collapsed")) {
+              dirContent.removeClass("pic-dir-content--collapsed");
+              arrowEl.textContent = "\u25BD";
               dirExpanded.add(dirKey);
               saveExpandState();
             }
+            ensureLazyRendered(dirContent);
             const forceRender = (el) => {
+              ensureLazyRendered(el);
               el.querySelectorAll(".pic-dir-content").forEach((child) => {
-                ensureLazyRendered(child);
+                forceRender(child);
               });
             };
             forceRender(dirContent);
+            const expandAll = (el) => {
+              el.querySelectorAll(".pic-dir-content--collapsed").forEach((collapsed) => {
+                collapsed.removeClass("pic-dir-content--collapsed");
+                const hdr = collapsed.previousElementSibling;
+                if (hdr == null ? void 0 : hdr.classList.contains("pic-dir-header")) {
+                  hdr.removeClass("pic-dir-header--collapsed");
+                  const arr = hdr.querySelector(".pic-dir-arrow");
+                  if (arr) arr.textContent = "\u25BD";
+                  const dk = hdr.dataset.dirKey;
+                  if (dk) dirExpanded.add(dk);
+                }
+              });
+              saveExpandState();
+            };
+            expandAll(dirContent);
             const syncNested = (el) => {
-              el.querySelectorAll(".pic-cloud-checkbox").forEach((cb) => {
+              el.querySelectorAll(".pic-item .pic-cloud-checkbox").forEach((cb) => {
                 cb.checked = dirCb.checked;
                 const itemEl = cb.closest(".pic-item");
-                if (itemEl) {
-                  itemEl.toggleClass("pic-item--selected", dirCb.checked);
-                } else {
-                  const dirEl = cb.closest(".pic-dir-header");
-                  if (dirEl) dirEl.toggleClass("pic-dir-header--selected", dirCb.checked);
-                }
+                if (itemEl) itemEl.toggleClass("pic-item--selected", dirCb.checked);
               });
               el.querySelectorAll(".pic-dir-content").forEach((childContent) => syncNested(childContent));
             };
@@ -2407,17 +3242,18 @@ var TreeRenderer = class {
             updateParentDirCheckboxes();
           });
         }
-        const arrow = dirHeader.createSpan({ cls: "pic-dir-arrow", text: expanded ? "\u25BD" : "\u25B6" });
-        arrowEl = arrow;
         const iconSpan = dirHeader.createSpan({ cls: "pic-dir-icon" });
         setSafeHTML(iconSpan, `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`);
         dirHeader.createSpan({ cls: "pic-dir-name", text: "\u6839\u76EE\u5F55" });
         dirHeader.createSpan({ cls: "pic-dir-count", text: `(${node.files.length})` });
-        const dirContent = container.createDiv({ cls: "pic-dir-content" });
-        if (!expanded) dirContent.setCssStyles({ display: "none" });
+        const arrow = dirHeader.createSpan({ cls: "pic-dir-arrow", text: expanded ? "\u25BD" : "\u25B6" });
+        arrowEl = arrow;
+        const dirContent = container.createDiv({ cls: "pic-dir-content" + (expanded ? "" : " pic-dir-content--collapsed") });
         dirHeader.addEventListener("click", () => {
-          const isCollapsed = dirContent.style.display === "none";
-          dirContent.setCssStyles({ display: isCollapsed ? "" : "none" });
+          var _a2, _b2;
+          const isCollapsed = dirContent.classList.contains("pic-dir-content--collapsed");
+          dirContent.toggleClass("pic-dir-content--collapsed", !isCollapsed);
+          dirHeader.toggleClass("pic-dir-header--collapsed", !isCollapsed);
           arrow.textContent = isCollapsed ? "\u25BD" : "\u25B6";
           if (isCollapsed) {
             dirExpanded.add(dirKey);
@@ -2426,6 +3262,7 @@ var TreeRenderer = class {
             dirExpanded.delete(dirKey);
             saveExpandState();
           }
+          (_b2 = (_a2 = this.context).onDirToggle) == null ? void 0 : _b2.call(_a2);
         });
         for (const item of node.files) {
           config.renderItem(dirContent, item, selectedSet);
@@ -2441,42 +3278,104 @@ var TreeRenderer = class {
       const allFiles = this.collectTreeFiles(childNode);
       const childBreadcrumb = breadcrumb ? `${breadcrumb} / ${dirName}` : dirName;
       const dirKey = childBreadcrumb;
-      const expanded = !!this.searchKeyword || dirExpanded.has(dirKey);
+      const expanded = !!this.searchKeyword || ((_d = (_c = this.context).getIsAllExpandedByGlobal) == null ? void 0 : _d.call(_c)) || dirExpanded.has(dirKey);
       const dirHeader = container.createDiv({ cls: "pic-dir-header" + (depth > 0 ? " pic-dir-nested" : "") });
       dirHeader.setCssStyles({ paddingLeft: `${10 + depth * 16}px` });
       dirHeader.dataset.depth = String(depth);
       dirHeader.dataset.dirKey = dirKey;
       let arrowEl = null;
-      if (selectedSet) {
+      const allKeys = this.collectTreeFiles(childNode).map(config.getKey);
+      const selection = this.context.selection;
+      if (selection && section) {
+        createGroupCheckbox({
+          headerEl: dirHeader,
+          itemKeys: allKeys,
+          selection,
+          section,
+          title: "\u5168\u9009/\u53D6\u6D88\u8BE5\u76EE\u5F55\u6240\u6709\u56FE\u7247",
+          onChange: () => {
+            ensureLazyRendered(dirContent);
+            const forceRender = (el) => {
+              ensureLazyRendered(el);
+              el.querySelectorAll(".pic-dir-content").forEach((child) => {
+                forceRender(child);
+              });
+            };
+            forceRender(dirContent);
+            const expandAll = (el) => {
+              el.querySelectorAll(".pic-dir-content--collapsed").forEach((collapsed) => {
+                collapsed.removeClass("pic-dir-content--collapsed");
+                const hdr = collapsed.previousElementSibling;
+                if (hdr == null ? void 0 : hdr.classList.contains("pic-dir-header")) {
+                  hdr.removeClass("pic-dir-header--collapsed");
+                  const arr = hdr.querySelector(".pic-dir-arrow");
+                  if (arr) arr.textContent = "\u25BD";
+                  const dk = hdr.dataset.dirKey;
+                  if (dk) dirExpanded.add(dk);
+                }
+              });
+              saveExpandState();
+            };
+            expandAll(dirContent);
+            const dirCb = dirHeader.querySelector("input[type=checkbox]");
+            const syncNested = (el) => {
+              el.querySelectorAll(".pic-item .pic-cloud-checkbox").forEach((cb) => {
+                cb.checked = dirCb.checked;
+                const itemEl = cb.closest(".pic-item");
+                if (itemEl) itemEl.toggleClass("pic-item--selected", dirCb.checked);
+              });
+              el.querySelectorAll(".pic-dir-content").forEach((childContent) => syncNested(childContent));
+            };
+            syncNested(dirContent);
+            updateLocalUnrefActions();
+            updateLocalActions();
+            updateParentDirCheckboxes();
+          }
+        });
+      } else if (selectedSet) {
         const dirCb = dirHeader.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
-        const allKeys = allFiles.map(config.getKey);
         dirCb.checked = allKeys.length > 0 && allKeys.every((k) => selectedSet.has(k));
         dirCb.addEventListener("click", (e) => e.stopPropagation());
         dirCb.addEventListener("change", () => {
-          for (const k of allKeys) {
-            if (dirCb.checked) selectedSet.add(k);
-            else selectedSet.delete(k);
-          }
           dirHeader.toggleClass("pic-dir-header--selected", dirCb.checked);
-          if (dirContent.style.display === "none") {
-            dirContent.setCssStyles({ display: "" });
-            if (arrowEl) arrowEl.textContent = "\u25BD";
+          if (dirContent.classList.contains("pic-dir-content--collapsed")) {
+            dirContent.removeClass("pic-dir-content--collapsed");
+            arrowEl.textContent = "\u25BD";
             dirExpanded.add(dirKey);
             saveExpandState();
           }
-          dirContent.querySelectorAll(".pic-dir-content").forEach((child) => {
-            ensureLazyRendered(child);
-          });
-          dirContent.querySelectorAll(".pic-cloud-checkbox").forEach((cb) => {
-            cb.checked = dirCb.checked;
-            const itemEl = cb.closest(".pic-item");
-            if (itemEl) {
-              itemEl.toggleClass("pic-item--selected", dirCb.checked);
-            } else {
-              const dirEl = cb.closest(".pic-dir-header");
-              if (dirEl) dirEl.toggleClass("pic-dir-header--selected", dirCb.checked);
-            }
-          });
+          ensureLazyRendered(dirContent);
+          const forceRender = (el) => {
+            ensureLazyRendered(el);
+            el.querySelectorAll(".pic-dir-content").forEach((child) => {
+              forceRender(child);
+            });
+          };
+          forceRender(dirContent);
+          const expandAll = (el) => {
+            el.querySelectorAll(".pic-dir-content--collapsed").forEach((collapsed) => {
+              collapsed.removeClass("pic-dir-content--collapsed");
+              const hdr = collapsed.previousElementSibling;
+              if (hdr == null ? void 0 : hdr.classList.contains("pic-dir-header")) {
+                hdr.removeClass("pic-dir-header--collapsed");
+                const arr = hdr.querySelector(".pic-dir-arrow");
+                if (arr) arr.textContent = "\u25BD";
+                const dk = hdr.dataset.dirKey;
+                if (dk) dirExpanded.add(dk);
+              }
+            });
+            saveExpandState();
+          };
+          expandAll(dirContent);
+          const syncNested = (el) => {
+            el.querySelectorAll(".pic-item .pic-cloud-checkbox").forEach((cb) => {
+              cb.checked = dirCb.checked;
+              const itemEl = cb.closest(".pic-item");
+              if (itemEl) itemEl.toggleClass("pic-item--selected", dirCb.checked);
+            });
+            el.querySelectorAll(".pic-dir-content").forEach((childContent) => syncNested(childContent));
+          };
+          syncNested(dirContent);
           updateLocalUnrefActions();
           updateLocalActions();
           updateParentDirCheckboxes();
@@ -2488,11 +3387,12 @@ var TreeRenderer = class {
       setSafeHTML(iconSpan, `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`);
       dirHeader.createSpan({ cls: "pic-dir-name", text: dirName });
       dirHeader.createSpan({ cls: "pic-dir-count", text: `(${allFiles.length})` });
-      const dirContent = container.createDiv({ cls: "pic-dir-content" + (depth > 0 ? " pic-dir-nested" : "") });
-      if (!expanded) dirContent.setCssStyles({ display: "none" });
+      const dirContent = container.createDiv({ cls: "pic-dir-content" + (depth > 0 ? " pic-dir-nested" : "") + (expanded ? "" : " pic-dir-content--collapsed") });
       dirHeader.addEventListener("click", () => {
-        const isCollapsed = dirContent.style.display === "none";
-        dirContent.setCssStyles({ display: isCollapsed ? "" : "none" });
+        var _a2, _b2;
+        const isCollapsed = dirContent.classList.contains("pic-dir-content--collapsed");
+        dirContent.toggleClass("pic-dir-content--collapsed", !isCollapsed);
+        dirHeader.toggleClass("pic-dir-header--collapsed", !isCollapsed);
         arrow.textContent = isCollapsed ? "\u25BD" : "\u25B6";
         if (isCollapsed) {
           ensureLazyRendered(dirContent);
@@ -2501,11 +3401,12 @@ var TreeRenderer = class {
           dirExpanded.delete(dirKey);
         }
         saveExpandState();
+        (_b2 = (_a2 = this.context).onDirToggle) == null ? void 0 : _b2.call(_a2);
       });
       if (!expanded) {
-        setLazyRenderFn(dirContent, () => this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb));
+        setLazyRenderFn(dirContent, () => this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb, overrideSection));
       } else {
-        this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb);
+        this.renderTreeNodeGeneric(dirContent, childNode, depth + 1, config, selectedSet, childBreadcrumb, overrideSection);
       }
     }
   }
@@ -2534,12 +3435,11 @@ var TreeRenderer = class {
       header.dataset.selectionSection = String(selectionSection);
       header.createDiv({ cls: "pic-part-actions" });
     }
-    const content = parent.createDiv({ cls: "pic-part-content", attr: { "data-section-key": sectionKey } });
+    const content = parent.createDiv({ cls: "pic-part-content" + (expanded ? "" : " pic-part-content--collapsed"), attr: { "data-section-key": sectionKey } });
     if (!expanded) {
-      content.setCssStyles({ display: "none" });
       header.addClass("pic-part-header--collapsed");
     }
-    syncHeaderBorder(header, content);
+    syncHeaderStuckClass(header, false);
     setLazyRendered(content, expanded);
     header.addEventListener("click", () => {
       toggleSection();
@@ -2551,14 +3451,14 @@ var TreeRenderer = class {
       }
     });
     const toggleSection = () => {
-      const isCollapsed = content.style.display === "none";
-      content.setCssStyles({ display: isCollapsed ? "" : "none" });
+      const isCollapsed = content.classList.contains("pic-part-content--collapsed");
+      content.toggleClass("pic-part-content--collapsed", !isCollapsed);
       arrow.textContent = isCollapsed ? "\u25BD" : "\u25B6";
       const actionsEl = header.querySelector(".pic-part-actions");
-      if (actionsEl) actionsEl.setCssStyles({ display: isCollapsed ? "" : "none" });
+      if (actionsEl) actionsEl.toggleClass("pic-part-actions--hidden", !isCollapsed);
       header.setAttribute("aria-expanded", String(isCollapsed));
       header.toggleClass("pic-part-header--collapsed", !isCollapsed);
-      syncHeaderBorder(header, content);
+      syncHeaderStuckClass(header, header.classList.contains("pic-part-header--stuck"));
       if (isCollapsed) {
         sectionExpanded.delete(`!${sectionKey}`);
         content.querySelectorAll(".pic-dir-header[data-dir-key]").forEach((h) => {
@@ -2567,7 +3467,7 @@ var TreeRenderer = class {
           const dirContent = h.nextElementSibling;
           const arrow2 = h.querySelector(".pic-dir-arrow");
           const isDirExpanded = dirExpanded.has(dirKey);
-          if (dirContent) dirContent.setCssStyles({ display: isDirExpanded ? "" : "none" });
+          if (dirContent) dirContent.toggleClass("pic-dir-content--collapsed", !isDirExpanded);
           if (arrow2) arrow2.textContent = isDirExpanded ? "\u25BD" : "\u25B6";
         });
         saveExpandState();
@@ -2577,7 +3477,7 @@ var TreeRenderer = class {
         if (!this.searchKeyword) {
           sectionExpanded.add(`!${sectionKey}`);
           content.querySelectorAll(".pic-dir-content").forEach((d) => {
-            d.setCssStyles({ display: "none" });
+            d.addClass("pic-dir-content--collapsed");
           });
           content.querySelectorAll(".pic-dir-arrow").forEach((a) => {
             a.textContent = "\u25B6";
@@ -2594,585 +3494,8 @@ var TreeRenderer = class {
   }
 };
 
-// src/view/components/ItemRenderer.ts
-var import_obsidian6 = require("obsidian");
-var ItemRenderer = class {
-  constructor(ctx) {
-    this.ctx = ctx;
-  }
-  /** 判断容器是否处于子目录（非顶层）层级：
-   *  其所在的 .pic-dir-content 之上仍存在 .pic-dir-content 祖先。
-   *  用于为子目录直接文件追加分组视觉标识（不依赖 styles.css 新增样式）。 */
-  isSubdirLevel(container) {
-    const dc = container.closest(".pic-dir-content");
-    if (!dc) return false;
-    return !!(dc.parentElement && dc.parentElement.closest(".pic-dir-content"));
-  }
-  /** 为子目录层级的条目追加轻微分组视觉标识（左侧内阴影引导线）。
-   *  复用主题变量，不使用新增 CSS，且不影响 :hover 背景与折叠/点击逻辑。 */
-  applySubdirGrouping(item, container) {
-    void item;
-    void container;
-  }
-  /** 渲染本地引用图片条目 */
-  renderLocalItem(container, img, selectedSet) {
-    var _a;
-    const { selection, app, copyImagePath, updateLocalActions, updateParentDirCheckboxes } = this.ctx;
-    const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } });
-    this.applySubdirGrouping(item, container);
-    if (selectedSet) {
-      item.addEventListener("click", (e) => {
-        const target = e.target;
-        if (target.closest("input, img, .pic-file-tag, button")) return;
-        this.ctx.setCurrentItem(item);
-        const cb = item.querySelector(".pic-cloud-checkbox");
-        if (cb) {
-          cb.checked = !cb.checked;
-          cb.dispatchEvent(new Event("change"));
-        }
-      });
-    }
-    item.addEventListener("dblclick", (e) => {
-      const target = e.target;
-      if (target.closest("input, img, .pic-file-tag, button")) return;
-      e.stopPropagation();
-      const fileName = extractFileName(img.resolvedPath || img.pure);
-      if (fileName) {
-        navigator.clipboard.writeText(fileName).then(
-          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
-          () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
-        );
-      }
-    });
-    if (selectedSet) {
-      const checkbox = item.createEl("input", {
-        type: "checkbox",
-        cls: "pic-cloud-checkbox"
-      });
-      checkbox.checked = selectedSet.has(img.pure);
-      checkbox.addEventListener("click", (e) => e.stopPropagation());
-      checkbox.addEventListener("change", (e) => {
-        e.stopPropagation();
-        if (checkbox.checked) {
-          selectedSet.add(img.pure);
-          selection.select("localImages" /* LocalImages */, [img.pure]);
-        } else {
-          selectedSet.delete(img.pure);
-          selection.deselect("localImages" /* LocalImages */, img.pure);
-        }
-        item.toggleClass("pic-item--selected", checkbox.checked);
-        updateLocalActions();
-        updateParentDirCheckboxes();
-      });
-    }
-    const resolvedPath = img.resolvedPath || img.pure;
-    const ext = ((_a = resolvedPath.split(".").pop()) == null ? void 0 : _a.toLowerCase()) || "";
-    const isImage = IMAGE_EXTENSIONS.has(ext);
-    if (isImage) {
-      let thumbSrc;
-      if (img.type === "local") {
-        const file = app.vault.getAbstractFileByPath(resolvedPath);
-        if (file instanceof import_obsidian6.TFile) {
-          thumbSrc = app.vault.getResourcePath(file);
-        }
-      } else {
-        thumbSrc = img.pure;
-      }
-      if (thumbSrc) {
-        const thumb = item.createEl("img", {
-          cls: "pic-thumb pic-thumb-clickable",
-          attr: { src: thumbSrc, loading: "lazy" }
-        });
-        thumb.addEventListener("error", () => {
-          thumb.setCssStyles({ display: "none" });
-        });
-        thumb.addEventListener("click", (e) => {
-          e.stopPropagation();
-          showImagePreview(thumbSrc);
-        });
-      }
-    }
-    let displayPath = img.resolvedPath || img.pure;
-    if (img.type !== "local") {
-      try {
-        displayPath = new URL(img.pure).pathname.slice(1);
-      } catch (e) {
-      }
-    }
-    const shortPath = formatDisplayPath(displayPath);
-    const pathSpan = item.createSpan({ cls: "pic-path", text: shortPath, title: "\u53CC\u51FB\u590D\u5236\u5B8C\u6574\u8DEF\u5F84" });
-    pathSpan.classList.add("clickable");
-    item.dataset.purePath = img.pure;
-    pathSpan.addEventListener("dblclick", (e) => {
-      e.stopPropagation();
-      copyImagePath(img);
-    });
-    this.renderTags(item, img, "localTags" /* LocalTags */, img.pure);
-    const actions = item.createDiv({ cls: "pic-actions" });
-    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u56FE\u7247\u5E76\u6E05\u7406\u5F15\u7528\u884C" } });
-    deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
-      e.stopPropagation();
-      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${img.pure}\u300D\u5417\uFF1F
-\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`, title: "\u5220\u9664\u56FE\u7247" })) return;
-      for (const fp of img.files) {
-        await this.ctx.removeImageFromMdFile(fp, [img.pure]);
-      }
-      const filePath = img.resolvedPath || img.pure;
-      const file = app.vault.getAbstractFileByPath(filePath);
-      if (file instanceof import_obsidian6.TFile) {
-        await app.fileManager.trashFile(file);
-        new import_obsidian6.Notice(`\u5DF2\u5220\u9664\u300C${extractFileName(filePath) || filePath}\u300D`);
-      }
-      selection.deselect("localImages" /* LocalImages */, img.pure);
-      for (const tagKey of selection.getSelected("localTags" /* LocalTags */)) {
-        if (tagKey.startsWith(img.pure + "::")) selection.deselect("localTags" /* LocalTags */, tagKey);
-      }
-      await this.ctx.refresh();
-    }));
-  }
-  /** 渲染引用标签（多标签时换行而非横向溢出） */
-  renderTags(container, img, section, keyPrefix) {
-    const { selection, jumpToFile } = this.ctx;
-    const expandedRefs = expandRefs(img);
-    if (expandedRefs.length === 0) return;
-    const tagsWrap = container.createDiv({ cls: "pic-tags" });
-    tagsWrap.setCssStyles({ display: "flex", flexWrap: "wrap", gap: "4px", minWidth: "0" });
-    for (let i = 0; i < expandedRefs.length; i++) {
-      const ref = expandedRefs[i];
-      const tagKey = `${keyPrefix}::${i}`;
-      const isSelected = selection.isSelected(section, tagKey);
-      const fileName = ref.file.split("/").pop() || ref.file;
-      const tagText = ref.line > 0 ? `${fileName}:${ref.line}` : fileName;
-      const tag = container.createSpan({
-        cls: `pic-file-tag${isSelected ? " pic-file-tag-focus" : ""}`,
-        text: tagText
-      });
-      tag.dataset.tagRef = tagText;
-      tag.title = isSelected ? `\u518D\u6B21\u5355\u51FB\u8DF3\u8F6C\u5230 ${ref.file}:${ref.line}` : `\u5355\u51FB\u9009\u4E2D`;
-      tag.classList.add("clickable");
-      tagsWrap.appendChild(tag);
-      tag.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (selection.isSelected(section, tagKey)) {
-          jumpToFile(img, ref.file, ref.line);
-        } else {
-          selection.select(section, [tagKey]);
-          tag.classList.add("pic-file-tag-focus");
-          tag.title = `\u518D\u6B21\u5355\u51FB\u8DF3\u8F6C\u5230 ${ref.file}:${ref.line}`;
-        }
-      });
-    }
-  }
-  /** 云端引用图片项 */
-  renderCloudReferencedItem(container, img, selectedSet) {
-    const { selection, copyImagePath, deleteCloudFile, removeImageFromMdFile, updateLocalActions, updateParentDirCheckboxes } = this.ctx;
-    const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } });
-    this.applySubdirGrouping(item, container);
-    if (selectedSet) {
-      item.addEventListener("click", (e) => {
-        const target = e.target;
-        if (target.closest("input, img, button")) return;
-        this.ctx.setCurrentItem(item);
-        const cb = item.querySelector(".pic-cloud-checkbox");
-        if (cb) {
-          cb.checked = !cb.checked;
-          cb.dispatchEvent(new Event("change"));
-        }
-      });
-    }
-    item.addEventListener("dblclick", (e) => {
-      const target = e.target;
-      if (target.closest("input, img, button")) return;
-      e.stopPropagation();
-      const fileName = extractFileName(img.pure);
-      if (fileName) {
-        navigator.clipboard.writeText(fileName).then(
-          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
-          () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
-        );
-      }
-    });
-    if (selectedSet) {
-      const checkbox = item.createEl("input", {
-        type: "checkbox",
-        cls: "pic-cloud-checkbox"
-      });
-      checkbox.checked = selectedSet.has(img.pure);
-      checkbox.addEventListener("click", (e) => e.stopPropagation());
-      checkbox.addEventListener("change", (e) => {
-        e.stopPropagation();
-        if (checkbox.checked) {
-          selectedSet.add(img.pure);
-          selection.select("cloudImages" /* CloudImages */, [img.pure]);
-        } else {
-          selectedSet.delete(img.pure);
-          selection.deselect("cloudImages" /* CloudImages */, img.pure);
-        }
-        item.toggleClass("pic-item--selected", checkbox.checked);
-        updateLocalActions();
-        updateParentDirCheckboxes();
-      });
-    }
-    let thumbSrc;
-    try {
-      thumbSrc = img.pure;
-    } catch (e) {
-    }
-    if (thumbSrc) {
-      const thumb = item.createEl("img", {
-        cls: "pic-thumb pic-thumb-clickable",
-        attr: { src: thumbSrc, loading: "lazy" }
-      });
-      thumb.addEventListener("error", () => {
-        thumb.setCssStyles({ display: "none" });
-      });
-      thumb.addEventListener("click", (e) => {
-        e.stopPropagation();
-        showImagePreview(thumbSrc);
-      });
-    }
-    let displayPath;
-    try {
-      displayPath = new URL(img.pure).pathname.slice(1);
-    } catch (e) {
-      displayPath = img.pure;
-    }
-    const shortPath = formatDisplayPath(displayPath);
-    const pathSpan = item.createSpan({ cls: "pic-path", text: shortPath, title: "\u53CC\u51FB\u590D\u5236\u5B8C\u6574\u8DEF\u5F84" });
-    pathSpan.classList.add("clickable");
-    item.dataset.purePath = img.pure;
-    pathSpan.addEventListener("dblclick", (e) => {
-      e.stopPropagation();
-      copyImagePath(img);
-    });
-    this.renderTags(item, img, "cloudTags" /* CloudTags */, img.pure);
-    const actions = item.createDiv({ cls: "pic-actions" });
-    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u4E91\u7AEF\u56FE\u7247\u5E76\u6E05\u7406\u5F15\u7528\u884C" } });
-    deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
-      var _a, _b;
-      e.stopPropagation();
-      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${img.pure}\u300D\u5417\uFF1F
-\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`, title: "\u5220\u9664\u56FE\u7247" })) return;
-      const bedType = (_a = detectBedTypeFromUrl(img.pure)) != null ? _a : void 0;
-      if (!bedType) {
-        new import_obsidian6.Notice("\u65E0\u6CD5\u8BC6\u522B\u56FE\u5E8A\u7C7B\u578B\uFF0C\u5DF2\u53D6\u6D88\u5220\u9664\uFF08\u7B14\u8BB0\u5F15\u7528\u672A\u6E05\u7406\uFF09");
-        return;
-      }
-      const cloudFile = this.ctx.cloudFiles.find((cf) => cf.url === img.pure);
-      const fileKey = (cloudFile == null ? void 0 : cloudFile.prefix) || (cloudFile == null ? void 0 : cloudFile.name) || extractFileName(img.pure) || img.pure;
-      const result = await deleteCloudFile(fileKey, bedType);
-      if (!result.success) {
-        new import_obsidian6.Notice(`\u4E91\u7AEF\u56FE\u7247\u5220\u9664\u5931\u8D25\uFF0C\u5DF2\u53D6\u6D88\u6E05\u7406\u5F15\u7528\uFF1A${(_b = result.error) != null ? _b : "\u672A\u77E5\u9519\u8BEF"}`);
-        return;
-      }
-      for (const fp of img.files) {
-        await removeImageFromMdFile(fp, [img.pure]);
-      }
-      new import_obsidian6.Notice(`\u5DF2\u5220\u9664\u300C${extractFileName(img.pure) || img.pure}\u300D`);
-      selection.deselect("cloudImages" /* CloudImages */, img.pure);
-      await this.ctx.refresh();
-    }));
-  }
-  /** 未找到图片项 */
-  renderNotFoundItem(container, img, selectedSet) {
-    const { selection, removeImageFromMdFile, updateLocalActions, updateParentDirCheckboxes, refresh } = this.ctx;
-    const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } });
-    this.applySubdirGrouping(item, container);
-    const isChecked = selectedSet ? selectedSet.has(img.pure) : selection.isSelected("notFound" /* NotFound */, img.pure);
-    const checkbox = item.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
-    checkbox.checked = isChecked;
-    checkbox.addEventListener("click", (e) => e.stopPropagation());
-    checkbox.addEventListener("change", (e) => {
-      e.stopPropagation();
-      if (checkbox.checked) {
-        if (selectedSet) selectedSet.add(img.pure);
-        else selection.select("notFound" /* NotFound */, [img.pure]);
-      } else {
-        if (selectedSet) selectedSet.delete(img.pure);
-        else selection.deselect("notFound" /* NotFound */, img.pure);
-      }
-      item.toggleClass("pic-item--selected", checkbox.checked);
-      updateLocalActions();
-      updateParentDirCheckboxes();
-    });
-    item.addEventListener("click", (e) => {
-      const target = e.target;
-      if (target.closest(".pic-file-tag, button, input")) return;
-      this.ctx.setCurrentItem(item);
-      const cb = item.querySelector(".pic-cloud-checkbox");
-      if (cb) {
-        cb.checked = !cb.checked;
-        cb.dispatchEvent(new Event("change"));
-      }
-    });
-    item.addEventListener("dblclick", (e) => {
-      const target = e.target;
-      if (target.closest(".pic-file-tag, button, input")) return;
-      e.stopPropagation();
-      const fileName = extractFileName(img.resolvedPath || img.pure);
-      if (fileName) {
-        navigator.clipboard.writeText(fileName).then(
-          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
-          () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
-        );
-      }
-    });
-    const notFoundIcon = `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--pic-error)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
-    const iconWrapper = item.createSpan();
-    setSafeHTML(iconWrapper, notFoundIcon);
-    const displayPath = img.resolvedPath || img.pure;
-    const shortPath = formatDisplayPath(displayPath);
-    const pathSpan = item.createSpan({ cls: "pic-path", text: shortPath, title: displayPath });
-    pathSpan.classList.add("clickable");
-    item.dataset.purePath = img.pure;
-    pathSpan.addEventListener("dblclick", (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(displayPath).then(
-        () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u8DEF\u5F84`),
-        () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
-      );
-    });
-    this.renderTags(item, img, "notFound" /* NotFound */, img.pure);
-    const actions = item.createDiv({ cls: "pic-actions" });
-    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u8BE5\u56FE\u7247\u7684\u6240\u6709\u5F15\u7528\u884C" } });
-    deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
-      e.stopPropagation();
-      if (img.files.length === 0) {
-        new import_obsidian6.Notice("\u6CA1\u6709\u627E\u5230\u5F15\u7528\u8BE5\u56FE\u7247\u7684\u7B14\u8BB0");
-        return;
-      }
-      const fileList = img.files.map((f) => f.split("/").pop() || f).join("\u3001");
-      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u300C${displayPath}\u300D\u5728 ${img.files.length} \u4E2A\u7B14\u8BB0\uFF08${fileList}\uFF09\u4E2D\u7684\u6240\u6709\u5F15\u7528\u884C\u5417\uFF1F`, title: "\u5220\u9664\u5F15\u7528\u884C" })) return;
-      let successCount = 0;
-      let failCount = 0;
-      for (const fp of img.files) {
-        try {
-          const count = await removeImageFromMdFile(fp, [img.pure]);
-          if (count > 0) successCount += count;
-          else failCount++;
-        } catch (e2) {
-          failCount++;
-        }
-      }
-      const parts = [];
-      if (successCount > 0) parts.push(`${successCount} \u884C\u5DF2\u5220\u9664`);
-      if (failCount > 0) parts.push(`${failCount} \u884C\u5931\u8D25`);
-      new import_obsidian6.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
-      await refresh();
-    }));
-  }
-  /** 云端文件项 */
-  renderCloudItem(container, file, indent = "") {
-    const { selection, deleteCloudFile, removeImageFromAllMdFiles, updateLocalUnrefActions, updateLocalActions, updateParentDirCheckboxes, updateDeleteSelectedBtn, showPath } = this.ctx;
-    const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } });
-    this.applySubdirGrouping(item, container);
-    const fileKey = file.prefix || file.name;
-    item.addEventListener("click", (e) => {
-      const target = e.target;
-      if (target.closest("input, img, .pic-file-tag, button")) return;
-      this.ctx.setCurrentItem(item);
-      const cb = item.querySelector(".pic-cloud-checkbox");
-      if (cb) {
-        cb.checked = !cb.checked;
-        cb.dispatchEvent(new Event("change"));
-      }
-    });
-    item.addEventListener("dblclick", (e) => {
-      const target = e.target;
-      if (target.closest("input, img, .pic-file-tag, button")) return;
-      e.stopPropagation();
-      const fileName = extractFileName(file.name);
-      if (fileName) {
-        navigator.clipboard.writeText(fileName).then(
-          () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${fileName}\u300D`),
-          () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
-        );
-      }
-    });
-    const checkbox = item.createEl("input", {
-      type: "checkbox",
-      cls: "pic-cloud-checkbox"
-    });
-    checkbox.checked = selection.isSelected("cloudFiles" /* CloudFiles */, fileKey);
-    checkbox.addEventListener("click", (e) => e.stopPropagation());
-    checkbox.addEventListener("change", (e) => {
-      e.stopPropagation();
-      if (checkbox.checked) {
-        selection.select("cloudFiles" /* CloudFiles */, [fileKey]);
-      } else {
-        selection.deselect("cloudFiles" /* CloudFiles */, fileKey);
-      }
-      item.toggleClass("pic-item--selected", checkbox.checked);
-      updateDeleteSelectedBtn == null ? void 0 : updateDeleteSelectedBtn();
-      updateLocalUnrefActions();
-      updateLocalActions();
-      updateParentDirCheckboxes();
-    });
-    const cloudBedType = detectBedTypeFromUrl(file.url);
-    const ext = getFileExtension(file.name);
-    const isImage = IMAGE_EXTENSIONS.has(ext);
-    if (isImage) {
-      const thumb = item.createEl("img", {
-        cls: "pic-thumb pic-thumb-clickable",
-        attr: { src: file.url, loading: "lazy" }
-      });
-      thumb.addEventListener("error", () => {
-        thumb.setCssStyles({ display: "none" });
-      });
-      thumb.addEventListener("click", (e) => {
-        e.stopPropagation();
-        showImagePreview(file.url);
-      });
-    } else {
-      item.createSpan({ cls: "pic-cloud-file-icon", text: "\u{1F4C4}" });
-    }
-    const cloudDisplayName = showPath ? file.prefix || file.name : extractFileName(file.name) || file.name;
-    const pathSpan = item.createSpan({ cls: "pic-path", text: `${indent}${cloudDisplayName}` });
-    pathSpan.classList.add("clickable");
-    item.dataset.purePath = fileKey;
-    pathSpan.addEventListener("dblclick", (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(file.url).then(
-        () => new import_obsidian6.Notice("\u5DF2\u590D\u5236\u8DEF\u5F84"),
-        () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
-      );
-    });
-    const actions = item.createDiv({ cls: "pic-actions" });
-    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u4E91\u7AEF\u56FE\u7247\u5E76\u6E05\u7406\u5F15\u7528\u884C" } });
-    deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
-      var _a;
-      e.stopPropagation();
-      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u4E91\u7AEF\u56FE\u7247\u300C${file.name}\u300D\u5417\uFF1F
-\u5C06\u540C\u65F6\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`, title: "\u5220\u9664\u4E91\u7AEF\u56FE\u7247" })) return;
-      if (!cloudBedType) {
-        new import_obsidian6.Notice("PicLinker\uFF1A\u4E91\u7AEF\u56FE\u7247\u672A\u5220\u9664\uFF1A\u65E0\u6CD5\u8BC6\u522B\u56FE\u5E8A\u7C7B\u578B");
-        return;
-      }
-      const result = await deleteCloudFile(file.prefix || file.name, cloudBedType);
-      if (!result.success) {
-        new import_obsidian6.Notice(`\u4E91\u7AEF\u56FE\u7247\u5220\u9664\u5931\u8D25\uFF0C\u5DF2\u53D6\u6D88\u6E05\u7406\u5F15\u7528\uFF1A${(_a = result.error) != null ? _a : "\u672A\u77E5\u9519\u8BEF"}`);
-        return;
-      }
-      await removeImageFromAllMdFiles([file.url]);
-      new import_obsidian6.Notice(`\u5DF2\u5220\u9664\u300C${file.name}\u300D`);
-      await this.ctx.refresh();
-    }));
-  }
-  /** 渲染本地未引用图片项 */
-  renderLocalUnrefItem(container, file) {
-    const { selection, app, deleteLocalUnrefFile, updateLocalUnrefActions, updateLocalActions, updateParentDirCheckboxes } = this.ctx;
-    const item = container.createDiv({ cls: "pic-item", attr: { tabindex: "0" } });
-    this.applySubdirGrouping(item, container);
-    item.addEventListener("click", (e) => {
-      const target = e.target;
-      if (target.closest("input, img, .pic-file-tag, button")) return;
-      this.ctx.setCurrentItem(item);
-      const cb = item.querySelector(".pic-cloud-checkbox");
-      if (cb) {
-        cb.checked = !cb.checked;
-        cb.dispatchEvent(new Event("change"));
-      }
-    });
-    item.addEventListener("dblclick", (e) => {
-      const target = e.target;
-      if (target.closest("input, img, .pic-file-tag, button")) return;
-      e.stopPropagation();
-      navigator.clipboard.writeText(file.name).then(
-        () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u56FE\u7247\u540D\u300C${file.name}\u300D`),
-        () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
-      );
-    });
-    const checkbox = item.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
-    checkbox.checked = selection.isSelected("localUnref" /* LocalUnref */, file.path);
-    checkbox.addEventListener("click", (e) => e.stopPropagation());
-    checkbox.addEventListener("change", (e) => {
-      e.stopPropagation();
-      if (checkbox.checked) selection.select("localUnref" /* LocalUnref */, [file.path]);
-      else selection.deselect("localUnref" /* LocalUnref */, file.path);
-      item.toggleClass("pic-item--selected", checkbox.checked);
-      updateLocalUnrefActions();
-      updateLocalActions();
-      updateParentDirCheckboxes();
-    });
-    const ext = file.extension.toLowerCase();
-    if (IMAGE_EXTENSIONS.has(ext)) {
-      const thumbSrc = app.vault.getResourcePath(file);
-      const thumb = item.createEl("img", { cls: "pic-thumb pic-thumb-clickable", attr: { src: thumbSrc, loading: "lazy" } });
-      thumb.addEventListener("error", () => {
-        thumb.setCssStyles({ display: "none" });
-      });
-      thumb.addEventListener("click", (e) => {
-        e.stopPropagation();
-        showImagePreview(thumbSrc);
-      });
-    }
-    const shortName = formatDisplayPath(file.path);
-    const pathSpan = item.createSpan({ cls: "pic-path", text: shortName });
-    pathSpan.classList.add("clickable");
-    item.dataset.purePath = file.path;
-    pathSpan.addEventListener("dblclick", (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(file.path).then(
-        () => new import_obsidian6.Notice(`\u5DF2\u590D\u5236\u8DEF\u5F84`),
-        () => new import_obsidian6.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5")
-      );
-    });
-    const actions = item.createDiv({ cls: "pic-actions" });
-    const deleteBtn = actions.createEl("button", { text: "\u5220\u9664", cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u79FB\u5165\u56DE\u6536\u7AD9" } });
-    deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
-      e.stopPropagation();
-      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5C06\u300C${file.name}\u300D\u79FB\u5165\u56DE\u6536\u7AD9\u5417\uFF1F`, title: "\u79FB\u5165\u56DE\u6536\u7AD9" })) return;
-      if (deleteLocalUnrefFile) {
-        await deleteLocalUnrefFile(file);
-      } else {
-        await app.fileManager.trashFile(file);
-        new import_obsidian6.Notice(`\u5DF2\u79FB\u5165\u56DE\u6536\u7AD9\u300C${file.name}\u300D`);
-      }
-      await this.ctx.refresh();
-    }));
-  }
-  /** 添加缩略图 */
-  addThumbnail(item, img) {
-    var _a, _b, _c;
-    const { app } = this.ctx;
-    const resolvedPath = img.resolvedPath || img.pure;
-    const ext = ((_a = resolvedPath.split(".").pop()) == null ? void 0 : _a.toLowerCase()) || "";
-    const isImage = IMAGE_EXTENSIONS.has(ext);
-    if (!isImage) return;
-    let thumbSrc;
-    if (img.type === "local") {
-      let file = app.vault.getAbstractFileByPath(resolvedPath);
-      if (!(file instanceof import_obsidian6.TFile)) {
-        const fileName = extractFileName(resolvedPath);
-        if (fileName) {
-          file = (_b = app.vault.getFiles().find((f) => f.name === fileName && f.path === resolvedPath)) != null ? _b : null;
-          if (!file) file = (_c = app.vault.getFiles().find((f) => f.name === fileName)) != null ? _c : null;
-        }
-      }
-      if (file instanceof import_obsidian6.TFile) {
-        thumbSrc = app.vault.getResourcePath(file);
-      }
-    } else {
-      thumbSrc = img.pure;
-    }
-    if (thumbSrc) {
-      const thumb = item.createEl("img", {
-        cls: "pic-thumb pic-thumb-clickable",
-        attr: { src: thumbSrc, loading: "lazy" }
-      });
-      thumb.addEventListener("error", () => {
-        thumb.setCssStyles({ display: "none" });
-      });
-      thumb.addEventListener("click", (e) => {
-        e.stopPropagation();
-        showImagePreview(thumbSrc);
-      });
-    }
-  }
-};
-
 // src/view/operations/BatchOperations.ts
-var import_obsidian7 = require("obsidian");
+var import_obsidian8 = require("obsidian");
 var BatchOperations = class {
   constructor(ctx) {
     this.ctx = ctx;
@@ -3182,7 +3505,7 @@ var BatchOperations = class {
     const { selection } = this.ctx;
     const selected = items.filter((item) => selection.isSelected(section, getKey(item)));
     if (selected.length === 0) {
-      new import_obsidian7.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u590D\u5236\u7684\u56FE\u7247");
+      new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u590D\u5236\u7684\u56FE\u7247");
       return;
     }
     const lines = selected.map((item) => {
@@ -3191,14 +3514,14 @@ var BatchOperations = class {
       return format === "markdown" ? `![${name}](${url})` : `<img src="${url}" alt="${name}">`;
     });
     await navigator.clipboard.writeText(lines.join("\n"));
-    new import_obsidian7.Notice(`\u5DF2\u590D\u5236 ${lines.length} \u4E2A ${format === "markdown" ? "Markdown" : "HTML"} \u94FE\u63A5`);
+    new import_obsidian8.Notice(`\u5DF2\u590D\u5236 ${lines.length} \u4E2A ${format === "markdown" ? "Markdown" : "HTML"} \u94FE\u63A5`);
   }
   /** 通用批量下载 */
   async genericBatchDownload(section, items, getKey, getUrl, getName, onAfter) {
     const { selection } = this.ctx;
     const selected = items.filter((item) => selection.isSelected(section, getKey(item)));
     if (selected.length === 0) {
-      new import_obsidian7.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u4E0B\u8F7D\u7684\u56FE\u7247");
+      new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u4E0B\u8F7D\u7684\u56FE\u7247");
       return;
     }
     let success = 0;
@@ -3207,7 +3530,7 @@ var BatchOperations = class {
       const imageUrl = getUrl(item);
       const fileName = getName(item) || "image";
       try {
-        const resp = await (0, import_obsidian7.requestUrl)(imageUrl);
+        const resp = await (0, import_obsidian8.requestUrl)(imageUrl);
         if (resp.status >= 400) {
           fail++;
           continue;
@@ -3226,25 +3549,26 @@ var BatchOperations = class {
         fail++;
       }
     }
-    new import_obsidian7.Notice(`\u4E0B\u8F7D\u5B8C\u6210\uFF1A\u6210\u529F ${success} \u4E2A\uFF0C\u5931\u8D25 ${fail} \u4E2A`);
+    new import_obsidian8.Notice(`\u4E0B\u8F7D\u5B8C\u6210\uFF1A\u6210\u529F ${success} \u4E2A\uFF0C\u5931\u8D25 ${fail} \u4E2A`);
     selection.clear(section);
     onAfter == null ? void 0 : onAfter();
   }
 };
 
 // src/view/operations/DeleteOperations.ts
-var import_obsidian8 = require("obsidian");
+var import_obsidian9 = require("obsidian");
 var DeleteOperations = class {
   constructor(ctx) {
+    this.isDeleting = false;
     this.ctx = ctx;
   }
-  /** 3) 统一的删除结果汇总 Notice（替代各处零散的“X 行已删除”格式，保持一致） */
+  /** 3) 统一的删除结果汇总 Notice（替代各处零散的"X 行已删除"格式，保持一致） */
   showDeleteSummary(label, success, fail) {
     if (success === 0 && fail === 0) return;
     const parts = [];
     if (success > 0) parts.push(`${success} ${label}\u5DF2\u5220\u9664`);
     if (fail > 0) parts.push(`${fail} ${label}\u5931\u8D25`);
-    new import_obsidian8.Notice(parts.join("\uFF0C"));
+    new import_obsidian9.Notice(parts.join("\uFF0C"));
   }
   /**
    * 通用批量删除方法
@@ -3258,143 +3582,161 @@ var DeleteOperations = class {
    */
   async batchDeleteWithCleanup(options) {
     var _a;
-    const result = { referencesDeleted: 0, referencesFailed: 0, filesDeleted: 0, filesFailed: 0 };
-    const { selection, localImages, removeImageFromMdFile, refresh } = this.ctx;
-    if (options.items.length === 0) {
-      new import_obsidian8.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
-      return result;
-    }
-    if (!await confirmAsync(this.ctx.app, { message: options.confirmMessage, title: "\u5220\u9664\u56FE\u7247" })) return result;
-    const deletedKeys = /* @__PURE__ */ new Set();
-    const total = options.items.length;
-    const showProgress = total > 5;
-    if (showProgress) new import_obsidian8.Notice(`\u6B63\u5728\u5220\u9664\uFF08\u56FE\u7247\u9636\u6BB5\uFF09\uFF1A${result.filesDeleted}/${total}`);
-    for (let idx = 0; idx < options.items.length; idx++) {
-      const item = options.items[idx];
-      try {
-        if (item.type === "local" && options.onDeleteLocal) {
-          const success = await options.onDeleteLocal(item.path);
-          if (success) {
-            result.filesDeleted++;
-            deletedKeys.add(item.key);
-          } else result.filesFailed++;
-        } else if (item.type === "cloud" && options.onDeleteCloud) {
-          const success = await options.onDeleteCloud(item.path, item.bedType || "\u5176\u4ED6\u56FE\u5E8A" /* Other */);
-          if (success) {
-            result.filesDeleted++;
-            deletedKeys.add(item.key);
-          } else result.filesFailed++;
+    if (this.isDeleting) return { referencesDeleted: 0, referencesFailed: 0, filesDeleted: 0, filesFailed: 0 };
+    this.isDeleting = true;
+    try {
+      const result = { referencesDeleted: 0, referencesFailed: 0, filesDeleted: 0, filesFailed: 0 };
+      const { selection, localImages, removeImageFromMdFile, refresh } = this.ctx;
+      if (options.items.length === 0) {
+        new import_obsidian9.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
+        return result;
+      }
+      if (!await confirmAsync(this.ctx.app, { message: options.confirmMessage, title: "\u5220\u9664\u56FE\u7247" })) return result;
+      const deletedKeys = /* @__PURE__ */ new Set();
+      const total = options.items.length;
+      const showProgress = total > 5;
+      if (showProgress) new import_obsidian9.Notice(`\u6B63\u5728\u5220\u9664\uFF08\u56FE\u7247\u9636\u6BB5\uFF09\uFF1A${result.filesDeleted}/${total}`);
+      for (let idx = 0; idx < options.items.length; idx++) {
+        const item = options.items[idx];
+        try {
+          if (item.type === "local" && options.onDeleteLocal) {
+            const success = await options.onDeleteLocal(item.path);
+            if (success) {
+              result.filesDeleted++;
+              deletedKeys.add(item.key);
+            } else result.filesFailed++;
+          } else if (item.type === "cloud" && options.onDeleteCloud) {
+            const success = await options.onDeleteCloud(item.path, item.bedType || "\u5176\u4ED6\u56FE\u5E8A" /* Other */);
+            if (success) {
+              result.filesDeleted++;
+              deletedKeys.add(item.key);
+            } else result.filesFailed++;
+          }
+        } catch (e) {
+          result.filesFailed++;
         }
-      } catch (e) {
-        result.filesFailed++;
+        if (showProgress && ((idx + 1) % 10 === 0 || idx + 1 === total)) {
+          new import_obsidian9.Notice(`\u6B63\u5728\u5220\u9664\uFF08\u56FE\u7247\u9636\u6BB5\uFF09\uFF1A${result.filesDeleted}/${total}`);
+        }
       }
-      if (showProgress && ((idx + 1) % 10 === 0 || idx + 1 === total)) {
-        new import_obsidian8.Notice(`\u6B63\u5728\u5220\u9664\uFF08\u56FE\u7247\u9636\u6BB5\uFF09\uFF1A${result.filesDeleted}/${total}`);
-      }
-    }
-    if (options.deleteReferences) {
-      const fileImageMap = /* @__PURE__ */ new Map();
-      for (const item of options.items) {
-        if (!deletedKeys.has(item.key)) continue;
-        const refText = item.refText;
-        const img = (_a = localImages().find((i) => i.pure === (refText != null ? refText : item.key))) != null ? _a : localImages().find((i) => (i.resolvedPath || i.pure) === item.path);
-        if (img) {
-          for (const fp of img.files) {
-            if (!fileImageMap.has(fp)) fileImageMap.set(fp, []);
-            fileImageMap.get(fp).push(img.pure);
+      if (options.deleteReferences) {
+        const fileImageMap = /* @__PURE__ */ new Map();
+        for (const item of options.items) {
+          if (!deletedKeys.has(item.key)) continue;
+          const refText = item.refText;
+          const img = (_a = localImages().find((i) => i.pure === (refText != null ? refText : item.key))) != null ? _a : localImages().find((i) => (i.resolvedPath || i.pure) === item.path);
+          if (img) {
+            for (const fp of img.files) {
+              if (!fileImageMap.has(fp)) fileImageMap.set(fp, []);
+              fileImageMap.get(fp).push(img.pure);
+            }
+          }
+        }
+        for (const [fp, imagePaths] of fileImageMap) {
+          try {
+            const count = await removeImageFromMdFile(fp, imagePaths);
+            if (count > 0) result.referencesDeleted += count;
+            else result.referencesFailed++;
+          } catch (e) {
+            result.referencesFailed++;
           }
         }
       }
-      for (const [fp, imagePaths] of fileImageMap) {
-        try {
-          const count = await removeImageFromMdFile(fp, imagePaths);
-          if (count > 0) result.referencesDeleted += count;
-          else result.referencesFailed++;
-        } catch (e) {
-          result.referencesFailed++;
-        }
+      selection.clear(options.section);
+      if (options.section === "localImages" /* LocalImages */) {
+        selection.clear("localTags" /* LocalTags */);
+      } else if (options.section === "cloudImages" /* CloudImages */) {
+        selection.clear("cloudTags" /* CloudTags */);
+      } else if (options.section === "sameName" /* SameName */) {
+        selection.clear("sameNameTags" /* SameNameTags */);
+      } else if (options.section === "dedup" /* Dedup */) {
+        selection.clear("dedupTags" /* DedupTags */);
       }
+      if (options.onAfterDelete) {
+        await options.onAfterDelete(deletedKeys);
+      }
+      await refresh();
+      const parts = [];
+      if (result.referencesDeleted > 0) parts.push(`${result.referencesDeleted} \u884C\u5F15\u7528\u5DF2\u6E05\u7406`);
+      if (result.filesDeleted > 0) parts.push(`${result.filesDeleted} \u4E2A\u56FE\u7247\u5DF2\u5220\u9664`);
+      if (result.referencesFailed > 0) parts.push(`${result.referencesFailed} \u884C\u5F15\u7528\u6E05\u7406\u5931\u8D25`);
+      if (result.filesFailed > 0) parts.push(`${result.filesFailed} \u4E2A\u6587\u4EF6\u5220\u9664\u5931\u8D25`);
+      if (parts.length > 0) new import_obsidian9.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
+      return result;
+    } finally {
+      this.isDeleting = false;
     }
-    selection.clear(options.section);
-    if (options.section === "localImages" /* LocalImages */ || options.section === "notFound" /* NotFound */) {
-      selection.clear("localTags" /* LocalTags */);
-    } else if (options.section === "cloudImages" /* CloudImages */) {
-      selection.clear("cloudTags" /* CloudTags */);
-    } else if (options.section === "sameName" /* SameName */) {
-      selection.clear("sameNameTags" /* SameNameTags */);
-    } else if (options.section === "dedup" /* Dedup */) {
-      selection.clear("dedupTags" /* DedupTags */);
-    }
-    if (options.onAfterDelete) {
-      await options.onAfterDelete(deletedKeys);
-    }
-    await refresh();
-    const parts = [];
-    if (result.referencesDeleted > 0) parts.push(`${result.referencesDeleted} \u884C\u5F15\u7528\u5DF2\u6E05\u7406`);
-    if (result.filesDeleted > 0) parts.push(`${result.filesDeleted} \u4E2A\u56FE\u7247\u5DF2\u5220\u9664`);
-    if (result.referencesFailed > 0) parts.push(`${result.referencesFailed} \u884C\u5F15\u7528\u6E05\u7406\u5931\u8D25`);
-    if (result.filesFailed > 0) parts.push(`${result.filesFailed} \u4E2A\u6587\u4EF6\u5220\u9664\u5931\u8D25`);
-    if (parts.length > 0) new import_obsidian8.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
-    return result;
   }
   /** 批量删除选中的本地未引用图片 */
   async batchDeleteLocalUnref(localUnreferenced) {
-    const { selection, app } = this.ctx;
-    if (selection.getCount("localUnref" /* LocalUnref */) === 0) {
-      new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u56FE\u7247");
-      return;
-    }
-    const toDelete = localUnreferenced.filter((f) => selection.isSelected("localUnref" /* LocalUnref */, f.path));
-    if (toDelete.length === 0) {
-      new import_obsidian8.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
-      return;
-    }
-    await this.batchDeleteWithCleanup({
-      section: "localUnref" /* LocalUnref */,
-      confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${toDelete.length} \u4E2A\u672C\u5730\u56FE\u7247\u5417\uFF1F\uFF08\u5C06\u79FB\u5165\u56DE\u6536\u7AD9\uFF09`,
-      items: toDelete.map((f) => ({ key: f.path, type: "local", path: f.path })),
-      deleteReferences: false,
-      onDeleteLocal: async (path) => {
-        const file = app.vault.getAbstractFileByPath(path);
-        if (file instanceof import_obsidian8.TFile) {
-          await app.fileManager.trashFile(file);
-          return true;
-        }
-        return false;
+    if (this.isDeleting) return;
+    this.isDeleting = true;
+    try {
+      const { selection, app } = this.ctx;
+      if (selection.getCount("localUnref" /* LocalUnref */) === 0) {
+        new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u56FE\u7247");
+        return;
       }
-    });
+      const toDelete = localUnreferenced.filter((f) => selection.isSelected("localUnref" /* LocalUnref */, f.path));
+      if (toDelete.length === 0) {
+        new import_obsidian9.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
+        return;
+      }
+      await this.batchDeleteWithCleanup({
+        section: "localUnref" /* LocalUnref */,
+        confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${toDelete.length} \u4E2A\u672C\u5730\u56FE\u7247\u5417\uFF1F\uFF08\u5C06\u79FB\u5165\u56DE\u6536\u7AD9\uFF09`,
+        items: toDelete.map((f) => ({ key: f.path, type: "local", path: f.path })),
+        deleteReferences: false,
+        onDeleteLocal: async (path) => {
+          const file = app.vault.getAbstractFileByPath(path);
+          if (file instanceof import_obsidian9.TFile) {
+            await app.fileManager.trashFile(file);
+            return true;
+          }
+          return false;
+        }
+      });
+    } finally {
+      this.isDeleting = false;
+    }
   }
   /** 批量删除选中的本地图片文件 */
   async batchDeleteLocalFiles(localImages) {
-    const { selection, app } = this.ctx;
-    if (selection.getCount("localImages" /* LocalImages */) === 0) {
-      new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u56FE\u7247");
-      return;
-    }
-    const toDelete = localImages.filter((img) => selection.isSelected("localImages" /* LocalImages */, img.pure));
-    if (toDelete.length === 0) {
-      new import_obsidian8.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
-      return;
-    }
-    await this.batchDeleteWithCleanup({
-      section: "localImages" /* LocalImages */,
-      confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${toDelete.length} \u4E2A\u56FE\u7247\u5417\uFF1F
-\u5C06\u79FB\u5165\u7CFB\u7EDF\u56DE\u6536\u7AD9\u5E76\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`,
-      items: toDelete.map((img) => ({
-        key: img.pure,
-        type: "local",
-        path: img.resolvedPath || img.pure
-      })),
-      deleteReferences: true,
-      onDeleteLocal: async (path) => {
-        const file = app.vault.getAbstractFileByPath(path);
-        if (file instanceof import_obsidian8.TFile) {
-          await app.fileManager.trashFile(file);
-          return true;
-        }
-        return false;
+    if (this.isDeleting) return;
+    this.isDeleting = true;
+    try {
+      const { selection, app } = this.ctx;
+      if (selection.getCount("localImages" /* LocalImages */) === 0) {
+        new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u56FE\u7247");
+        return;
       }
-    });
+      const toDelete = localImages.filter((img) => selection.isSelected("localImages" /* LocalImages */, img.pure));
+      if (toDelete.length === 0) {
+        new import_obsidian9.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
+        return;
+      }
+      await this.batchDeleteWithCleanup({
+        section: "localImages" /* LocalImages */,
+        confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${toDelete.length} \u4E2A\u56FE\u7247\u5417\uFF1F
+\u5C06\u79FB\u5165\u7CFB\u7EDF\u56DE\u6536\u7AD9\u5E76\u6E05\u7406\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u3002`,
+        items: toDelete.map((img) => ({
+          key: img.pure,
+          type: "local",
+          path: img.resolvedPath || img.pure
+        })),
+        deleteReferences: true,
+        onDeleteLocal: async (path) => {
+          const file = app.vault.getAbstractFileByPath(path);
+          if (file instanceof import_obsidian9.TFile) {
+            await app.fileManager.trashFile(file);
+            return true;
+          }
+          return false;
+        }
+      });
+    } finally {
+      this.isDeleting = false;
+    }
   }
   /** 批量删除引用行（删除笔记中引用选中图片的行） */
   /** 删除顶部工具栏「删除行」—— 清除所有标签对应的引用行 */
@@ -3408,259 +3750,251 @@ var DeleteOperations = class {
   }
   /** 删除当前区域标签对应的引用行 —— 供区域标题栏按钮调用 */
   async deleteReferenceLinesForSections(tagSections) {
-    const { selection, localImages, app, removeImageFromLine, refresh } = this.ctx;
-    const refsToDelete = [];
-    const allTagKeys = [];
-    for (const section of tagSections) {
-      allTagKeys.push(...selection.getSelected(section));
-    }
-    for (const tagKey of allTagKeys) {
-      const parsed = parseTagKey(tagKey);
-      if (!parsed) continue;
-      const img = resolveImageFromTagKey(parsed.keyPrefix, localImages());
-      if (!img) continue;
-      const expandedRefs = expandRefs(img);
-      if (parsed.index < expandedRefs.length) {
-        refsToDelete.push({ img, file: expandedRefs[parsed.index].file, line: expandedRefs[parsed.index].line });
+    if (this.isDeleting) return;
+    this.isDeleting = true;
+    try {
+      const { selection, localImages, app, removeImageFromLine, refresh } = this.ctx;
+      const refsToDelete = [];
+      const allTagKeys = [];
+      for (const section of tagSections) {
+        allTagKeys.push(...selection.getSelected(section));
       }
-    }
-    if (refsToDelete.length === 0) {
-      new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u5F15\u7528\u884C");
-      return;
-    }
-    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664 ${refsToDelete.length} \u4E2A\u5F15\u7528\u884C\u5417\uFF1F`, title: "\u5220\u9664\u5F15\u7528\u884C" })) return;
-    const fileGroups = /* @__PURE__ */ new Map();
-    for (const ref of refsToDelete) {
-      if (!fileGroups.has(ref.file)) fileGroups.set(ref.file, []);
-      fileGroups.get(ref.file).push(ref);
-    }
-    let successCount = 0;
-    let failCount = 0;
-    for (const [filePath, refs] of fileGroups) {
-      const abstractFile = app.vault.getAbstractFileByPath(filePath);
-      if (!(abstractFile instanceof import_obsidian8.TFile)) {
-        failCount += refs.length;
-        continue;
+      for (const tagKey of allTagKeys) {
+        const parsed = parseTagKey(tagKey);
+        if (!parsed) continue;
+        const img = resolveImageFromTagKey(parsed.keyPrefix, localImages());
+        if (!img) continue;
+        const expandedRefs = expandRefs(img);
+        if (parsed.index < expandedRefs.length) {
+          refsToDelete.push({ img, file: expandedRefs[parsed.index].file, line: expandedRefs[parsed.index].line });
+        }
       }
-      try {
-        const content = await app.vault.read(abstractFile);
-        const lines = content.split("\n");
-        const linesToModify = /* @__PURE__ */ new Map();
-        const linesToDelete = /* @__PURE__ */ new Set();
-        for (const ref of refs) {
-          if (ref.line > 0) {
-            const lineIdx = ref.line - 1;
-            if (lineIdx >= lines.length) continue;
-            const originalLine = lines[lineIdx];
-            if (originalLine !== void 0) {
-              const cleaned = removeImageFromLine(originalLine, ref.img.pure);
-              if (!cleaned.trim()) linesToDelete.add(lineIdx);
-              else if (cleaned !== originalLine) linesToModify.set(lineIdx, cleaned);
-            }
-          } else {
-            for (let i = 0; i < lines.length; i++) {
-              if (lines[i].includes(ref.img.pure)) {
-                const cleaned = removeImageFromLine(lines[i], ref.img.pure);
-                if (!cleaned.trim()) linesToDelete.add(i);
-                else if (cleaned !== lines[i]) linesToModify.set(i, cleaned);
-                break;
+      if (refsToDelete.length === 0) {
+        new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u5F15\u7528\u884C");
+        return;
+      }
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664 ${refsToDelete.length} \u4E2A\u5F15\u7528\u884C\u5417\uFF1F`, title: "\u5220\u9664\u5F15\u7528\u884C" })) return;
+      const fileGroups = /* @__PURE__ */ new Map();
+      for (const ref of refsToDelete) {
+        if (!fileGroups.has(ref.file)) fileGroups.set(ref.file, []);
+        fileGroups.get(ref.file).push(ref);
+      }
+      let successCount = 0;
+      let failCount = 0;
+      for (const [filePath, refs] of fileGroups) {
+        const abstractFile = app.vault.getAbstractFileByPath(filePath);
+        if (!(abstractFile instanceof import_obsidian9.TFile)) {
+          failCount += refs.length;
+          continue;
+        }
+        try {
+          const content = await app.vault.read(abstractFile);
+          const lines = content.split("\n");
+          const linesToModify = /* @__PURE__ */ new Map();
+          const linesToDelete = /* @__PURE__ */ new Set();
+          for (const ref of refs) {
+            if (ref.line > 0) {
+              const lineIdx = ref.line - 1;
+              if (lineIdx >= lines.length) continue;
+              const originalLine = lines[lineIdx];
+              if (originalLine !== void 0) {
+                const cleaned = removeImageFromLine(originalLine, ref.img.pure);
+                if (!cleaned.trim()) linesToDelete.add(lineIdx);
+                else if (cleaned !== originalLine) linesToModify.set(lineIdx, cleaned);
+              }
+            } else {
+              for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes(ref.img.pure)) {
+                  const cleaned = removeImageFromLine(lines[i], ref.img.pure);
+                  if (!cleaned.trim()) linesToDelete.add(i);
+                  else if (cleaned !== lines[i]) linesToModify.set(i, cleaned);
+                  break;
+                }
               }
             }
           }
-        }
-        const newLines = lines.map((line, idx) => linesToModify.has(idx) ? linesToModify.get(idx) : line).filter((_, idx) => !linesToDelete.has(idx));
-        if (newLines.length < lines.length || linesToModify.size > 0) {
-          await app.vault.modify(abstractFile, newLines.join("\n"));
-          successCount += linesToModify.size + linesToDelete.size;
-        }
-      } catch (e) {
-        failCount += refs.length;
-      }
-    }
-    for (const section of tagSections) {
-      selection.clear(section);
-    }
-    await refresh();
-    this.showDeleteSummary("\u884C", successCount, failCount);
-  }
-  /** 批量删除未找到图片（图片级选中：删除整条图片的所有引用行） */
-  async batchDeleteNotFoundImages() {
-    const { selection, localImages, removeImageFromMdFile, refresh } = this.ctx;
-    const selectedKeys = selection.getSelected("notFound" /* NotFound */);
-    const imageKeys = selectedKeys.filter((k) => !k.includes("::"));
-    if (imageKeys.length === 0) {
-      new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u56FE\u7247");
-      return;
-    }
-    const images = localImages().filter((img) => img.found === false);
-    const imageMap = /* @__PURE__ */ new Map();
-    for (const img of images) imageMap.set(img.pure, img);
-    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${imageKeys.length} \u4E2A\u65AD\u94FE\u56FE\u7247\u7684\u6240\u6709\u5F15\u7528\u884C\u5417\uFF1F`, title: "\u5220\u9664\u65AD\u94FE\u5F15\u7528" })) return;
-    let successCount = 0;
-    let failCount = 0;
-    for (const pure of imageKeys) {
-      const img = imageMap.get(pure);
-      if (!img) {
-        failCount++;
-        continue;
-      }
-      for (const fp of img.files) {
-        selection.deselect("notFound" /* NotFound */, pure);
-        try {
-          const count = await removeImageFromMdFile(fp, [pure]);
-          if (count > 0) successCount += count;
-          else failCount++;
+          const newLines = lines.map((line, idx) => linesToModify.has(idx) ? linesToModify.get(idx) : line).filter((_, idx) => !linesToDelete.has(idx));
+          if (newLines.length < lines.length || linesToModify.size > 0) {
+            await app.vault.modify(abstractFile, newLines.join("\n"));
+            successCount += linesToModify.size + linesToDelete.size;
+          }
         } catch (e) {
-          failCount++;
+          failCount += refs.length;
         }
       }
+      for (const section of tagSections) {
+        selection.clear(section);
+      }
+      await refresh();
+      this.showDeleteSummary("\u884C", successCount, failCount);
+    } finally {
+      this.isDeleting = false;
     }
-    await refresh();
-    this.showDeleteSummary("\u884C", successCount, failCount);
   }
   /** 批量删除未找到图片标签引用行（标签级选中：只删选中的行） */
   async batchDeleteNotFoundTags() {
-    const { selection, localImages, app, removeImageFromLine, refresh } = this.ctx;
-    const selectedKeys = selection.getSelected("notFound" /* NotFound */);
-    const tagKeys = selectedKeys.filter((k) => k.includes("::"));
-    if (tagKeys.length === 0) {
-      new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u5F15\u7528\u6807\u7B7E");
-      return;
-    }
-    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${tagKeys.length} \u4E2A\u5F15\u7528\u884C\u5417\uFF1F`, title: "\u5220\u9664\u5F15\u7528\u884C" })) return;
-    const images = localImages().filter((img) => img.found === false);
-    const perFile = /* @__PURE__ */ new Map();
-    for (const tagKey of tagKeys) {
-      const parsed = parseTagKey(tagKey);
-      if (!parsed) continue;
-      const img = resolveImageFromTagKey(parsed.keyPrefix, images);
-      if (!img) continue;
-      const expandedRefs = expandRefs(img);
-      if (parsed.index < expandedRefs.length) {
-        const ref = expandedRefs[parsed.index];
-        if (!perFile.has(ref.file)) perFile.set(ref.file, { pure: img.pure, lines: /* @__PURE__ */ new Set() });
-        perFile.get(ref.file).lines.add(ref.line);
+    if (this.isDeleting) return;
+    this.isDeleting = true;
+    try {
+      const { selection, localImages, app, removeImageFromLine, refresh } = this.ctx;
+      const selectedKeys = selection.getSelected("notFoundRefs" /* NotFoundRefs */);
+      const tagKeys = selectedKeys.filter((k) => k.includes("::"));
+      if (tagKeys.length === 0) {
+        new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u5F15\u7528\u6807\u7B7E");
+        return;
       }
-    }
-    let successCount = 0;
-    let failCount = 0;
-    for (const [filePath, info] of perFile) {
-      const abstractFile = app.vault.getAbstractFileByPath(filePath);
-      if (!(abstractFile instanceof import_obsidian8.TFile)) {
-        failCount += info.lines.size;
-        continue;
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${tagKeys.length} \u4E2A\u5F15\u7528\u884C\u5417\uFF1F`, title: "\u5220\u9664\u5F15\u7528\u884C" })) return;
+      const images = localImages().filter((img) => img.found === false);
+      const perFile = /* @__PURE__ */ new Map();
+      for (const tagKey of tagKeys) {
+        const parsed = parseTagKey(tagKey);
+        if (!parsed) continue;
+        const img = resolveImageFromTagKey(parsed.keyPrefix, images);
+        if (!img) continue;
+        const expandedRefs = expandRefs(img);
+        if (parsed.index < expandedRefs.length) {
+          const ref = expandedRefs[parsed.index];
+          if (!perFile.has(ref.file)) perFile.set(ref.file, []);
+          perFile.get(ref.file).push({ pure: img.pure, lines: /* @__PURE__ */ new Set([ref.line]) });
+        }
       }
-      try {
-        const content = await app.vault.read(abstractFile);
-        const contentLines = content.split("\n");
-        const linesToDelete = /* @__PURE__ */ new Set();
-        const linesToModify = /* @__PURE__ */ new Map();
-        for (const lineNum of info.lines) {
-          if (lineNum > 0) {
-            const idx = lineNum - 1;
-            const orig = contentLines[idx];
-            if (orig !== void 0) {
-              const cleaned = removeImageFromLine(orig, info.pure);
-              if (!cleaned.trim()) linesToDelete.add(idx);
-              else if (cleaned !== orig) linesToModify.set(idx, cleaned);
+      let successCount = 0;
+      let failCount = 0;
+      for (const [filePath, imgInfoList] of perFile) {
+        const abstractFile = app.vault.getAbstractFileByPath(filePath);
+        const totalRefs = imgInfoList.reduce((s, x) => s + x.lines.size, 0);
+        if (!(abstractFile instanceof import_obsidian9.TFile)) {
+          failCount += totalRefs;
+          continue;
+        }
+        try {
+          const content = await app.vault.read(abstractFile);
+          const contentLines = content.split("\n");
+          const linesToDelete = /* @__PURE__ */ new Set();
+          const linesToModify = /* @__PURE__ */ new Map();
+          for (const imgInfo of imgInfoList) {
+            for (const lineNum of imgInfo.lines) {
+              if (lineNum > 0) {
+                const idx = lineNum - 1;
+                const orig = contentLines[idx];
+                if (orig !== void 0) {
+                  const cleaned = removeImageFromLine(orig, imgInfo.pure);
+                  if (!cleaned.trim()) linesToDelete.add(idx);
+                  else if (cleaned !== orig) linesToModify.set(idx, cleaned);
+                }
+              }
             }
           }
+          const newLines = contentLines.map((l, i) => linesToModify.has(i) ? linesToModify.get(i) : l).filter((_, i) => !linesToDelete.has(i));
+          if (newLines.length !== contentLines.length || linesToModify.size > 0) {
+            await app.vault.modify(abstractFile, newLines.join("\n"));
+            successCount += linesToModify.size + linesToDelete.size;
+          }
+        } catch (e) {
+          failCount += totalRefs;
         }
-        const newLines = contentLines.map((l, i) => linesToModify.has(i) ? linesToModify.get(i) : l).filter((_, i) => !linesToDelete.has(i));
-        if (newLines.length !== contentLines.length || linesToModify.size > 0) {
-          await app.vault.modify(abstractFile, newLines.join("\n"));
-          successCount += linesToModify.size + linesToDelete.size;
-        }
-      } catch (e) {
-        failCount += info.lines.size;
       }
+      selection.clear("notFoundRefs" /* NotFoundRefs */);
+      await refresh();
+      this.showDeleteSummary("\u884C", successCount, failCount);
+    } finally {
+      this.isDeleting = false;
     }
-    selection.clear("notFound" /* NotFound */);
-    await refresh();
-    this.showDeleteSummary("\u884C", successCount, failCount);
   }
   /** 批量删除选中的云端图片（删除引用行 + 删除云端文件） */
   async batchDeleteCloudImages() {
-    const { selection, localImages, cloudFiles, compareResult, selectedBed, deleteCloudFile } = this.ctx;
-    if (selection.getCount("cloudImages" /* CloudImages */) === 0) {
-      new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u56FE\u7247");
-      return;
-    }
-    const selected = localImages().filter((img) => selection.isSelected("cloudImages" /* CloudImages */, img.pure));
-    if (selected.length === 0) {
-      new import_obsidian8.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
-      return;
-    }
-    const urlToCloudFile = /* @__PURE__ */ new Map();
-    for (const cf of cloudFiles()) {
-      if (cf.url) urlToCloudFile.set(cf.url, cf);
-    }
-    await this.batchDeleteWithCleanup({
-      section: "cloudImages" /* CloudImages */,
-      confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${selected.length} \u4E2A\u4E91\u7AEF\u56FE\u7247\u5417\uFF1F
-\u5C06\u540C\u65F6\u5220\u9664\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u548C\u4E91\u7AEF\u6587\u4EF6\u3002`,
-      items: selected.map((img) => {
-        const result = compareResult().get(img.pure);
-        const bedType = (result == null ? void 0 : result.bedType) || detectBedTypeFromUrl(img.pure) || selectedBed();
-        return { key: img.pure, type: "cloud", path: img.pure, bedType };
-      }),
-      deleteReferences: true,
-      onDeleteCloud: async (path, bedType) => {
-        const cloudFile = urlToCloudFile.get(path);
-        const fileKey = (cloudFile == null ? void 0 : cloudFile.prefix) || (cloudFile == null ? void 0 : cloudFile.name) || extractFileName(path) || path;
-        const deleteResult = await deleteCloudFile(fileKey, bedType);
-        if (!deleteResult.success) {
-          console.warn(`[PicLinker] \u5220\u9664\u4E91\u7AEF\u6587\u4EF6\u5931\u8D25: ${path}`, deleteResult.error);
-        }
-        return deleteResult.success;
+    if (this.isDeleting) return;
+    this.isDeleting = true;
+    try {
+      const { selection, localImages, cloudFiles, compareResult, selectedBed, deleteCloudFile } = this.ctx;
+      if (selection.getCount("cloudImages" /* CloudImages */) === 0) {
+        new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u56FE\u7247");
+        return;
       }
-    });
+      const selected = localImages().filter((img) => selection.isSelected("cloudImages" /* CloudImages */, img.pure));
+      if (selected.length === 0) {
+        new import_obsidian9.Notice("\u6CA1\u6709\u53EF\u5220\u9664\u7684\u56FE\u7247");
+        return;
+      }
+      const urlToCloudFile = /* @__PURE__ */ new Map();
+      for (const cf of cloudFiles()) {
+        if (cf.url) urlToCloudFile.set(cf.url, cf);
+      }
+      await this.batchDeleteWithCleanup({
+        section: "cloudImages" /* CloudImages */,
+        confirmMessage: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${selected.length} \u4E2A\u4E91\u7AEF\u56FE\u7247\u5417\uFF1F
+\u5C06\u540C\u65F6\u5220\u9664\u7B14\u8BB0\u4E2D\u7684\u5F15\u7528\u884C\u548C\u4E91\u7AEF\u6587\u4EF6\u3002`,
+        items: selected.map((img) => {
+          const result = compareResult().get(img.pure);
+          const bedType = (result == null ? void 0 : result.bedType) || detectBedTypeFromUrl(img.pure) || selectedBed();
+          return { key: img.pure, type: "cloud", path: img.pure, bedType };
+        }),
+        deleteReferences: true,
+        onDeleteCloud: async (path, bedType) => {
+          const cloudFile = urlToCloudFile.get(path);
+          const fileKey = (cloudFile == null ? void 0 : cloudFile.prefix) || (cloudFile == null ? void 0 : cloudFile.name) || extractFileName(path) || path;
+          const deleteResult = await deleteCloudFile(fileKey, bedType);
+          if (!deleteResult.success) {
+            console.warn(`[PicLinker] \u5220\u9664\u4E91\u7AEF\u6587\u4EF6\u5931\u8D25: ${path}`, deleteResult.error);
+          }
+          return deleteResult.success;
+        }
+      });
+    } finally {
+      this.isDeleting = false;
+    }
   }
   /** 批量删除空白文件夹 */
   async batchDeleteEmptyFolders(parseEmptyFolder) {
-    const { selection, app, deleteCloudFile, refresh } = this.ctx;
-    if (selection.getCount("emptyFolders" /* EmptyFolders */) === 0) {
-      new import_obsidian8.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u6587\u4EF6\u5939");
-      return;
-    }
-    if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${selection.getCount("emptyFolders" /* EmptyFolders */)} \u4E2A\u7A7A\u767D\u6587\u4EF6\u5939\u5417\uFF1F`, title: "\u5220\u9664\u6587\u4EF6\u5939" })) return;
-    let successCount = 0;
-    let failCount = 0;
-    const failedFolders = [];
-    for (const folderPath of selection.getSelected("emptyFolders" /* EmptyFolders */)) {
-      try {
-        const info = parseEmptyFolder(folderPath);
-        if (info.isCloud && info.bedType) {
-          const result = await deleteCloudFile(info.path, info.bedType);
-          if (result.success) successCount++;
-          else {
-            failCount++;
-            failedFolders.push(folderPath);
-          }
-        } else {
-          try {
-            await app.vault.adapter.rmdir(folderPath, false);
-            successCount++;
-          } catch (e) {
-            failCount++;
-            failedFolders.push(folderPath);
-          }
-        }
-      } catch (e) {
-        failCount++;
-        failedFolders.push(folderPath);
+    if (this.isDeleting) return;
+    this.isDeleting = true;
+    try {
+      const { selection, app, deleteCloudFile, refresh } = this.ctx;
+      if (selection.getCount("emptyFolders" /* EmptyFolders */) === 0) {
+        new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u6587\u4EF6\u5939");
+        return;
       }
-    }
-    selection.clear("emptyFolders" /* EmptyFolders */);
-    await refresh();
-    const parts = [];
-    if (successCount > 0) parts.push(`${successCount} \u4E2A\u6587\u4EF6\u5939\u5DF2\u5220\u9664`);
-    if (failCount > 0) parts.push(`${failCount} \u4E2A\u6587\u4EF6\u5939\u5220\u9664\u5931\u8D25`);
-    new import_obsidian8.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
-    if (failedFolders.length > 0) {
-      const names = failedFolders.map((f) => f.split("/").pop() || f);
-      console.warn(`[PicLinker] ${failCount} \u4E2A\u6587\u4EF6\u5939\u5220\u9664\u5931\u8D25:`, failedFolders);
-      new import_obsidian8.Notice(`${failCount} \u4E2A\u6587\u4EF6\u5939\u5220\u9664\u5931\u8D25\uFF08\u5982\u975E\u7A7A\u6587\u4EF6\u5939\uFF09\uFF1A${names.join("\u3001")}`, 8e3);
+      if (!await confirmAsync(this.ctx.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${selection.getCount("emptyFolders" /* EmptyFolders */)} \u4E2A\u7A7A\u767D\u6587\u4EF6\u5939\u5417\uFF1F`, title: "\u5220\u9664\u6587\u4EF6\u5939" })) return;
+      let successCount = 0;
+      let failCount = 0;
+      const failedFolders = [];
+      for (const folderPath of selection.getSelected("emptyFolders" /* EmptyFolders */)) {
+        try {
+          const info = parseEmptyFolder(folderPath);
+          if (info.isCloud && info.bedType) {
+            const result = await deleteCloudFile(info.path, info.bedType);
+            if (result.success) successCount++;
+            else {
+              failCount++;
+              failedFolders.push(folderPath);
+            }
+          } else {
+            try {
+              await app.vault.adapter.rmdir(folderPath, false);
+              successCount++;
+            } catch (e) {
+              failCount++;
+              failedFolders.push(folderPath);
+            }
+          }
+        } catch (e) {
+          failCount++;
+          failedFolders.push(folderPath);
+        }
+      }
+      selection.clear("emptyFolders" /* EmptyFolders */);
+      await refresh();
+      const parts = [];
+      if (successCount > 0) parts.push(`${successCount} \u4E2A\u6587\u4EF6\u5939\u5DF2\u5220\u9664`);
+      if (failCount > 0) parts.push(`${failCount} \u4E2A\u6587\u4EF6\u5939\u5220\u9664\u5931\u8D25`);
+      new import_obsidian9.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
+      if (failedFolders.length > 0) {
+        const names = failedFolders.map((f) => f.split("/").pop() || f);
+        console.warn(`[PicLinker] ${failCount} \u4E2A\u6587\u4EF6\u5939\u5220\u9664\u5931\u8D25:`, failedFolders);
+        new import_obsidian9.Notice(`${failCount} \u4E2A\u6587\u4EF6\u5939\u5220\u9664\u5931\u8D25\uFF08\u5982\u975E\u7A7A\u6587\u4EF6\u5939\uFF09\uFF1A${names.join("\u3001")}`, 8e3);
+      }
+    } finally {
+      this.isDeleting = false;
     }
   }
 };
@@ -3678,7 +4012,7 @@ var ActionsRenderer = class {
    */
   isSectionCollapsed(header) {
     const content = header.nextElementSibling;
-    return !!content && content.style.display === "none";
+    return !!content && (content.classList.contains("pic-part-content--collapsed") || content.style.display === "none");
   }
   /** 设置删除行按钮引用（按钮在 render 中晚于 ActionsRenderer 创建） */
   setDeleteLineBtn(btn) {
@@ -3706,11 +4040,15 @@ var ActionsRenderer = class {
         const actions = clearBtn.parentElement;
         const collapsed = this.isSectionCollapsed(header);
         if (collapsed) {
-          clearBtn.setCssStyles({ display: "none" });
-          if (actions) actions.setCssStyles({ display: "none" });
+          clearBtn.addClass("pic-part-actions--hidden");
+          if (actions) actions.addClass("pic-part-actions--hidden");
         } else {
+          clearBtn.removeClass("pic-part-actions--hidden");
           clearBtn.setCssStyles({ display: count > 0 ? "" : "none" });
-          if (actions) actions.setCssStyles({ display: "" });
+          if (actions) {
+            actions.removeClass("pic-part-actions--hidden");
+            actions.setCssStyles({ display: "" });
+          }
         }
       }
     }
@@ -3724,11 +4062,12 @@ var ActionsRenderer = class {
       actions = header.createDiv({ cls: "pic-part-actions" });
     }
     const clearBtn = actions.querySelector(".pic-part-clear-btn");
+    const clearCacheBtn = actions.querySelector(".pic-part-clear-cache-btn");
     const buttons = getButtons();
     Array.from(actions.children).forEach((child) => {
-      if (child !== clearBtn) child.remove();
+      if (child !== clearBtn && child !== clearCacheBtn) child.remove();
     });
-    actions.setCssStyles({ display: this.isSectionCollapsed(header) ? "none" : "" });
+    actions.toggleClass("pic-part-actions--hidden", this.isSectionCollapsed(header));
     for (const btn of buttons) {
       const el = actions.createEl("button", { text: btn.text, cls: btn.cls, attr: { title: btn.title } });
       el.addEventListener("click", (e) => {
@@ -3737,6 +4076,7 @@ var ActionsRenderer = class {
       });
     }
     if (clearBtn) actions.appendChild(clearBtn);
+    if (clearCacheBtn) actions.appendChild(clearCacheBtn);
   }
   /** 更新工具栏「删除行」按钮显隐与文案 */
   updateDeleteLineBtn() {
@@ -3745,7 +4085,7 @@ var ActionsRenderer = class {
     const tagCount = selection.getCount("localTags" /* LocalTags */) + selection.getCount("cloudTags" /* CloudTags */) + selection.getCount("sameNameTags" /* SameNameTags */) + selection.getCount("dedupTags" /* DedupTags */);
     if (tagCount > 0) {
       deleteLineBtn.setCssStyles({ display: "" });
-      deleteLineBtn.textContent = `\u5220\u9664\u884C (${tagCount})`;
+      deleteLineBtn.textContent = `\u6E05\u7406\u5F15\u7528 (${tagCount})`;
     } else {
       deleteLineBtn.setCssStyles({ display: "none" });
     }
@@ -3754,10 +4094,10 @@ var ActionsRenderer = class {
   updateLocalActions() {
     this.updateDeleteLineBtn();
     this.updateClearButtons();
-    const [localBtns, cloudBtns, notFoundBtns] = this.ctx.getLocalActions();
+    const [localBtns, cloudBtns, notFoundRefsBtns] = this.ctx.getLocalActions();
     this.updateSectionActions("localImages" /* LocalImages */, () => localBtns);
     this.updateSectionActions("cloudImages" /* CloudImages */, () => cloudBtns);
-    this.updateSectionActions("notFound" /* NotFound */, () => notFoundBtns);
+    this.updateSectionActions("notFoundRefs" /* NotFoundRefs */, () => notFoundRefsBtns);
   }
   /** 动态更新未引用图片区域的操作按钮 */
   updateLocalUnrefActions() {
@@ -3788,7 +4128,7 @@ var ActionsRenderer = class {
 // src/view/PicLinkerView.ts
 var VIEW_TYPE_PIC_LINKER = "pic-linker";
 var BED_TYPE_ORDER = ["GitHub" /* GitHub */, "\u963F\u91CC\u4E91 OSS" /* Aliyun */, "\u817E\u8BAF\u4E91 COS" /* Tencent */, "\u5176\u4ED6\u56FE\u5E8A" /* Other */];
-var PicLinkerView = class extends import_obsidian9.ItemView {
+var PicLinkerView = class extends import_obsidian10.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
     /** vault 名称（用于 app localStorage 命名空间） */
@@ -3802,6 +4142,8 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     this.compareResult = /* @__PURE__ */ new Map();
     /** 搜索关键字 */
     this.searchKeyword = "";
+    /** 去重渲染时注册的 onChange 回调清理函数，每次重渲染前统一注销，防止监听泄漏 */
+    this.dedupRenderOffs = [];
     /** 文件名 → 引用次数映射 */
     this.fileNameRefCount = /* @__PURE__ */ new Map();
     this.headerCache = /* @__PURE__ */ new Map();
@@ -3832,8 +4174,6 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     this.isDedupRunning = false;
     /** 同名文件数据：按文件名分组，每组包含本地和/或云端条目 */
     this.sameNameGroups = [];
-    /** 空白文件夹区域是否被清除（持久化到 app localStorage） */
-    this.emptyFoldersCleared = false;
     /** 空白文件夹缓存（refresh 时清除） */
     this.emptyFoldersCache = null;
     /** sticky 滚动处理器 */
@@ -3848,6 +4188,8 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     this.sectionExpanded = /* @__PURE__ */ new Set();
     /** 目录折叠状态（已展开的路径集合） */
     this.dirExpanded = /* @__PURE__ */ new Set();
+    /** 全局按钮触发的临时展开状态（不持久化），用户点击单个目录后转交给 dirExpanded。 */
+    this.isAllExpandedByGlobal = false;
     /**
      * 获取本地未引用的图片（库中存在但未被任何笔记引用的图片文件）
      */
@@ -3856,7 +4198,6 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     this.plugin = plugin;
     this.vaultName = plugin.app.vault.getName();
     this.dedupService = new DedupService(this.app, (key) => this.getStorageKey(key));
-    this.emptyFoldersCleared = this.dedupService.loadEmptyFoldersCleared();
     const expandState = this.dedupService.loadExpandState();
     this.sectionExpanded = new Set(expandState.sectionExpanded);
     this.dirExpanded = new Set(expandState.dirExpanded);
@@ -3868,13 +4209,19 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       saveExpandState: () => this.saveExpandState(),
       updateLocalActions: () => this.actions.updateLocalActions(),
       updateLocalUnrefActions: () => this.actions.updateLocalUnrefActions(),
-      updateParentDirCheckboxes: () => this.updateParentDirCheckboxes()
+      updateParentDirCheckboxes: () => this.updateParentDirCheckboxes(),
+      selection: this.selection,
+      section: "localImages" /* LocalImages */,
+      onDirToggle: () => {
+        this.isAllExpandedByGlobal = false;
+      },
+      getIsAllExpandedByGlobal: () => this.isAllExpandedByGlobal
     });
     this.itemRenderer = new ItemRenderer({
       app: this.app,
       selection: this.selection,
       compareResult: this.compareResult,
-      cloudFiles: this.cloudFiles,
+      getCloudFiles: () => this.cloudFiles,
       refresh: () => this.refresh(),
       copyImagePath: (img) => this.copyImagePath(img),
       jumpToFile: (img, filePath, lineNumber) => void this.jumpToFile(img, filePath, lineNumber),
@@ -3883,6 +4230,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       updateParentDirCheckboxes: () => this.updateParentDirCheckboxes(),
       deleteCloudFile: (fileKey, bedType) => this.plugin.deleteCloudFile(fileKey, bedType),
       removeImageFromMdFile: (filePath, urls) => this.plugin.linkEditor.removeImageFromMdFile(filePath, urls),
+      removeImageFromLine: (line, url) => this.plugin.linkEditor.removeImageFromLine(line, url),
       removeImageFromAllMdFiles: (urls) => this.plugin.linkEditor.removeImageFromAllMdFiles(urls),
       showPath: this.plugin.settings.showPath,
       setCurrentItem: (item) => this.setCurrentItem(item)
@@ -3909,12 +4257,12 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       getLocalActions: () => [
         // [0] 本地图片
         [
-          ...this.selection.getCount("localTags" /* LocalTags */) > 0 ? [{ text: `\u5220\u9664\u884C (${this.selection.getCount("localTags" /* LocalTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["localTags" /* LocalTags */]) }] : [],
+          ...this.selection.getCount("localTags" /* LocalTags */) > 0 ? [{ text: `\u6E05\u7406\u5F15\u7528 (${this.selection.getCount("localTags" /* LocalTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["localTags" /* LocalTags */]) }] : [],
           ...this.selection.getCount("localImages" /* LocalImages */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("localImages" /* LocalImages */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u56FE\u7247", onClick: () => this.deleteOps.batchDeleteLocalFiles(this.localImages) }] : []
         ],
         // [1] 云端图片
         this.selection.getCount("cloudImages" /* CloudImages */) > 0 || this.selection.getCount("cloudTags" /* CloudTags */) > 0 ? [
-          ...this.selection.getCount("cloudTags" /* CloudTags */) > 0 ? [{ text: `\u5220\u9664\u884C (${this.selection.getCount("cloudTags" /* CloudTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["cloudTags" /* CloudTags */]) }] : [],
+          ...this.selection.getCount("cloudTags" /* CloudTags */) > 0 ? [{ text: `\u6E05\u7406\u5F15\u7528 (${this.selection.getCount("cloudTags" /* CloudTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["cloudTags" /* CloudTags */]) }] : [],
           ...this.selection.getCount("cloudImages" /* CloudImages */) > 0 ? [
             { text: `MD (${this.selection.getCount("cloudImages" /* CloudImages */)})`, cls: "pic-btn-sm", title: "\u590D\u5236 Markdown \u683C\u5F0F\u56FE\u7247\u94FE\u63A5", onClick: () => this.batchOps.genericBatchCopy("cloudImages" /* CloudImages */, this.cloudReferenced, (img) => img.pure, (img) => img.pure, (img) => extractFileName(img.pure) || img.pure, "markdown") },
             { text: `HTML (${this.selection.getCount("cloudImages" /* CloudImages */)})`, cls: "pic-btn-sm", title: "\u590D\u5236 HTML \u683C\u5F0F\u56FE\u7247\u94FE\u63A5", onClick: () => this.batchOps.genericBatchCopy("cloudImages" /* CloudImages */, this.cloudReferenced, (img) => img.pure, (img) => img.pure, (img) => extractFileName(img.pure) || img.pure, "html") },
@@ -3922,10 +4270,9 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             { text: `\u5220\u9664 (${this.selection.getCount("cloudImages" /* CloudImages */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u5F15\u7528\u884C\u548C\u4E91\u7AEF\u56FE\u7247", onClick: () => this.deleteOps.batchDeleteCloudImages() }
           ] : []
         ] : [],
-        // [2] 未找到图片
+        // [2] 未找到图片（分组后：每个选中都是引用行级，含 ::）
         [
-          ...this.selection.getSelected("notFound" /* NotFound */).some((k) => k.includes("::")) ? [{ text: `\u5220\u9664\u884C (${this.selection.getSelected("notFound" /* NotFound */).filter((k) => k.includes("::")).length})`, cls: "pic-btn-sm pic-btn-danger", title: "\u4EC5\u5220\u9664\u9009\u4E2D\u7684\u5F15\u7528\u884C", onClick: () => this.deleteOps.batchDeleteNotFoundTags() }] : [],
-          ...this.selection.getSelected("notFound" /* NotFound */).some((k) => !k.includes("::")) ? [{ text: `\u5220\u9664 (${this.selection.getSelected("notFound" /* NotFound */).filter((k) => !k.includes("::")).length})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u65AD\u94FE\u56FE\u7247\u53CA\u5176\u6240\u6709\u5F15\u7528\u884C", onClick: () => this.deleteOps.batchDeleteNotFoundImages() }] : []
+          ...this.selection.getSelected("notFoundRefs" /* NotFoundRefs */).some((k) => k.includes("::")) ? [{ text: `\u6E05\u7406\u5F15\u7528 (${this.selection.getSelected("notFoundRefs" /* NotFoundRefs */).filter((k) => k.includes("::")).length})`, cls: "pic-btn-sm pic-btn-danger", title: "\u4EC5\u5220\u9664\u9009\u4E2D\u7684\u5F15\u7528\u884C", onClick: () => this.deleteOps.batchDeleteNotFoundTags() }] : []
         ]
       ],
       getLocalUnrefActions: () => [
@@ -3952,11 +4299,11 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         })() : []
       ],
       getSameNameActions: () => [
-        ...this.selection.getCount("sameNameTags" /* SameNameTags */) > 0 ? [{ text: `\u5220\u9664\u884C (${this.selection.getCount("sameNameTags" /* SameNameTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["sameNameTags" /* SameNameTags */]) }] : [],
+        ...this.selection.getCount("sameNameTags" /* SameNameTags */) > 0 ? [{ text: `\u6E05\u7406\u5F15\u7528 (${this.selection.getCount("sameNameTags" /* SameNameTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["sameNameTags" /* SameNameTags */]) }] : [],
         ...this.selection.getCount("sameName" /* SameName */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("sameName" /* SameName */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u91CD\u590D\u56FE\u7247", onClick: () => this.deleteSelectedSameName() }] : []
       ],
       getDedupActions: () => [
-        ...this.selection.getCount("dedupTags" /* DedupTags */) > 0 ? [{ text: `\u5220\u9664\u884C (${this.selection.getCount("dedupTags" /* DedupTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["dedupTags" /* DedupTags */]) }] : [],
+        ...this.selection.getCount("dedupTags" /* DedupTags */) > 0 ? [{ text: `\u6E05\u7406\u5F15\u7528 (${this.selection.getCount("dedupTags" /* DedupTags */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C\uFF08\u4EC5\u672C\u533A\u57DF\uFF09", onClick: () => this.deleteOps.deleteReferenceLinesForSections(["dedupTags" /* DedupTags */]) }] : [],
         ...this.selection.getCount("dedup" /* Dedup */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("dedup" /* Dedup */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u91CD\u590D\u56FE\u7247\uFF0C\u5C06\u5F15\u7528\u66F4\u65B0\u4E3A\u7EC4\u5185\u7B2C\u4E00\u9879", onClick: () => this.dedupDeleteSelected() }] : []
       ],
       getEmptyFolderActions: () => this.selection.getCount("emptyFolders" /* EmptyFolders */) > 0 ? [{ text: `\u5220\u9664 (${this.selection.getCount("emptyFolders" /* EmptyFolders */)})`, cls: "pic-btn-sm pic-btn-danger", title: "\u5220\u9664\u9009\u4E2D\u7684\u7A7A\u767D\u6587\u4EF6\u5939", onClick: () => {
@@ -4054,6 +4401,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     return nameMap;
   }
   computeLocalSameName() {
+    var _a, _b;
     const nameMap = this.collectLocalSameNameEntries();
     const validLocalKeys = /* @__PURE__ */ new Set();
     for (const [key, items] of nameMap) {
@@ -4065,7 +4413,21 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       if (existingIdx >= 0) {
         const existing = this.sameNameGroups[existingIdx];
         const cloudItems = existing.items.filter((i) => i.source === "cloud");
-        this.sameNameGroups[existingIdx] = { fileName: existing.fileName, items: [...unique, ...cloudItems] };
+        const merged = [...unique, ...cloudItems];
+        const seen = /* @__PURE__ */ new Set();
+        const deduped = [];
+        for (const it of merged) {
+          if (it.source !== "cloud") {
+            deduped.push(it);
+            continue;
+          }
+          const u = (_a = it.url) != null ? _a : it.path;
+          const k = `${(_b = it.bedType) != null ? _b : ""}:${u}`;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          deduped.push(it);
+        }
+        this.sameNameGroups[existingIdx] = { fileName: existing.fileName, items: deduped };
       } else {
         const fileName = extractFileName(unique[0].path) || key;
         this.sameNameGroups.push({ fileName, items: unique });
@@ -4143,6 +4505,8 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     return "cloud-check";
   }
   async onOpen() {
+    this.isClosed = false;
+    this.loadSameNameData();
     const container = this.containerEl.children[1];
     container.empty();
     container.addClass("pic-container");
@@ -4178,9 +4542,9 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   }
   async refresh() {
     this.isFirstToggle = true;
-    this.emptyFoldersCleared = false;
-    this.emptyFoldersCache = null;
+    this.isAllExpandedByGlobal = false;
     this.dedupService.saveEmptyFoldersCleared(false);
+    this.emptyFoldersCache = null;
     const savedCheckedPaths = this.collectCheckedPaths();
     this.selection.clearAll();
     this.selectedBed = "GitHub" /* GitHub */;
@@ -4280,12 +4644,12 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         this.cleanupDedupGroups();
         if (failedBeds.length > 0) {
           console.warn("[PicLinker] \u52A0\u8F7D\u4E91\u7AEF\u6570\u636E \u90E8\u5206\u56FE\u5E8A\u52A0\u8F7D\u5931\u8D25:", failedBeds.join("; "));
-          new import_obsidian9.Notice(`\u90E8\u5206\u56FE\u5E8A\u52A0\u8F7D\u5931\u8D25: ${failedBeds.join("; ")}`);
+          new import_obsidian10.Notice(`\u90E8\u5206\u56FE\u5E8A\u52A0\u8F7D\u5931\u8D25: ${failedBeds.join("; ")}`);
         }
         this.renderContent();
       } catch (e) {
         console.warn("[PicLinker] \u52A0\u8F7D\u4E91\u7AEF\u6570\u636E \u5931\u8D25", e instanceof Error ? e.message : String(e));
-        new import_obsidian9.Notice(`PicLinker\uFF1A\u52A0\u8F7D\u4E91\u7AEF\u6570\u636E\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
+        new import_obsidian10.Notice(`PicLinker\uFF1A\u52A0\u8F7D\u4E91\u7AEF\u6570\u636E\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
       } finally {
         this.cloudLoading = false;
         for (const resolve of this.cloudDataResolvers) resolve();
@@ -4319,7 +4683,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       this.cleanupDedupGroups();
       this.renderContent();
     } catch (e) {
-      new import_obsidian9.Notice(`PicLinker\uFF1A\u5237\u65B0\u672C\u5730\u56FE\u7247\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
+      new import_obsidian10.Notice(`PicLinker\uFF1A\u5237\u65B0\u672C\u5730\u56FE\u7247\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
     } finally {
       this.localLoading = false;
     }
@@ -4350,7 +4714,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       this.renderContent();
     });
     let isComposing = false;
-    const debouncedSearch = (0, import_obsidian9.debounce)(() => {
+    const debouncedSearch = (0, import_obsidian10.debounce)(() => {
       this.renderContent();
     }, 150, true);
     searchInput.addEventListener("input", () => {
@@ -4397,7 +4761,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       }
     });
     const actionsRight = filterBar.createDiv({ cls: "pic-filter-actions" });
-    this.deleteLineBtn = actionsRight.createEl("button", { text: "\u5220\u9664\u884C", cls: "pic-refresh-btn pic-btn-danger", attr: { title: "\u5220\u9664\u7B14\u8BB0\u4E2D\u5F15\u7528\u56FE\u7247\u7684\u884C" } });
+    this.deleteLineBtn = actionsRight.createEl("button", { text: "\u6E05\u7406\u5F15\u7528", cls: "pic-refresh-btn pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u6807\u7B7E\u7684\u5F15\u7528\u884C" } });
     this.deleteLineBtn.setCssStyles({ display: "none" });
     this.deleteLineBtn.addEventListener("click", () => {
       void this.deleteOps.batchDeleteReferenceLines();
@@ -4418,7 +4782,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         await new Promise((r) => window.setTimeout(r, 200));
         await this.refresh();
       } catch (e) {
-        new import_obsidian9.Notice(`PicLinker\uFF1A\u5237\u65B0\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
+        new import_obsidian10.Notice(`PicLinker\uFF1A\u5237\u65B0\u5931\u8D25\uFF1A${e instanceof Error ? e.message : String(e)}`);
       } finally {
         container2 == null ? void 0 : container2.classList.remove("refreshing");
         container2 == null ? void 0 : container2.classList.add("refreshed");
@@ -4440,7 +4804,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         dedupClickCount = 0;
         dedupClickTimer = null;
         if (isDouble) {
-          new import_obsidian9.Notice("\u5F00\u59CB\u5168\u5E93\u53BB\u91CD...");
+          new import_obsidian10.Notice("\u5F00\u59CB\u5168\u5E93\u53BB\u91CD...");
           await this.runDedup(false);
         } else {
           await this.runDedup(true);
@@ -4448,26 +4812,26 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       }), 300);
     });
     const toggleAllBtn = actionsRight.createEl("button", { cls: "pic-refresh-btn", attr: { title: "\u6536\u8D77\u6240\u6709" } });
-    (0, import_obsidian9.setIcon)(toggleAllBtn, "chevrons-up-down");
+    (0, import_obsidian10.setIcon)(toggleAllBtn, "chevrons-up-down");
     toggleAllBtn.addEventListener("click", () => {
       const mainList = this.containerEl.querySelector("#pic-main-list");
       if (!mainList) return;
       const allSections = mainList.querySelectorAll(".pic-part-content");
       const allDirContents = mainList.querySelectorAll(".pic-dir-content");
-      const anyExpanded = Array.from(allSections).some((s) => s.style.display !== "none") || Array.from(allDirContents).some((d) => d.style.display !== "none");
+      const anyExpanded = Array.from(allSections).some((s) => !s.classList.contains("pic-part-content--collapsed")) || Array.from(allDirContents).some((d) => !d.classList.contains("pic-dir-content--collapsed"));
       const shouldCollapse = this.isFirstToggle ? false : anyExpanded;
       this.isFirstToggle = false;
       allSections.forEach((s) => {
-        s.setCssStyles({ display: shouldCollapse ? "none" : "" });
+        s.toggleClass("pic-part-content--collapsed", shouldCollapse);
         if (!shouldCollapse) ensureLazyRendered(s);
         const hdr = s.previousElementSibling;
         if (hdr && hdr.classList.contains("pic-part-header")) {
           hdr.toggleClass("pic-part-header--collapsed", shouldCollapse);
-          syncHeaderBorder(hdr, s);
+          syncHeaderStuckClass(hdr, hdr.classList.contains("pic-part-header--stuck"));
         }
       });
       allDirContents.forEach((d) => {
-        d.setCssStyles({ display: shouldCollapse ? "none" : "" });
+        d.toggleClass("pic-dir-content--collapsed", shouldCollapse);
       });
       mainList.querySelectorAll(".pic-dir-arrow").forEach((a) => {
         a.textContent = shouldCollapse ? "\u25B6" : "\u25BD";
@@ -4476,22 +4840,19 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         a.textContent = shouldCollapse ? "\u25B6" : "\u25BD";
       });
       mainList.querySelectorAll(".pic-part-actions").forEach((a) => {
-        a.setCssStyles({ display: shouldCollapse ? "none" : "" });
+        a.toggleClass("pic-part-actions--hidden", shouldCollapse);
       });
-      (0, import_obsidian9.setIcon)(toggleAllBtn, shouldCollapse ? "chevrons-down-up" : "chevrons-up-down");
+      (0, import_obsidian10.setIcon)(toggleAllBtn, shouldCollapse ? "chevrons-down-up" : "chevrons-up-down");
       toggleAllBtn.title = shouldCollapse ? "\u5C55\u5F00\u6240\u6709" : "\u6536\u8D77\u6240\u6709";
       if (shouldCollapse) {
         mainList.querySelectorAll(".pic-part-content").forEach((s) => {
           const key = s.dataset.sectionKey;
           if (key) this.sectionExpanded.add(`!${key}`);
         });
-        this.dirExpanded.clear();
+        this.isAllExpandedByGlobal = false;
       } else {
         this.sectionExpanded.clear();
-        mainList.querySelectorAll(".pic-dir-header[data-dir-key]").forEach((h) => {
-          const dirKey = h.dataset.dirKey;
-          if (dirKey) this.dirExpanded.add(dirKey);
-        });
+        this.isAllExpandedByGlobal = true;
       }
       this.saveExpandState();
     });
@@ -4507,7 +4868,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     list.addEventListener("keydown", (e) => {
       const focusEl = list.ownerDocument.activeElement;
       if (focusEl && (focusEl === searchInput || focusEl.tagName === "INPUT" || focusEl.tagName === "TEXTAREA")) return;
-      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
         this.selectAllVisible(list);
         return;
@@ -4516,7 +4877,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       const items = Array.from(list.querySelectorAll(".pic-item")).filter((el) => el.offsetParent !== null).filter((el) => el.querySelector(".pic-cloud-checkbox") !== null);
       if (items.length === 0) return;
       const active = this.currentItemEl;
-      const idx = items.indexOf(active && active.classList.contains("pic-item") ? active : items[0]);
+      const idx = active && items.includes(active) ? items.indexOf(active) : -1;
       if (e.key === " ") {
         e.preventDefault();
         const target = items[Math.max(0, idx)];
@@ -4552,7 +4913,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     item.focus({ preventScroll: true });
   }
   selectAllVisible(list) {
-    const items = Array.from(list.querySelectorAll(".pic-item")).filter((el) => el.offsetParent !== null).filter((el) => el.querySelector(".pic-cloud-checkbox") !== null);
+    const items = Array.from(list.querySelectorAll(".pic-item")).filter((el) => el.offsetParent !== null).filter((el) => el.querySelector(".pic-cloud-checkbox") !== null).filter((el) => !el.classList.contains("pic-dedup-hash") && !el.classList.contains("pic-notfound-header"));
     for (const item of items) {
       const cb = item.querySelector(".pic-cloud-checkbox");
       if (cb && !cb.checked) {
@@ -4569,8 +4930,13 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const savedScrollTop = scrollContainer.scrollTop;
     const savedPaths = savedCheckedPaths || this.collectCheckedPaths();
     el.empty();
+    this.selection.removeAllListeners();
+    this.selection.onChange(this.selectionChangeCallback);
     this.currentItemEl = null;
     if (this.localImages.length === 0 && this.cloudFiles.length === 0) {
+      this.headerCache.clear();
+      this.restoreSelectionState(savedPaths);
+      scrollContainer.scrollTop = savedScrollTop;
       el.createDiv({ cls: "pic-empty", text: "\u65E0\u6570\u636E" });
       return;
     }
@@ -4610,13 +4976,13 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       "cloudImages" /* CloudImages */,
       "localUnref" /* LocalUnref */,
       "cloudFiles" /* CloudFiles */,
-      "notFound" /* NotFound */,
+      "notFoundRefs" /* NotFoundRefs */,
       "sameName" /* SameName */,
       "dedup" /* Dedup */,
       "emptyFolders" /* EmptyFolders */
     ]) {
       for (const path of this.selection.getSelected(section)) {
-        paths.set(path, section);
+        paths.set(`${section}::${path}`, section);
       }
     }
     return paths;
@@ -4688,6 +5054,10 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       if (expanded) _renderCloud();
       else setLazyRenderFn(content, _renderCloud);
     } else {
+      content.removeClass("pic-part-content--collapsed");
+      header.removeClass("pic-part-header--collapsed");
+      const arrow = header.querySelector(".pic-part-arrow");
+      if (arrow) arrow.textContent = "\u25BD";
       content.createDiv({ cls: "pic-cloud-loading", text: "\u6B63\u5728\u52A0\u8F7D\u4E91\u7AEF\u6570\u636E..." });
     }
   }
@@ -4737,6 +5107,10 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       if (expanded) _renderCloudUnref();
       else setLazyRenderFn(content, _renderCloudUnref);
     } else if (!this.cloudLoaded) {
+      content.removeClass("pic-part-content--collapsed");
+      header.removeClass("pic-part-header--collapsed");
+      const arrow = header.querySelector(".pic-part-arrow");
+      if (arrow) arrow.textContent = "\u25BD";
       content.createDiv({ cls: "pic-cloud-loading", text: "\u6B63\u5728\u52A0\u8F7D\u4E91\u7AEF\u6570\u636E..." });
     } else {
       content.createDiv({ cls: "pic-empty", text: "\u6240\u6709\u4E91\u7AEF\u56FE\u7247\u5747\u88AB\u7B14\u8BB0\u5F15\u7528" });
@@ -4746,15 +5120,24 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   renderNotFoundSection(el, notFoundImages) {
     if (!this.plugin.settings.showNotFoundImages || notFoundImages.length === 0) return;
     const notFoundIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--pic-error)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
-    const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "not-found", notFoundIcon, "\u672A\u627E\u5230\u56FE\u7247", notFoundImages.length, "notFound" /* NotFound */);
+    const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "not-found", notFoundIcon, "\u672A\u627E\u5230\u56FE\u7247", notFoundImages.length, "notFoundRefs" /* NotFoundRefs */);
+    const noteFileSet = /* @__PURE__ */ new Set();
+    let refTotal = 0;
+    for (const img of notFoundImages) {
+      for (const ref of expandRefs(img)) {
+        noteFileSet.add(ref.file);
+        refTotal++;
+      }
+    }
+    const countEl = header.querySelector(".pic-part-count");
+    if (countEl) countEl.textContent = `\uFF08${noteFileSet.size} \u7BC7\u7B14\u8BB0\uFF0C${refTotal} \u9879\u5185\u5BB9\uFF09`;
     const actions = header.querySelector(".pic-part-actions");
     if (actions) {
-      this.addClearSelectionButton(actions, "notFound" /* NotFound */);
+      this.addClearSelectionButton(actions, "notFoundRefs" /* NotFoundRefs */);
     }
     const _renderNotFound = () => this.renderNotFoundFlat(content, notFoundImages);
     if (expanded) _renderNotFound();
     else setLazyRenderFn(content, _renderNotFound);
-    this.actions.updateLocalActions();
   }
   // ===== Section 6: 同名文件 =====
   renderSameNameSection(el) {
@@ -4765,7 +5148,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "same-name", sameNameIcon, "\u540C\u540D\u6587\u4EF6", totalItems, "sameName" /* SameName */);
     const actions = header.querySelector(".pic-part-actions");
     if (actions) {
-      if (!expanded) actions.setCssStyles({ display: "none" });
+      if (!expanded) actions.addClass("pic-part-actions--hidden");
       if (this.selection.getCount("sameName" /* SameName */) > 0) {
         const delBtn = actions.createEl("button", { text: `\u5220\u9664 (${this.selection.getCount("sameName" /* SameName */)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u7684\u91CD\u590D\u56FE\u7247" } });
         delBtn.addEventListener("click", (e) => {
@@ -4788,7 +5171,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "duplicates", dedupIcon, "\u91CD\u590D\u56FE\u7247", totalItems, "dedup" /* Dedup */);
     const actions = header.querySelector(".pic-part-actions");
     if (actions) {
-      if (!expanded) actions.setCssStyles({ display: "none" });
+      if (!expanded) actions.addClass("pic-part-actions--hidden");
       if (this.selection.getCount("dedup" /* Dedup */) > 0) {
         const delBtn = actions.createEl("button", { text: `\u5220\u9664 (${this.selection.getCount("dedup" /* Dedup */)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u7684\u91CD\u590D\u56FE\u7247\uFF0C\u5C06\u5F15\u7528\u66F4\u65B0\u4E3A\u7EC4\u5185\u7B2C\u4E00\u9879" } });
         delBtn.addEventListener("click", (e) => {
@@ -4797,7 +5180,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         });
       }
       this.addClearSelectionButton(actions, "dedup" /* Dedup */);
-      const clearCacheBtn = actions.createEl("button", { text: "\u6E05\u9664\u7F13\u5B58", cls: "pic-btn-sm", attr: { title: "\u6E05\u9664\u672C\u5730/\u4E91\u7AEF\u56FE\u7247\u54C8\u5E0C\u7F13\u5B58\uFF0C\u4E0B\u6B21\u53BB\u91CD\u5C06\u91CD\u65B0\u8BA1\u7B97\uFF08\u89E3\u51B3\u56E0\u7F13\u5B58\u5BFC\u81F4\u7684\u91CD\u590D\u6F0F\u5224\uFF09" } });
+      const clearCacheBtn = actions.createEl("button", { text: "\u6E05\u9664\u7F13\u5B58", cls: "pic-btn-sm pic-part-clear-cache-btn", attr: { title: "\u6E05\u9664\u672C\u5730/\u4E91\u7AEF\u56FE\u7247\u54C8\u5E0C\u7F13\u5B58\uFF0C\u4E0B\u6B21\u53BB\u91CD\u5C06\u91CD\u65B0\u8BA1\u7B97\uFF08\u89E3\u51B3\u56E0\u7F13\u5B58\u5BFC\u81F4\u7684\u91CD\u590D\u6F0F\u5224\uFF09" } });
       clearCacheBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         void this.clearDedupHashCache();
@@ -4817,11 +5200,11 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     this.plugin.dedupCache.clear();
     this.plugin.hashCache.clear();
     await this.plugin.saveSettings();
-    new import_obsidian9.Notice(`\u5DF2\u6E05\u9664 ${localCount + cloudCount} \u6761\u54C8\u5E0C\u7F13\u5B58`);
+    new import_obsidian10.Notice(`\u5DF2\u6E05\u9664 ${localCount + cloudCount} \u6761\u54C8\u5E0C\u7F13\u5B58`);
   }
   // ===== Section 8: 空白文件夹 =====
   renderEmptyFoldersSection(el) {
-    if (!this.plugin.settings.showEmptyFolders || this.emptyFoldersCleared) return;
+    if (!this.plugin.settings.showEmptyFolders) return;
     let emptyFolders = this.getEmptyFolders();
     if (this.searchKeyword) {
       emptyFolders = emptyFolders.filter((f) => (f.split("/").pop() || "").toLowerCase().includes(this.searchKeyword));
@@ -4831,7 +5214,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "empty-folders", emptyIcon, "\u7A7A\u767D\u6587\u4EF6\u5939", emptyFolders.length, "emptyFolders" /* EmptyFolders */);
     const actions = header.querySelector(".pic-part-actions");
     if (actions) {
-      if (!expanded) actions.setCssStyles({ display: "none" });
+      if (!expanded) actions.addClass("pic-part-actions--hidden");
       if (this.selection.getCount("emptyFolders" /* EmptyFolders */) > 0) {
         const delBtn = actions.createEl("button", { text: `\u5220\u9664 (${this.selection.getCount("emptyFolders" /* EmptyFolders */)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "\u5220\u9664\u9009\u4E2D\u7684\u7A7A\u767D\u6587\u4EF6\u5939" } });
         delBtn.addEventListener("click", (e) => {
@@ -4893,7 +5276,15 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     mainList.querySelectorAll(".pic-item").forEach((item) => {
       const purePath = item.dataset.purePath;
       if (!purePath) return;
-      const section = savedCheckedPaths.get(purePath);
+      let section = savedCheckedPaths.get(purePath);
+      if (!section) {
+        for (const [k, s] of savedCheckedPaths) {
+          if (k.endsWith(`::${purePath}`)) {
+            section = s;
+            break;
+          }
+        }
+      }
       if (section) {
         const cb = item.querySelector(".pic-cloud-checkbox");
         if (cb) cb.checked = true;
@@ -4901,28 +5292,28 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         this.selection.select(section, [purePath]);
       }
     });
-    mainList.querySelectorAll(".pic-file-tag").forEach((tag) => {
-      const allTagKeys = [
-        ...this.selection.getSelected("localTags" /* LocalTags */),
-        ...this.selection.getSelected("cloudTags" /* CloudTags */),
-        ...this.selection.getSelected("sameNameTags" /* SameNameTags */),
-        ...this.selection.getSelected("dedupTags" /* DedupTags */)
-      ];
-      for (const tagKey of allTagKeys) {
-        const parsed = parseTagKey(tagKey);
-        if (!parsed) continue;
-        const img = resolveImageFromTagKey(parsed.keyPrefix, this.localImages);
-        if (!img) continue;
-        const expandedRefs = expandRefs(img);
-        if (parsed.index >= expandedRefs.length) continue;
-        const ref = expandedRefs[parsed.index];
+    const allTagKeys = [
+      ...this.selection.getSelected("localTags" /* LocalTags */),
+      ...this.selection.getSelected("cloudTags" /* CloudTags */),
+      ...this.selection.getSelected("sameNameTags" /* SameNameTags */),
+      ...this.selection.getSelected("dedupTags" /* DedupTags */)
+    ];
+    const selectedTagRefs = /* @__PURE__ */ new Set();
+    for (const tagKey of allTagKeys) {
+      const parsed = parseTagKey(tagKey);
+      if (!parsed) continue;
+      const img = resolveImageFromTagKey(parsed.keyPrefix, this.localImages);
+      if (!img) continue;
+      const refs = expandRefs(img);
+      if (parsed.index < refs.length) {
+        const ref = refs[parsed.index];
         const fileName = ref.file.split("/").pop() || ref.file;
-        const expectedText = ref.line > 0 ? `${fileName}:${ref.line}` : fileName;
-        if (!tag.dataset.tagRef) tag.dataset.tagRef = expectedText;
-        if (tag.dataset.tagRef === expectedText) {
-          tag.classList.add("pic-file-tag-focus");
-          tag.title = `\u518D\u6B21\u5355\u51FB\u8DF3\u8F6C\u5230 ${ref.file}:${ref.line}`;
-        }
+        selectedTagRefs.add(ref.line > 0 ? `${fileName}:${ref.line}` : fileName);
+      }
+    }
+    mainList.querySelectorAll(".pic-file-tag").forEach((tag) => {
+      if (tag.dataset.tagRef && selectedTagRefs.has(tag.dataset.tagRef)) {
+        tag.classList.add("pic-file-tag-focus");
       }
     });
     this.updateParentDirCheckboxes();
@@ -4944,7 +5335,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         const wasStuck = h.classList.contains("pic-part-header--stuck");
         if (wasStuck !== nowStuck) {
           h.toggleClass("pic-part-header--stuck", nowStuck);
-          syncHeaderBorder(h, h.nextElementSibling);
+          syncHeaderStuckClass(h, nowStuck);
         }
       });
     };
@@ -4952,7 +5343,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const throttled = () => {
       if (rafPending) return;
       rafPending = true;
-      requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
         rafPending = false;
         update();
       });
@@ -5011,25 +5402,34 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const sorted = Array.from(groups.entries()).sort((a, b) => {
       const ia = order.indexOf(a[0]);
       const ib = order.indexOf(b[0]);
-      return ia - ib;
+      return (ia === -1 ? order.length : ia) - (ib === -1 ? order.length : ib);
     });
     for (const [bedType, imgs] of sorted) {
       const dirKey = String(bedType);
-      const expanded = !!this.searchKeyword || this.dirExpanded.has(dirKey);
+      const expanded = !!this.searchKeyword || this.isAllExpandedByGlobal || this.dirExpanded.has(dirKey);
       const dirHeader = container.createDiv({ cls: "pic-dir-header" });
       dirHeader.setCssStyles({ paddingLeft: "10px" });
       dirHeader.dataset.dirKey = dirKey;
+      dirHeader.dataset.depth = "0";
+      createGroupCheckbox({
+        headerEl: dirHeader,
+        itemKeys: imgs.map((img) => img.pure),
+        selection: this.selection,
+        section: "cloudImages" /* CloudImages */,
+        title: "\u5168\u9009/\u53D6\u6D88\u8BE5\u56FE\u5E8A\u6240\u6709\u5F15\u7528\u56FE\u7247",
+        onChange: () => this.actions.updateLocalActions()
+      });
       const arrow = dirHeader.createSpan({ cls: "pic-dir-arrow", text: expanded ? "\u25BD" : "\u25B6" });
       const iconSpan = dirHeader.createSpan({ cls: "pic-bed-icon" });
       setSafeHTML(iconSpan, getBedFaviconSvg(bedType));
       dirHeader.createSpan({ cls: "pic-dir-name", text: bedType });
       dirHeader.createSpan({ cls: "pic-dir-count", text: `(${imgs.length})` });
-      const dirContent = container.createDiv({ cls: "pic-dir-content" });
-      if (!expanded) dirContent.setCssStyles({ display: "none" });
+      const dirContent = container.createDiv({ cls: "pic-dir-content" + (expanded ? "" : " pic-dir-content--collapsed") });
       dirHeader.addEventListener("click", () => {
         const isCollapsed = isHidden(dirContent);
-        dirContent.setCssStyles({ display: isCollapsed ? "" : "none" });
+        dirContent.toggleClass("pic-dir-content--collapsed", !isCollapsed);
         arrow.textContent = isCollapsed ? "\u25BD" : "\u25B6";
+        this.isAllExpandedByGlobal = false;
         if (isCollapsed) {
           this.dirExpanded.add(dirKey);
         } else {
@@ -5075,7 +5475,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       getKey: (img) => img.pure,
       renderItem: (c, img, sel) => this.itemRenderer.renderCloudReferencedItem(c, img, sel),
       collectFiles: (node) => this.treeRenderer.collectTreeFiles(node)
-    }, selectedSet);
+    }, selectedSet, "", "cloudImages" /* CloudImages */);
   }
   /** 按文件夹路径分组渲染本地图片（嵌套树） */
   renderLocalGroupedByFolder(container, images, selectedSet) {
@@ -5093,7 +5493,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       getKey: (f) => f.path,
       renderItem: (c, f) => this.itemRenderer.renderLocalUnrefItem(c, f),
       collectFiles: (node) => this.treeRenderer.collectTreeFiles(node)
-    }, this.selection.getSet("localUnref" /* LocalUnref */));
+    }, this.selection.getSet("localUnref" /* LocalUnref */), "", "localUnref" /* LocalUnref */);
   }
   /** 渲染同名文件分组列表 */
   /** 动态更新同名文件的引用数据（保留分组结构，只刷新标签信息） */
@@ -5126,12 +5526,25 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const dirIconEl = groupHeader.createSpan({ cls: "pic-dir-icon" });
     setSafeHTML(dirIconEl, `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`);
     groupHeader.createSpan({ cls: "pic-path", text: `${group.fileName}  (${group.items.length} \u9879)` });
+    const sameNameKeys = group.items.map((item) => `${item.source}:${item.url || item.path}`);
+    createGroupCheckbox({
+      headerEl: groupHeader,
+      itemKeys: sameNameKeys,
+      selection: this.selection,
+      section: "sameName" /* SameName */,
+      title: "\u5168\u9009/\u53D6\u6D88\u8BE5\u7EC4\u6240\u6709\u540C\u540D\u56FE\u7247",
+      onChange: () => {
+        this.actions.updateSameNameActions();
+        this.updateParentDirCheckboxes();
+      }
+    });
     for (const item of group.items) {
       const itemEl = groupEl.createDiv({ cls: "pic-item" });
       const itemKey = `${item.source}:${item.url || item.path}`;
       itemEl.addEventListener("click", (e) => {
         const target = e.target;
         if (target.closest("input, img, .pic-file-tag, button")) return;
+        this.setCurrentItem(itemEl);
         const isSelected = this.selection.isSelected("sameName" /* SameName */, itemKey);
         if (isSelected) this.selection.deselect("sameName" /* SameName */, itemKey);
         else this.selection.select("sameName" /* SameName */, [itemKey]);
@@ -5151,22 +5564,53 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         this.actions.updateSameNameActions();
         this.updateParentDirCheckboxes();
       });
+      this.selection.onChange((changedSection) => {
+        if (changedSection !== "sameName" /* SameName */) return;
+        const sel = this.selection.isSelected("sameName" /* SameName */, itemKey);
+        cb.checked = sel;
+        itemEl.toggleClass("pic-item--selected", sel);
+      });
       if (item.source === "local") {
-        const img = { pure: item.path, resolvedPath: item.path, type: "local", raw: "", params: "", count: item.count || 0, files: [] };
-        this.itemRenderer.addThumbnail(itemEl, img);
-        itemEl.createSpan({ cls: "pic-path", text: formatDisplayPath(item.path) });
+        const localPath = item.path;
+        const file = this.app.vault.getAbstractFileByPath(localPath);
+        const localDisplay = this.plugin.settings.showPath ? localPath : localPath.split("/").pop() || localPath;
+        if (file instanceof import_obsidian10.TFile) {
+          const thumbSrc = this.app.vault.getResourcePath(file);
+          const thumb = itemEl.createEl("img", { cls: "pic-thumb pic-thumb-clickable", attr: { src: thumbSrc, loading: "lazy" } });
+          thumb.addEventListener("error", () => {
+            thumb.setCssStyles({ display: "none" });
+            createThumbBrokenPlaceholder(itemEl);
+          });
+          thumb.addEventListener("click", (e) => {
+            e.stopPropagation();
+            showImagePreview(thumbSrc);
+          });
+        } else {
+          createThumbBrokenPlaceholder(itemEl);
+        }
+        itemEl.createSpan({ cls: "pic-path", text: localDisplay, attr: { title: localDisplay } });
         itemEl.dataset.purePath = itemKey;
         const matchedImg = this.localImages.find((i) => (i.resolvedPath || i.pure) === item.path);
         if (matchedImg) {
           this.itemRenderer.renderTags(itemEl, matchedImg, "sameNameTags" /* SameNameTags */, `${item.source}:${item.path}`);
         }
       } else {
-        if (item.url) {
-          const img = { pure: item.url, type: "https", raw: "", params: "", count: 0, files: [] };
-          this.itemRenderer.addThumbnail(itemEl, img);
+        const cloudUrl = item.url;
+        const cloudDisplay = cloudUrl || item.path;
+        if (cloudUrl) {
+          const thumb = itemEl.createEl("img", { cls: "pic-thumb pic-thumb-clickable", attr: { src: cloudUrl, loading: "lazy" } });
+          thumb.addEventListener("error", () => {
+            thumb.setCssStyles({ display: "none" });
+            createThumbBrokenPlaceholder(itemEl);
+          });
+          thumb.addEventListener("click", (e) => {
+            e.stopPropagation();
+            showImagePreview(cloudUrl);
+          });
+        } else {
+          createThumbBrokenPlaceholder(itemEl);
         }
-        const bedLabel = bedTypeLabel(item.bedType, item.url);
-        itemEl.createSpan({ cls: "pic-path", text: `${bedLabel} / ${extractFileName(item.url || item.path) || item.url || item.path}` });
+        itemEl.createSpan({ cls: "pic-path", text: cloudDisplay, attr: { title: cloudDisplay } });
         itemEl.dataset.purePath = itemKey;
         const matchedCloudImg = this.localImages.find((i) => i.pure === (item.url || item.path));
         if (matchedCloudImg && matchedCloudImg.files.length > 0) {
@@ -5183,7 +5627,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         try {
           if (item.source === "local") {
             const file = this.app.vault.getAbstractFileByPath(item.path);
-            if (file instanceof import_obsidian9.TFile) {
+            if (file instanceof import_obsidian10.TFile) {
               await this.app.fileManager.trashFile(file);
               ok = true;
             } else {
@@ -5215,14 +5659,14 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
               }
               if (failedFiles.length > 0) {
                 const names = failedFiles.map((f) => f.split("/").pop() || f).join("\u3001");
-                new import_obsidian9.Notice(`\u56FE\u7247\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u884C\u6E05\u7406\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u4FEE\u6539 ${names} \u7B14\u8BB0`, 8e3);
+                new import_obsidian10.Notice(`\u56FE\u7247\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u884C\u6E05\u7406\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u4FEE\u6539 ${names} \u7B14\u8BB0`, 8e3);
               }
             }
           } catch (e2) {
             console.warn("[PicLinker] \u5F15\u7528\u884C\u5220\u9664\u5931\u8D25:", e2);
-            new import_obsidian9.Notice("\u56FE\u7247\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u884C\u6E05\u7406\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u4FEE\u6539\u7B14\u8BB0", 8e3);
+            new import_obsidian10.Notice("\u56FE\u7247\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u884C\u6E05\u7406\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u4FEE\u6539\u7B14\u8BB0", 8e3);
           }
-          new import_obsidian9.Notice(`\u5DF2\u5220\u9664\u300C${itemName}\u300D`);
+          new import_obsidian10.Notice(`\u5DF2\u5220\u9664\u300C${itemName}\u300D`);
           for (const g of this.sameNameGroups) {
             g.items = g.items.filter((i) => !(i.source === item.source && (i.url || i.path) === (item.url || item.path)));
           }
@@ -5231,7 +5675,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
           this.selection.deselect("sameName" /* SameName */, itemKey);
           this.renderContent();
         } else {
-          new import_obsidian9.Notice(`\u5220\u9664\u5931\u8D25: ${itemName}`);
+          new import_obsidian10.Notice(`\u5220\u9664\u5931\u8D25: ${itemName}`);
         }
       }));
     }
@@ -5239,9 +5683,53 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   /** 为图片项添加缩略图 */
   /** 按文件夹分组渲染未找到图片 */
   renderNotFoundFlat(container, images) {
-    const selectedSet = this.selection.getSet("notFound" /* NotFound */);
+    const groups = /* @__PURE__ */ new Map();
     for (const img of images) {
-      this.itemRenderer.renderNotFoundItem(container, img, selectedSet);
+      for (const ref of expandRefs(img)) {
+        if (!groups.has(ref.file)) groups.set(ref.file, []);
+        groups.get(ref.file).push({ img, ref });
+      }
+    }
+    const sortedGroups = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    for (const [filePath, entries] of sortedGroups) {
+      this.renderNotFoundGroup(container, filePath, entries);
+    }
+  }
+  /** 渲染一个引用笔记组：组头 = 复选框 + ▽/▶ + 笔记路径 + 子项列表 */
+  renderNotFoundGroup(container, filePath, entries) {
+    const groupEl = container.createDiv({ cls: "pic-dedup-group pic-notfound-group" });
+    const groupHeader = groupEl.createDiv({ cls: "pic-item pic-dedup-hash pic-notfound-header" });
+    let collapsed = false;
+    const groupItemKeys = [];
+    for (const { img, ref } of entries) {
+      const expandedRefs = expandRefs(img);
+      const refIndex = expandedRefs.findIndex((r) => r.file === ref.file && r.line === ref.line);
+      groupItemKeys.push(refIndex >= 0 ? `${img.pure}::${refIndex}` : `${img.pure}::${ref.file}::${ref.line}`);
+    }
+    createGroupCheckbox({
+      headerEl: groupHeader,
+      itemKeys: groupItemKeys,
+      selection: this.selection,
+      section: "notFoundRefs" /* NotFoundRefs */,
+      title: "\u5168\u9009/\u53D6\u6D88\u8BE5\u7EC4\u6240\u6709\u5F15\u7528\u884C",
+      onChange: () => this.actions.updateLocalActions()
+    });
+    const arrow = groupHeader.createSpan({ cls: "pic-dir-arrow", text: "\u25BC" });
+    const dirIconEl = groupHeader.createSpan({ cls: "pic-dir-icon" });
+    setSafeHTML(dirIconEl, `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`);
+    const noteTitleText = this.plugin.settings.showPath ? filePath : filePath.split("/").pop() || filePath;
+    groupHeader.createSpan({ cls: "pic-path", text: `${noteTitleText}  (${entries.length} \u9879)`, attr: { title: filePath } });
+    const groupContent = groupEl.createDiv({ cls: "pic-notfound-content" });
+    groupHeader.addEventListener("click", (e) => {
+      const target = e.target;
+      if (target.closest("input, button")) return;
+      collapsed = !collapsed;
+      groupContent.toggleClass("pic-notfound-content--collapsed", collapsed);
+      groupHeader.toggleClass("pic-notfound-header--collapsed", collapsed);
+      arrow.textContent = collapsed ? "\u25B6" : "\u25BC";
+    });
+    for (const { img, ref } of entries) {
+      this.itemRenderer.renderNotFoundRefItem(groupContent, img, ref);
     }
   }
   /** 渲染空白文件夹列表 */
@@ -5264,9 +5752,11 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       cb.addEventListener("change", () => {
         if (cb.checked) this.selection.select("emptyFolders" /* EmptyFolders */, [folderPath]);
         else this.selection.deselect("emptyFolders" /* EmptyFolders */, folderPath);
+        item.toggleClass("pic-item--selected", cb.checked);
         this.actions.updateEmptyFolderActions();
         this.updateParentDirCheckboxes();
       });
+      item.toggleClass("pic-item--selected", isSelected);
       if (info.isCloud && info.bedType) {
         const iconSpan = item.createSpan({ cls: "pic-dedup-icon" });
         setSafeHTML(iconSpan, getBedFaviconSvg(info.bedType));
@@ -5284,21 +5774,18 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
           if (info.isCloud && info.bedType) {
             const result = await this.plugin.deleteCloudFile(info.path, info.bedType);
             if (result.success) {
-              new import_obsidian9.Notice(`\u5DF2\u5220\u9664\u300C${displayPath2}\u300D`);
+              new import_obsidian10.Notice(`\u5DF2\u5220\u9664\u300C${displayPath2}\u300D`);
             } else {
-              new import_obsidian9.Notice(`\u5220\u9664\u5931\u8D25: ${result.error}`);
+              new import_obsidian10.Notice(`\u5220\u9664\u5931\u8D25: ${result.error}`);
             }
           } else {
-            try {
-              await this.app.vault.adapter.rmdir(folderPath, false);
-            } catch (e2) {
-              await this.app.vault.adapter.rmdir(folderPath, true);
-            }
-            new import_obsidian9.Notice(`\u5DF2\u5220\u9664\u300C${displayPath2}\u300D`);
+            await this.app.vault.adapter.rmdir(folderPath, false);
+            new import_obsidian10.Notice(`\u5DF2\u5220\u9664\u300C${displayPath2}\u300D`);
           }
+          this.emptyFoldersCache = null;
           this.renderContent();
         } catch (e2) {
-          new import_obsidian9.Notice(`\u5220\u9664\u5931\u8D25: ${e2 instanceof Error ? e2.message : String(e2)}`);
+          new import_obsidian10.Notice(`\u5220\u9664\u5931\u8D25: ${e2 instanceof Error ? e2.message : String(e2)}`);
         }
       }));
     }
@@ -5315,25 +5802,34 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const sorted = Array.from(groups.entries()).sort((a, b) => {
       const ia = order.indexOf(a[0]);
       const ib = order.indexOf(b[0]);
-      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      return (ia === -1 ? order.length : ia) - (ib === -1 ? order.length : ib);
     });
     for (const [bedType, bedFiles] of sorted) {
       const dirKey = String(bedType);
-      const expanded = !!this.searchKeyword || this.dirExpanded.has(dirKey);
+      const expanded = !!this.searchKeyword || this.isAllExpandedByGlobal || this.dirExpanded.has(dirKey);
       const dirHeader = container.createDiv({ cls: "pic-dir-header" });
       dirHeader.setCssStyles({ paddingLeft: "10px" });
       dirHeader.dataset.dirKey = dirKey;
+      dirHeader.dataset.depth = "0";
+      createGroupCheckbox({
+        headerEl: dirHeader,
+        itemKeys: bedFiles.map((f) => f.prefix || f.name),
+        selection: this.selection,
+        section: "cloudFiles" /* CloudFiles */,
+        title: "\u5168\u9009/\u53D6\u6D88\u8BE5\u56FE\u5E8A\u6240\u6709\u672A\u5F15\u7528\u56FE\u7247",
+        onChange: () => this.actions.updateLocalUnrefActions()
+      });
       const arrow = dirHeader.createSpan({ cls: "pic-dir-arrow", text: expanded ? "\u25BD" : "\u25B6" });
       const iconSpan = dirHeader.createSpan({ cls: "pic-bed-icon" });
       setSafeHTML(iconSpan, getBedFaviconSvg(bedType));
       dirHeader.createSpan({ cls: "pic-dir-name", text: bedType });
       dirHeader.createSpan({ cls: "pic-dir-count", text: `(${bedFiles.length})` });
-      const dirContent = container.createDiv({ cls: "pic-dir-content" });
-      if (!expanded) dirContent.setCssStyles({ display: "none" });
+      const dirContent = container.createDiv({ cls: "pic-dir-content" + (expanded ? "" : " pic-dir-content--collapsed") });
       dirHeader.addEventListener("click", () => {
         const isCollapsed = isHidden(dirContent);
-        dirContent.setCssStyles({ display: isCollapsed ? "" : "none" });
+        dirContent.toggleClass("pic-dir-content--collapsed", !isCollapsed);
         arrow.textContent = isCollapsed ? "\u25BD" : "\u25B6";
+        this.isAllExpandedByGlobal = false;
         if (isCollapsed) {
           this.dirExpanded.add(dirKey);
         } else {
@@ -5351,7 +5847,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       getKey: (f) => f.prefix || f.name,
       renderItem: (c, f) => this.itemRenderer.renderCloudItem(c, f),
       collectFiles: (node) => this.treeRenderer.collectTreeFiles(node)
-    }, this.selection.getSet("cloudFiles" /* CloudFiles */), breadcrumb);
+    }, this.selection.getSet("cloudFiles" /* CloudFiles */), breadcrumb, "cloudFiles" /* CloudFiles */);
   }
   /** 等待云端数据加载完成，超时返回 false */
   waitForCloudData(timeoutMs) {
@@ -5372,16 +5868,16 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   /** 执行去重扫描 */
   async runDedup(selectedOnly) {
     if (this.isDedupRunning) {
-      new import_obsidian9.Notice("\u53BB\u91CD\u6B63\u5728\u6267\u884C\u4E2D\uFF0C\u8BF7\u7A0D\u5019...");
+      new import_obsidian10.Notice("\u53BB\u91CD\u6B63\u5728\u6267\u884C\u4E2D\uFF0C\u8BF7\u7A0D\u5019...");
       return;
     }
     this.isDedupRunning = true;
     try {
       if (this.cloudLoading) {
-        new import_obsidian9.Notice("\u6B63\u5728\u7B49\u5F85\u4E91\u7AEF\u6570\u636E\u52A0\u8F7D\u5B8C\u6210...");
+        new import_obsidian10.Notice("\u6B63\u5728\u7B49\u5F85\u4E91\u7AEF\u6570\u636E\u52A0\u8F7D\u5B8C\u6210...");
         const loaded = await this.waitForCloudData(3e4);
         if (!loaded) {
-          new import_obsidian9.Notice("\u4E91\u7AEF\u6570\u636E\u52A0\u8F7D\u8D85\u65F6\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5");
+          new import_obsidian10.Notice("\u4E91\u7AEF\u6570\u636E\u52A0\u8F7D\u8D85\u65F6\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5");
           return;
         }
       }
@@ -5405,7 +5901,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         for (const path of cloudFilesSelected) {
           selectedCloudNames.add(path);
         }
-        const notFoundSelected = this.selection.getSelected("notFound" /* NotFound */);
+        const notFoundSelected = this.selection.getSelected("notFoundRefs" /* NotFoundRefs */);
         for (const path of notFoundSelected) {
           selectedLocalPaths.add(path);
         }
@@ -5415,10 +5911,20 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         const dedupTagsSelected = this.selection.getSelected("dedupTags" /* DedupTags */);
         for (const tagKey of [...localTagsSelected, ...cloudTagsSelected, ...sameNameTagsSelected, ...dedupTagsSelected]) {
           const parsed = parseTagKey(tagKey);
-          if (parsed) selectedLocalPaths.add(parsed.keyPrefix);
+          if (!parsed) continue;
+          const img = resolveImageFromTagKey(parsed.keyPrefix, this.localImages);
+          if (img) {
+            selectedLocalPaths.add(img.pure);
+            if (img.resolvedPath) selectedLocalPaths.add(img.resolvedPath);
+          }
         }
         if (selectedLocalPaths.size === 0 && selectedCloudNames.size === 0 && selectedCloudPures.size === 0) {
-          new import_obsidian9.Notice("\u672A\u9009\u4E2D\u56FE\u7247\uFF0C\u53CC\u51FB\u300C\u53BB\u91CD\u300D\u6309\u94AE\u53EF\u6267\u884C\u5168\u5E93\u53BB\u91CD");
+          const hasAnyTag = this.selection.getSelected("localTags" /* LocalTags */).length > 0 || this.selection.getSelected("cloudTags" /* CloudTags */).length > 0 || this.selection.getSelected("sameNameTags" /* SameNameTags */).length > 0 || this.selection.getSelected("dedupTags" /* DedupTags */).length > 0;
+          if (hasAnyTag) {
+            new import_obsidian10.Notice("\u6240\u9009\u6807\u7B7E\u5BF9\u5E94\u7684\u56FE\u7247\u672A\u627E\u5230\uFF0C\u8BF7\u76F4\u63A5\u9009\u4E2D\u56FE\u7247\u9879\u540E\u518D\u53BB\u91CD");
+          } else {
+            new import_obsidian10.Notice("\u672A\u9009\u4E2D\u56FE\u7247\uFF0C\u53CC\u51FB\u300C\u53BB\u91CD\u300D\u6309\u94AE\u53EF\u6267\u884C\u5168\u5E93\u53BB\u91CD");
+          }
           return;
         }
       } else {
@@ -5451,7 +5957,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       for (const img of allLocalImages) {
         const filePath = img.resolvedPath || img.pure;
         const file = this.app.vault.getAbstractFileByPath(filePath);
-        if (!(file instanceof import_obsidian9.TFile)) {
+        if (!(file instanceof import_obsidian10.TFile)) {
           continue;
         }
         let hash = null;
@@ -5502,7 +6008,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         let done = 0;
         const downloadOne = async (file) => {
           try {
-            const response = await (0, import_obsidian9.requestUrl)({ url: file.url });
+            const response = await (0, import_obsidian10.requestUrl)({ url: file.url });
             const buffer = response.arrayBuffer;
             const hashBytes = await crypto.subtle.digest("SHA-256", buffer);
             const hash = Array.from(new Uint8Array(hashBytes)).map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -5520,61 +6026,46 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
           await Promise.allSettled(batch.map(downloadOne));
           done += batch.length;
           if (total > 20 && (done % 60 === 0 || done === total)) {
-            new import_obsidian9.Notice(`\u53BB\u91CD\u4E2D\uFF1A\u5DF2\u5904\u7406\u4E91\u7AEF\u6587\u4EF6 ${done}/${total}`);
+            new import_obsidian10.Notice(`\u53BB\u91CD\u4E2D\uFF1A\u5DF2\u5904\u7406\u4E91\u7AEF\u6587\u4EF6 ${done}/${total}`);
           }
         }
       }
       const groups = [];
-      for (const [hash, imgs] of localHashMap) {
-        if (imgs.length > 1) {
-          groups.push({
-            hash,
-            type: "local",
-            items: imgs.map((img) => ({
+      const allHashes = /* @__PURE__ */ new Set([...localHashMap.keys(), ...cloudHashMap.keys()]);
+      for (const hash of allHashes) {
+        const localImgs = localHashMap.get(hash) || [];
+        const cloudFiles = cloudHashMap.get(hash) || [];
+        const hasLocalDup = localImgs.length > 1;
+        const hasCloudDup = cloudFiles.length > 1;
+        const hasCross = localImgs.length >= 1 && cloudFiles.length >= 1;
+        const total = localImgs.length + cloudFiles.length;
+        if (total < 2) continue;
+        let type;
+        if (hasCross) {
+          type = "cross";
+        } else if (hasLocalDup) {
+          type = "local";
+        } else {
+          type = "cloud";
+        }
+        groups.push({
+          hash,
+          type,
+          items: [
+            ...localImgs.map((img) => ({
               path: img.resolvedPath || img.pure,
               source: "local",
               referenced: img.files.length,
               img
-            }))
-          });
-        }
-      }
-      for (const [hash, files] of cloudHashMap) {
-        if (files.length > 1) {
-          groups.push({
-            hash,
-            type: "cloud",
-            items: files.map((f) => ({
+            })),
+            ...cloudFiles.map((f) => ({
               path: f.url,
               source: "cloud",
               bedType: f.bedType,
               file: f
             }))
-          });
-        }
-      }
-      for (const [hash, imgs] of localHashMap) {
-        const cloudFiles = cloudHashMap.get(hash);
-        if (cloudFiles && cloudFiles.length > 0) {
-          groups.push({
-            hash,
-            type: "cross",
-            items: [
-              ...imgs.map((img) => ({
-                path: img.resolvedPath || img.pure,
-                source: "local",
-                referenced: img.files.length,
-                img
-              })),
-              ...cloudFiles.map((f) => ({
-                path: f.url,
-                source: "cloud",
-                bedType: f.bedType,
-                file: f
-              }))
-            ]
-          });
-        }
+          ]
+        });
       }
       if (selectedOnly) {
         const existingHashes = new Set(this.dedupGroups.map((g) => g.hash));
@@ -5591,12 +6082,12 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       this.saveDedupGroups();
       this.renderContent();
       if (groups.length === 0) {
-        new import_obsidian9.Notice("\u6CA1\u6709\u53D1\u73B0\u91CD\u590D\u56FE\u7247");
+        new import_obsidian10.Notice("\u6CA1\u6709\u53D1\u73B0\u91CD\u590D\u56FE\u7247");
       } else {
-        new import_obsidian9.Notice(`\u53D1\u73B0 ${groups.length} \u7EC4\u91CD\u590D\u56FE\u7247`);
+        new import_obsidian10.Notice(`\u53D1\u73B0 ${groups.length} \u7EC4\u91CD\u590D\u56FE\u7247`);
       }
       if (skippedDownload > 0) {
-        new import_obsidian9.Notice(`\u6709 ${skippedDownload} \u4E2A\u4E91\u7AEF\u6587\u4EF6\u56E0\u4E0B\u8F7D\u5931\u8D25\u88AB\u8DF3\u8FC7\uFF08\u53EF\u80FD\u4E3A\u9632\u76D7\u94FE/CORS/\u7B7E\u540D\u8FC7\u671F\uFF09\uFF0C\u53EF\u67E5\u770B\u63A7\u5236\u53F0\u4E86\u89E3\u8BE6\u60C5`);
+        new import_obsidian10.Notice(`\u6709 ${skippedDownload} \u4E2A\u4E91\u7AEF\u6587\u4EF6\u56E0\u4E0B\u8F7D\u5931\u8D25\u88AB\u8DF3\u8FC7\uFF08\u53EF\u80FD\u4E3A\u9632\u76D7\u94FE/CORS/\u7B7E\u540D\u8FC7\u671F\uFF09\uFF0C\u53EF\u67E5\u770B\u63A7\u5236\u53F0\u4E86\u89E3\u8BE6\u60C5`);
       }
     } finally {
       this.isDedupRunning = false;
@@ -5604,10 +6095,25 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   }
   /** 渲染去重分组列表 */
   renderDedupGroups(content, groups = this.dedupGroups) {
+    for (const off of this.dedupRenderOffs) off();
+    this.dedupRenderOffs = [];
     for (const group of groups) {
       const groupEl = content.createDiv({ cls: "pic-dedup-group" });
       const groupHeader = groupEl.createDiv({ cls: "pic-item pic-dedup-hash" });
       const hashDisplay = group.hash.length > 16 ? `${group.hash.substring(0, 8)}\xB7\xB7\xB7${group.hash.substring(group.hash.length - 8)}` : group.hash;
+      const dedupKeys = group.items.map((item) => `${item.source}:${item.path}`);
+      const grpCb = createGroupCheckbox({
+        headerEl: groupHeader,
+        itemKeys: dedupKeys,
+        selection: this.selection,
+        section: "dedup" /* Dedup */,
+        title: "\u5168\u9009/\u53D6\u6D88\u8BE5\u7EC4\u6240\u6709\u91CD\u590D\u56FE\u7247",
+        onChange: () => {
+          this.actions.updateDedupActions();
+          this.updateParentDirCheckboxes();
+        }
+      });
+      this.dedupRenderOffs.push(grpCb.off);
       groupHeader.createSpan({ cls: "pic-path", text: `${hashDisplay}  (${group.items.length} \u9879)` });
       for (const item of group.items) {
         const itemEl = groupEl.createDiv({ cls: "pic-item" });
@@ -5615,6 +6121,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         itemEl.addEventListener("click", (e) => {
           const target = e.target;
           if (target.closest("input, img, .pic-file-tag, button")) return;
+          this.setCurrentItem(itemEl);
           const isSelected = this.selection.isSelected("dedup" /* Dedup */, itemKey);
           if (isSelected) this.selection.deselect("dedup" /* Dedup */, itemKey);
           else this.selection.select("dedup" /* Dedup */, [itemKey]);
@@ -5638,34 +6145,43 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
           this.actions.updateDedupActions();
           this.updateParentDirCheckboxes();
         });
+        const syncDedupItem = (changedSection) => {
+          if (changedSection !== "dedup" /* Dedup */) return;
+          const sel = this.selection.isSelected("dedup" /* Dedup */, itemKey);
+          cb.checked = sel;
+          itemEl.toggleClass("pic-item--selected", sel);
+        };
+        this.selection.onChange(syncDedupItem);
+        this.dedupRenderOffs.push(() => this.selection.off(syncDedupItem));
         if (item.source === "local") {
           const resolvedPath = item.path;
           const file = this.app.vault.getAbstractFileByPath(resolvedPath);
-          if (file instanceof import_obsidian9.TFile) {
+          if (file instanceof import_obsidian10.TFile) {
             const thumbSrc = this.app.vault.getResourcePath(file);
             const thumb = itemEl.createEl("img", { cls: "pic-thumb pic-thumb-clickable", attr: { src: thumbSrc, loading: "lazy" } });
             thumb.addEventListener("error", () => {
               thumb.setCssStyles({ display: "none" });
+              createThumbBrokenPlaceholder(itemEl);
             });
             thumb.addEventListener("click", (e) => {
               e.stopPropagation();
               showImagePreview(thumbSrc);
             });
           }
-          const shortPath = formatDisplayPath(item.path);
-          itemEl.createSpan({ cls: "pic-path", text: shortPath });
+          const localDisplay = this.plugin.settings.showPath ? item.path : item.path.split("/").pop() || item.path;
+          itemEl.createSpan({ cls: "pic-path", text: localDisplay, attr: { title: localDisplay } });
         } else {
           const thumbSrc = item.path;
           const thumb = itemEl.createEl("img", { cls: "pic-thumb pic-thumb-clickable", attr: { src: thumbSrc, loading: "lazy" } });
           thumb.addEventListener("error", () => {
             thumb.setCssStyles({ display: "none" });
+            createThumbBrokenPlaceholder(itemEl);
           });
           thumb.addEventListener("click", (e) => {
             e.stopPropagation();
             showImagePreview(thumbSrc);
           });
-          const bedLabel = bedTypeLabel(item.bedType, item.path);
-          itemEl.createSpan({ cls: "pic-path", text: `${bedLabel} / ${extractFileName(item.path) || item.path}` });
+          itemEl.createSpan({ cls: "pic-path", text: item.path, attr: { title: item.path } });
         }
         const matchedDedupImg = this.localImages.find((i) => (i.resolvedPath || i.pure) === item.path);
         if (matchedDedupImg && matchedDedupImg.files.length > 0) {
@@ -5681,15 +6197,15 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
 \u5F15\u7528\u5C06\u81EA\u52A8\u66F4\u65B0\u4E3A\u7EC4\u5185\u4FDD\u7559\u9879\u3002`, title: "\u5220\u9664\u91CD\u590D\u9879" })) return;
           const remaining = group.items.filter((i) => i !== item);
           const keepItem = remaining.reduce((best, cur) => {
-            const bestScore = best.source === "cloud" ? (best.referenced || 0) + 1e3 : 0;
-            const curScore = cur.source === "cloud" ? (cur.referenced || 0) + 1e3 : 0;
+            const bestScore = best.source === "cloud" ? (best.referenced || 0) + 1e3 : best.referenced || 0;
+            const curScore = cur.source === "cloud" ? (cur.referenced || 0) + 1e3 : cur.referenced || 0;
             return curScore > bestScore ? cur : best;
           }, remaining[0]);
           let ok = false;
           try {
             if (item.source === "local") {
               const file = this.app.vault.getAbstractFileByPath(item.path);
-              if (file instanceof import_obsidian9.TFile) {
+              if (file instanceof import_obsidian10.TFile) {
                 await this.app.fileManager.trashFile(file);
                 this.plugin.dedupCache.remove(item.path);
                 ok = true;
@@ -5720,14 +6236,14 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             } catch (e2) {
               console.warn("[PicLinker] \u5F15\u7528\u66F4\u65B0\u5931\u8D25:", e2);
               const names = ((_e = freshImg == null ? void 0 : freshImg.files) != null ? _e : []).map((f) => f.split("/").pop() || f).join("\u3001");
-              new import_obsidian9.Notice(
+              new import_obsidian10.Notice(
                 names ? `\u56FE\u7247\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u66F4\u65B0\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u4FEE\u6539 ${names} \u7B14\u8BB0` : "\u56FE\u7247\u5DF2\u5220\u9664\uFF0C\u4F46\u5F15\u7528\u66F4\u65B0\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u4FEE\u6539\u7B14\u8BB0",
                 8e3
               );
             }
           }
           if (ok) {
-            new import_obsidian9.Notice(`\u5DF2\u5220\u9664\u300C${itemName}\u300D`);
+            new import_obsidian10.Notice(`\u5DF2\u5220\u9664\u300C${itemName}\u300D`);
             group.items = group.items.filter((i) => i !== item);
             this.dedupGroups = this.dedupGroups.filter((g) => g.items.length >= 2);
             this.selection.deselect("dedup" /* Dedup */, itemKey);
@@ -5735,7 +6251,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             this.saveDedupGroups();
             this.renderContent();
           } else {
-            new import_obsidian9.Notice(`\u5220\u9664\u5931\u8D25: ${itemName}`);
+            new import_obsidian10.Notice(`\u5220\u9664\u5931\u8D25: ${itemName}`);
           }
         }));
       }
@@ -5769,7 +6285,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       case "emptyFolders" /* EmptyFolders */:
         this.actions.updateEmptyFolderActions();
         break;
-      case "notFound" /* NotFound */:
+      case "notFoundRefs" /* NotFoundRefs */:
         this.actions.updateLocalActions();
         break;
     }
@@ -5779,7 +6295,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   async deleteSelectedSameName() {
     var _a, _b;
     if (this.selection.getCount("sameName" /* SameName */) === 0) {
-      new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u91CD\u590D\u56FE\u7247");
+      new import_obsidian10.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u91CD\u590D\u56FE\u7247");
       return;
     }
     const items = [];
@@ -5796,6 +6312,10 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
             break;
           }
         }
+        if (!bedType) {
+          new import_obsidian10.Notice(`\u65E0\u6CD5\u786E\u5B9A\u4E91\u7AEF\u56FE\u7247\u300C${path}\u300D\u7684\u56FE\u5E8A\u7C7B\u578B\uFF0C\u5DF2\u8DF3\u8FC7`);
+          continue;
+        }
       }
       const refText = source === "local" ? (_b = (_a = this.localImages.find((i) => (i.resolvedPath || i.pure) === path)) == null ? void 0 : _a.pure) != null ? _b : path : path;
       items.push({ key: itemKey, type: source, path, bedType, refText });
@@ -5807,14 +6327,14 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       deleteReferences: true,
       onDeleteLocal: async (path) => {
         const file = this.app.vault.getAbstractFileByPath(path);
-        if (file instanceof import_obsidian9.TFile) {
+        if (file instanceof import_obsidian10.TFile) {
           await this.app.fileManager.trashFile(file);
           return true;
         }
         return false;
       },
       onDeleteCloud: async (path, bedType) => {
-        const result = await this.plugin.deleteCloudFile(path, bedType);
+        const result = await this.plugin.deleteCloudFile(this.resolveCloudFileKey(path), bedType);
         return result.success;
       },
       onAfterDelete: async (deletedKeys) => {
@@ -5833,7 +6353,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   async dedupDeleteSelected() {
     var _a, _b, _c, _d;
     if (this.selection.getCount("dedup" /* Dedup */) === 0) {
-      new import_obsidian9.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u91CD\u590D\u56FE\u7247");
+      new import_obsidian10.Notice("\u8BF7\u5148\u9009\u62E9\u8981\u5220\u9664\u7684\u91CD\u590D\u56FE\u7247");
       return;
     }
     if (!await confirmAsync(this.app, { message: `\u786E\u5B9A\u8981\u5220\u9664\u9009\u4E2D\u7684 ${this.selection.getCount("dedup" /* Dedup */)} \u4E2A\u91CD\u590D\u56FE\u7247\u5417\uFF1F
@@ -5848,12 +6368,12 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       if (toDelete.length === 0) continue;
       const remaining = group.items.filter((item) => !toDelete.includes(item));
       const keepItem = remaining.reduce((best, item) => {
-        const bestScore = best.source === "cloud" ? (best.referenced || 0) + 1e3 : 0;
-        const itemScore = item.source === "cloud" ? (item.referenced || 0) + 1e3 : 0;
+        const bestScore = best.source === "cloud" ? (best.referenced || 0) + 1e3 : best.referenced || 0;
+        const itemScore = item.source === "cloud" ? (item.referenced || 0) + 1e3 : item.referenced || 0;
         return itemScore > bestScore ? item : best;
       }, remaining[0]);
       if (!keepItem) {
-        new import_obsidian9.Notice("\u67D0\u91CD\u590D\u7EC4\u5DF2\u5168\u90E8\u9009\u4E2D\uFF0C\u8BF7\u81F3\u5C11\u4FDD\u7559\u4E00\u9879\uFF08\u6216\u6539\u7528\u5168\u5E93\u53BB\u91CD\u6E05\u7406\uFF09");
+        new import_obsidian10.Notice("\u67D0\u91CD\u590D\u7EC4\u5DF2\u5168\u90E8\u9009\u4E2D\uFF0C\u8BF7\u81F3\u5C11\u4FDD\u7559\u4E00\u9879\uFF08\u6216\u6539\u7528\u5168\u5E93\u53BB\u91CD\u6E05\u7406\uFF09");
         continue;
       }
       for (const item of toDelete) {
@@ -5862,7 +6382,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         try {
           if (item.source === "local") {
             const file = this.app.vault.getAbstractFileByPath(item.path);
-            if (file instanceof import_obsidian9.TFile) {
+            if (file instanceof import_obsidian10.TFile) {
               await this.app.fileManager.trashFile(file);
               this.plugin.dedupCache.remove(item.path);
               deleteSuccess++;
@@ -5891,8 +6411,8 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     }
     for (const group of this.dedupGroups) {
       const keepItem = group.items.reduce((best, item) => {
-        const bestScore = best.source === "cloud" ? (best.referenced || 0) + 1e3 : 0;
-        const itemScore = item.source === "cloud" ? (item.referenced || 0) + 1e3 : 0;
+        const bestScore = best.source === "cloud" ? (best.referenced || 0) + 1e3 : best.referenced || 0;
+        const itemScore = item.source === "cloud" ? (item.referenced || 0) + 1e3 : item.referenced || 0;
         return itemScore > bestScore ? item : best;
       }, group.items[0]);
       group.items = group.items.filter(
@@ -5908,25 +6428,24 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     if (deleteSuccess > 0) parts.push(`${deleteSuccess} \u4E2A\u56FE\u7247\u5DF2\u5220\u9664`);
     if (updateSuccess > 0) parts.push(`${updateSuccess} \u5904\u5F15\u7528\u5DF2\u66F4\u65B0`);
     if (deleteFail > 0) parts.push(`${deleteFail} \u4E2A\u5931\u8D25`);
-    new import_obsidian9.Notice(`\u53BB\u91CD\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
+    new import_obsidian10.Notice(`\u53BB\u91CD\u5B8C\u6210\uFF1A${parts.join("\uFF0C")}`);
   }
   // ==================== 搜索过滤 ====================
   applyLocalFilter(images) {
     if (!this.searchKeyword) return images;
-    const kw = this.searchKeyword;
+    const kw = this.searchKeyword.toLowerCase();
     return images.filter((img) => {
       const fileName = (extractFileName(img.resolvedPath || img.pure) || "").toLowerCase();
       return fileName.includes(kw);
     });
   }
   // ==================== 路径显示 ====================
-  /** 根据 showPath 设置格式化显示路径，根目录文件加"根目录/"前缀 */
+  /** 根据 showPath 设置格式化显示路径；开关关闭时只显示文件名 */
   formatDisplayPath(fullPath) {
     if (!this.plugin.settings.showPath) {
       return extractFileName(fullPath) || fullPath;
     }
-    const parts = fullPath.split("/");
-    return parts.length <= 1 ? `\u6839\u76EE\u5F55/${fullPath}` : fullPath;
+    return fullPath;
   }
   // ==================== 跳转 & 复制功能 ====================
   /**
@@ -5936,9 +6455,9 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const displayPath = img.resolvedPath || img.pure;
     const copyTarget = displayPath;
     navigator.clipboard.writeText(copyTarget).then(() => {
-      new import_obsidian9.Notice(`\u5DF2\u590D\u5236\u8DEF\u5F84\u300C${copyTarget}\u300D`);
+      new import_obsidian10.Notice(`\u5DF2\u590D\u5236\u8DEF\u5F84\u300C${copyTarget}\u300D`);
     }).catch(() => {
-      new import_obsidian9.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+      new import_obsidian10.Notice("PicLinker\uFF1A\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
     });
   }
   /** 更新所有目录复选框的 checked/indeterminate 状态 */
@@ -5953,8 +6472,9 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
           const cb = child.querySelector(".pic-cloud-checkbox");
           if (cb && cb.checked) selected++;
         } else if (child.classList.contains("pic-dir-header")) {
-          const cb = child.querySelector(".pic-cloud-checkbox");
           const subContent = child.nextElementSibling;
+          if (subContent && subContent.classList.contains("pic-dir-content--collapsed")) continue;
+          const cb = child.querySelector(".pic-cloud-checkbox");
           if (cb && subContent && subContent.classList.contains("pic-dir-content")) {
             const st = computeState(subContent);
             total++;
@@ -5991,8 +6511,8 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
    */
   async jumpToFile(img, filePath, lineNumber) {
     const abstractFile = this.plugin.app.vault.getAbstractFileByPath(filePath);
-    if (!abstractFile || !(abstractFile instanceof import_obsidian9.TFile)) {
-      new import_obsidian9.Notice(`\u7B14\u8BB0\u4E0D\u5B58\u5728\uFF1A${filePath}`);
+    if (!abstractFile || !(abstractFile instanceof import_obsidian10.TFile)) {
+      new import_obsidian10.Notice(`\u7B14\u8BB0\u4E0D\u5B58\u5728\uFF1A${filePath}`);
       return;
     }
     try {
@@ -6016,7 +6536,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
         }
       }
     } catch (e) {
-      new import_obsidian9.Notice(`\u65E0\u6CD5\u6253\u5F00\u7B14\u8BB0\uFF1A${filePath}`);
+      new import_obsidian10.Notice(`\u65E0\u6CD5\u6253\u5F00\u7B14\u8BB0\uFF1A${filePath}`);
     }
   }
   getLocalUnreferencedImages() {
@@ -6054,7 +6574,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
     const emptyFolders = [];
     const allFiles = this.app.vault.getFiles();
     const allFolders = this.app.vault.getAllLoadedFiles().filter(
-      (f) => f instanceof import_obsidian9.TFolder
+      (f) => f instanceof import_obsidian10.TFolder
     );
     const filePaths = new Set(allFiles.map((f) => f.path));
     const folderPaths = new Set(allFolders.map((f) => f.path));
@@ -6103,8 +6623,13 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
   }
   applyCloudFilter(files) {
     if (!this.searchKeyword) return files;
-    const kw = this.searchKeyword;
-    return files.filter((f) => f.name.toLowerCase().includes(kw));
+    const kw = this.searchKeyword.toLowerCase();
+    return files.filter((f) => {
+      var _a, _b;
+      const name = ((_a = f.name) == null ? void 0 : _a.toLowerCase()) || "";
+      const prefix = ((_b = f.prefix) == null ? void 0 : _b.toLowerCase()) || "";
+      return name.includes(kw) || prefix.includes(kw);
+    });
   }
   // ==================== 云端未引用清理 ====================
   async cleanupUnreferenced(files) {
@@ -6119,7 +6644,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
       else failed++;
     }
     this.selection.clear("cloudFiles" /* CloudFiles */);
-    new import_obsidian9.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A\u6210\u529F ${success} \u4E2A\uFF0C\u5931\u8D25 ${failed} \u4E2A`);
+    new import_obsidian10.Notice(`\u6279\u91CF\u5220\u9664\u5B8C\u6210\uFF1A\u6210\u529F ${success} \u4E2A\uFF0C\u5931\u8D25 ${failed} \u4E2A`);
     await this.refresh();
   }
   /** 更新删除选中按钮的计数和禁用状态 */
@@ -6143,7 +6668,7 @@ var PicLinkerView = class extends import_obsidian9.ItemView {
 };
 
 // src/scanner/VaultScanner.ts
-var import_obsidian10 = require("obsidian");
+var import_obsidian11 = require("obsidian");
 var CACHE_VERSION = 3;
 var VaultScanner = class {
   constructor(app, parser) {
@@ -6206,7 +6731,7 @@ var VaultScanner = class {
         const fmImages = this.parser.parseFrontmatterImages(content);
         if (fmImages.length > 0) links.push(...fmImages);
         const currentFile = this.app.vault.getAbstractFileByPath(file.path);
-        const mtime = currentFile instanceof import_obsidian10.TFile ? currentFile.stat.mtime : file.stat.mtime;
+        const mtime = currentFile instanceof import_obsidian11.TFile ? currentFile.stat.mtime : file.stat.mtime;
         this.scanCache.set(file.path, { mtime, version: CACHE_VERSION, links });
         fileLinksMap.set(file.path, links);
       }
@@ -6414,7 +6939,16 @@ var GitHubImageBed = class {
   async listFiles() {
     if (!this.token || !this.owner || !this.repo) return [];
     const files = [];
-    await this.fetchDirectoryContents(this.path, files);
+    let partial = false;
+    try {
+      await this.fetchDirectoryContents(this.path, files);
+    } catch (e) {
+      console.warn("[PicLinker] GitHub listFiles \u5F02\u5E38:", e instanceof Error ? e.message : String(e));
+      partial = true;
+    }
+    if (partial && files.length > 0 && !files[0]._partial) {
+      for (const file of files) file._partial = true;
+    }
     return files;
   }
   /**
@@ -6423,6 +6957,7 @@ var GitHubImageBed = class {
    */
   async fetchDirectoryContents(dirPath, files) {
     var _a, _b, _c;
+    let hasError = false;
     const encodedDir = dirPath.split("/").map(encodeURIComponent).join("/");
     let pageUrl = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${encodedDir}?ref=${this.branch}&per_page=100`;
     while (pageUrl) {
@@ -6433,9 +6968,15 @@ var GitHubImageBed = class {
             Accept: "application/vnd.github.v3+json"
           }
         });
-        if (!response.ok) return;
+        if (!response.ok) {
+          hasError = true;
+          return;
+        }
         const data = await response.json();
-        if (!Array.isArray(data)) return;
+        if (!Array.isArray(data)) {
+          hasError = true;
+          return;
+        }
         for (const item of data) {
           if (item.type === "file") {
             const name = (_a = item.name) != null ? _a : "";
@@ -6449,6 +6990,7 @@ var GitHubImageBed = class {
         pageUrl = this.parseNextPageHeader(response);
       } catch (e) {
         console.warn("[PicLinker] GitHub \u76EE\u5F55\u5217\u8868\u83B7\u53D6\u5931\u8D25:", e instanceof Error ? e.message : String(e));
+        hasError = true;
         return;
       }
     }
@@ -6472,7 +7014,7 @@ var GitHubImageBed = class {
       return { success: false, error: "GitHub \u56FE\u5E8A\u914D\u7F6E\u4E0D\u5B8C\u6574" };
     }
     const basePath = this.path ? `${this.path}/` : "";
-    const path = `${basePath}${filename}`;
+    const path = filename.includes("/") ? filename : `${basePath}${filename}`;
     const encodedPath = path.split("/").map(encodeURIComponent).join("/");
     const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${encodedPath}`;
     try {
@@ -6562,7 +7104,14 @@ async function sha256(data) {
 }
 function getRegion(endpoint) {
   const match = endpoint.match(/oss-([^.]+)\./);
-  return match ? match[1] : "cn-hangzhou";
+  if (!match) {
+    console.warn(
+      "[PicLinker] \u65E0\u6CD5\u4ECE endpoint \u63D0\u53D6\u533A\u57DF\uFF08endpoint=%s\uFF09\uFF0C\u5DF2\u56DE\u9000\u4E3A cn-hangzhou\u3002\u5982\u4F7F\u7528\u7684\u662F CNAME/\u81EA\u5B9A\u4E49\u57DF\u540D\uFF0C\u8BF7\u786E\u8BA4\u7B7E\u540D\u914D\u7F6E\u6B63\u786E\u3002",
+      endpoint
+    );
+    return "cn-hangzhou";
+  }
+  return match[1];
 }
 async function hmacSha256(key, msg) {
   if (hasNodeRequire()) {
@@ -6729,6 +7278,7 @@ var AliyunOssImageBed = class {
     }
     const files = [];
     let continuationToken = "";
+    let partial = false;
     try {
       do {
         const expires = 3600;
@@ -6744,13 +7294,13 @@ var AliyunOssImageBed = class {
         const url = await this.signUrl("GET", resource, expires, subResources);
         const response = await directFetch(url);
         if (!response.ok) {
-          console.error("OSS ListObjects failed:", response.status);
+          console.error("[PicLinker] OSS ListObjects \u5931\u8D25:", response.status);
           break;
         }
         const xmlText = await response.text();
         const { doc, error } = parseXml(xmlText, response.status);
         if (error) {
-          console.error("OSS API Error:", error.code, error.message);
+          console.error("[PicLinker] OSS API \u9519\u8BEF:", error.code, error.message);
           break;
         }
         const baseUrl = this.getBaseUrl();
@@ -6786,7 +7336,11 @@ var AliyunOssImageBed = class {
         }
       }
     } catch (e) {
-      console.error("OSS listFiles error:", e instanceof Error ? e.message : String(e));
+      console.error("[PicLinker] OSS listFiles \u5F02\u5E38:", e instanceof Error ? e.message : String(e));
+      partial = true;
+    }
+    if (partial && files.length > 0 && !files[0]._partial) {
+      for (const file of files) file._partial = true;
     }
     return files;
   }
@@ -7083,6 +7637,7 @@ var TencentCosImageBed = class {
       return [];
     }
     const files = [];
+    let partial = false;
     try {
       const baseUrl = this.getBaseUrl();
       let marker = "";
@@ -7100,13 +7655,15 @@ var TencentCosImageBed = class {
           headers: { Authorization: authHeader }
         });
         if (!response.ok) {
-          console.error("COS ListObjects failed:", response.status);
+          console.error("[PicLinker] COS ListObjects \u5931\u8D25:", response.status);
+          partial = true;
           break;
         }
         const xmlText = await response.text();
         const { doc, error } = parseXml(xmlText, response.status);
         if (error) {
-          console.error("COS API Error:", error.code, error.message);
+          console.error("[PicLinker] COS API \u9519\u8BEF:", error.code, error.message);
+          partial = true;
           break;
         }
         const parsedFiles = parseXmlFileList(doc, baseUrl);
@@ -7137,7 +7694,11 @@ var TencentCosImageBed = class {
         }
       }
     } catch (e) {
-      console.error("COS listFiles error:", e instanceof Error ? e.message : String(e));
+      console.error("[PicLinker] COS listFiles \u5F02\u5E38:", e instanceof Error ? e.message : String(e));
+      partial = true;
+    }
+    if (partial && files.length > 0 && !files[0]._partial) {
+      for (const file of files) file._partial = true;
     }
     return files;
   }
@@ -7397,6 +7958,8 @@ var SmmsImageBed = class {
         return { success: false, error: deleteData.message || "\u5220\u9664\u5931\u8D25" };
       }
       this.hashCache.delete(filename);
+      this.cachedFiles = null;
+      this.lastListFetchAt = 0;
       return { success: true };
     } catch (e) {
       return { success: false, error: `\u5220\u9664\u5F02\u5E38: ${e}` };
@@ -7455,10 +8018,20 @@ var DedupCache = class {
       }
     }
   }
-  /** 获取缓存的哈希（LRU：更新访问顺序） */
+  /**
+   * 获取缓存的哈希（LRU：更新访问顺序）。
+   * 云端条目在写入时记录 cachedAt 时间戳，读取时 TTL 超时（24h）返回 null，避免脏缓存。
+   */
   get(path) {
     const entry = this.cache.get(path);
     if (entry) {
+      if (entry.source === "cloud" && entry.computedAt) {
+        const age = Date.now() - entry.computedAt;
+        if (age > 24 * 60 * 60 * 1e3) {
+          this.cache.delete(path);
+          return null;
+        }
+      }
       this.cache.delete(path);
       this.cache.set(path, entry);
     }
@@ -7651,7 +8224,7 @@ async function migrateLegacyToNewSalt(settings, legacySalt) {
 }
 
 // src/editor/LinkEditor.ts
-var import_obsidian11 = require("obsidian");
+var import_obsidian12 = require("obsidian");
 function stripExt(name) {
   const i = name.lastIndexOf(".");
   return i > 0 ? name.substring(0, i) : name;
@@ -7674,13 +8247,13 @@ var LinkEditor = class {
    */
   async replaceLink(img, newPure) {
     if (img.files.length === 0) {
-      new import_obsidian11.Notice("PicLinker\uFF1A\u65E0\u6CD5\u786E\u5B9A\u56FE\u7247\u5F15\u7528\u7684\u6587\u4EF6\uFF0C\u5DF2\u8DF3\u8FC7\u66FF\u6362");
+      new import_obsidian12.Notice("PicLinker\uFF1A\u65E0\u6CD5\u786E\u5B9A\u56FE\u7247\u5F15\u7528\u7684\u6587\u4EF6\uFF0C\u5DF2\u8DF3\u8FC7\u66FF\u6362");
       return;
     }
     const targetFiles = img.files;
     for (const filePath of targetFiles) {
       const file = this.app.vault.getAbstractFileByPath(filePath);
-      if (!(file instanceof import_obsidian11.TFile)) continue;
+      if (!(file instanceof import_obsidian12.TFile)) continue;
       const content = await this.app.vault.read(file);
       let newContent = content;
       if (img.raw.startsWith("![[")) {
@@ -7716,7 +8289,7 @@ var LinkEditor = class {
    */
   async removeImageFromMdFile(filePath, imagePaths) {
     const file = this.app.vault.getAbstractFileByPath(filePath);
-    if (!(file instanceof import_obsidian11.TFile)) return 0;
+    if (!(file instanceof import_obsidian12.TFile)) return 0;
     const content = await this.app.vault.read(file);
     const lines = content.split("\n");
     const linesToDelete = /* @__PURE__ */ new Set();
@@ -7745,16 +8318,16 @@ var LinkEditor = class {
   async replaceImageInMdFiles(oldPath, newPath, candidates) {
     const escaped = escapeRegex(oldPath);
     const escapedNew = newPath.replace(/\$/g, "$$$$");
-    const mdRegex = new RegExp(`(!\\[[^\\]]*\\]\\()${escaped}(\\))`, "g");
+    const mdRegex = new RegExp(`(!\\[[^\\]]*\\]\\()${escaped}((?:\\s+"[^"]*"|\\s+'[^']*')?)(\\))`, "g");
     const wikiRegex = new RegExp(`(!?\\[\\[)${escaped}((?:\\|[^\\]]*)?)(\\]\\])`, "g");
     const htmlRegex = new RegExp(`(<img[^>]*src=["'])${escaped}(["'][^>]*/?>)`, "g");
     let count = 0;
-    const filesToScan = candidates && candidates.length > 0 ? candidates.map((p) => this.app.vault.getAbstractFileByPath(p)).filter((f) => f instanceof import_obsidian11.TFile) : this.app.vault.getMarkdownFiles();
+    const filesToScan = candidates && candidates.length > 0 ? candidates.map((p) => this.app.vault.getAbstractFileByPath(p)).filter((f) => f instanceof import_obsidian12.TFile) : this.app.vault.getMarkdownFiles();
     for (const mdFile of filesToScan) {
       const content = await this.app.vault.cachedRead(mdFile);
       if (!content.includes(oldPath)) continue;
       let newContent = content;
-      newContent = newContent.replace(mdRegex, `$1${escapedNew}$2`);
+      newContent = newContent.replace(mdRegex, `$1${escapedNew}$2$3`);
       newContent = newContent.replace(wikiRegex, (_match, p1, p2, p3) => `${p1}${escapedNew}${p2 || ""}${p3}`);
       newContent = newContent.replace(htmlRegex, `$1${escapedNew}$2`);
       if (newContent !== content) {
@@ -7893,11 +8466,11 @@ var LinkEditor = class {
   resolveMdOrFmNewRef(pure, noteDir, oldPath, newPath) {
     let cand;
     if (pure.startsWith("/")) {
-      cand = (0, import_obsidian11.normalizePath)(pure.slice(1));
+      cand = (0, import_obsidian12.normalizePath)(pure.slice(1));
     } else if (pure.startsWith("./") || pure.startsWith("../")) {
-      cand = (0, import_obsidian11.normalizePath)((noteDir ? noteDir + "/" : "") + pure);
+      cand = (0, import_obsidian12.normalizePath)((noteDir ? noteDir + "/" : "") + pure);
     } else {
-      cand = (0, import_obsidian11.normalizePath)(pure);
+      cand = (0, import_obsidian12.normalizePath)(pure);
     }
     if (cand === oldPath) {
       return (pure.startsWith("/") ? "/" : "") + newPath;
@@ -7912,7 +8485,7 @@ var LinkEditor = class {
    */
   resolveWikiNewRef(name, oldPath, oldNameNoExt, newPath, newName, newNameNoExt, ambiguous) {
     if (name.includes("/")) {
-      const cand = (0, import_obsidian11.normalizePath)(name.startsWith("/") ? name.slice(1) : name);
+      const cand = (0, import_obsidian12.normalizePath)(name.startsWith("/") ? name.slice(1) : name);
       if (cand === oldPath) return (name.startsWith("/") ? "/" : "") + newPath;
       return null;
     }
@@ -7927,7 +8500,7 @@ var LinkEditor = class {
    */
   async replaceFrontmatterImagePath(filePath, line, oldValue, newValue) {
     const file = this.app.vault.getAbstractFileByPath(filePath);
-    if (!(file instanceof import_obsidian11.TFile)) return;
+    if (!(file instanceof import_obsidian12.TFile)) return;
     const content = await this.app.vault.read(file);
     const lines = content.split("\n");
     const idx = line - 1;
@@ -8078,6 +8651,7 @@ var WebDAVSync = class {
         }
       }
       this.meta = {
+        ...this.meta,
         lastSyncedAt: (/* @__PURE__ */ new Date()).toISOString(),
         lastSyncSource: "download",
         lastRemoteModifiedAt: remoteSyncedAt
@@ -8137,7 +8711,7 @@ var DEFAULT_SETTINGS = {
   otherBedPassword: "",
   otherBedPath: ""
 };
-var PicLinkerPlugin = class extends import_obsidian12.Plugin {
+var PicLinkerPlugin = class extends import_obsidian13.Plugin {
   constructor() {
     super(...arguments);
     this.settings = DEFAULT_SETTINGS;
@@ -8197,7 +8771,7 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
     });
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
-        if (file instanceof import_obsidian12.TFile) {
+        if (file instanceof import_obsidian13.TFile) {
           this.onFileChanged(file.path);
         }
       })
@@ -8310,11 +8884,11 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
     try {
       const count = await this.linkEditor.replaceImageReferencesOnRename(oldPath, newPath);
       if (count > 0) {
-        new import_obsidian12.Notice(`PicLinker\uFF1A\u5DF2\u66F4\u65B0 ${count} \u4E2A\u7B14\u8BB0\u4E2D\u6307\u5411\u300C${getBasename(oldPath)}\u300D\u7684\u56FE\u7247\u5F15\u7528`);
+        new import_obsidian13.Notice(`PicLinker\uFF1A\u5DF2\u66F4\u65B0 ${count} \u4E2A\u7B14\u8BB0\u4E2D\u6307\u5411\u300C${getBasename(oldPath)}\u300D\u7684\u56FE\u7247\u5F15\u7528`);
       }
     } catch (e) {
       console.error("[PicLinker] \u91CD\u547D\u540D\u66F4\u65B0\u56FE\u7247\u5F15\u7528\u5931\u8D25:", e);
-      new import_obsidian12.Notice("PicLinker\uFF1A\u66F4\u65B0\u56FE\u7247\u5F15\u7528\u5931\u8D25\uFF0C\u8BE6\u89C1\u63A7\u5236\u53F0", 8e3);
+      new import_obsidian13.Notice("PicLinker\uFF1A\u66F4\u65B0\u56FE\u7247\u5F15\u7528\u5931\u8D25\uFF0C\u8BE6\u89C1\u63A7\u5236\u53F0", 8e3);
     } finally {
       this.debounceFileRefresh();
     }
@@ -8390,14 +8964,14 @@ var PicLinkerPlugin = class extends import_obsidian12.Plugin {
         working = mig.settings;
         encSaltB64 = mig.newSaltB64;
         persistMigration = true;
-        new import_obsidian12.Notice("PicLinker\uFF1A\u51ED\u636E\u5DF2\u65E0\u7F1D\u8FC1\u79FB\u5230\u66F4\u5B89\u5168\u7684\u52A0\u5BC6\u65B9\u6848");
+        new import_obsidian13.Notice("PicLinker\uFF1A\u51ED\u636E\u5DF2\u65E0\u7F1D\u8FC1\u79FB\u5230\u66F4\u5B89\u5168\u7684\u52A0\u5BC6\u65B9\u6848");
       } else if (mig.hadLegacy && !mig.allDecrypted) {
         working = raw;
         encSaltB64 = mig.newSaltB64;
         persistMigration = true;
         const msg = "PicLinker \u8B66\u544A\uFF1A\u90E8\u5206\u56FE\u5E8A\u51ED\u636E\u65E0\u6CD5\u81EA\u52A8\u8FC1\u79FB\uFF08\u53EF\u80FD\u66FE\u5728\u5347\u7EA7\u524D\u91CD\u547D\u540D\u8FC7 vault\uFF09\uFF0C\u8BF7\u91CD\u65B0\u68C0\u67E5\u5E76\u586B\u5199\u56FE\u5E8A\u914D\u7F6E\u3002";
         console.warn(`[PicLinker] ${msg}`);
-        new import_obsidian12.Notice(msg, 15e3);
+        new import_obsidian13.Notice(msg, 15e3);
       } else {
         working = raw;
         encSaltB64 = mig.newSaltB64;
@@ -8637,7 +9211,7 @@ ${"\u2500".repeat(30)}
 ${results.join("\n")}
 ${"\u2500".repeat(30)}
 \u901A\u8FC7: ${results.filter((r) => r.startsWith("\u2705")).length}/${results.length}`;
-    new import_obsidian12.Notice(summary, 15e3);
+    new import_obsidian13.Notice(summary, 15e3);
   }
   /**
    * 开发模式：检测 main.js 修改时间变化时自动刷新视图

@@ -8,6 +8,7 @@
  * - GitHub：使用 HEAD 请求（raw.githubusercontent.com 通常允许跨域）
  */
 
+import { Notice } from "obsidian";
 import { ImageLink, PicLinkerSettings, CompareResult, ImageBedType, CloudFile } from "../types";
 import { detectBedTypeFromUrl } from "../icons";
 import { directFetch } from "../utils/http";
@@ -46,14 +47,13 @@ export class CloudComparator {
 		// ===== 阿里云/腾讯云/其他图床：优先用云端文件列表做文件名匹配（避免 CORS） =====
 		// 只要传入了 cloudFiles 参数就走此路径（包括空数组），绝不回退到 HEAD 请求
 		if ((bedType === ImageBedType.Aliyun || bedType === ImageBedType.Tencent || bedType === ImageBedType.Other) && cloudFiles) {
-			// 构建云端文件名集合（仅文件，排除目录项）。
+			// 构建云端文件映射表（仅文件，排除目录项）。
 			// 多路径下同名文件：保留全部 URL（数组），避免后者覆盖前者导致返回错误 URL。
-			const cloudFileNames = new Set<string>();
-			const cloudFileMap = new Map<string, string[]>(); // fileName → url[]（同名文件可能有多个）
+			// key 使用完整 object key（f.prefix），而非纯文件名，避免跨目录同名误判。
+			const cloudFileMap = new Map<string, string[]>(); // fullPrefix → url[]（同名文件可能有多个）
 			for (const f of cloudFiles) {
 				if (!f.isDirectory && f.prefix) {
 					const name = (f.prefix.split("/").pop() || f.name).toLowerCase();
-					cloudFileNames.add(name);
 					const list = cloudFileMap.get(name) ?? [];
 					if (f.url && !list.includes(f.url)) list.push(f.url);
 					cloudFileMap.set(name, list);
@@ -70,17 +70,35 @@ export class CloudComparator {
 					}
 					continue;
 				}
-				const fileName = extractFileName(img.pure)?.toLowerCase();
+				const fileName = extractFileName(img.pure);
 				const expectedUrl = this.generateExpectedUrl(img.pure, bedType, pathPrefix);
 
-				if (fileName && cloudFileNames.has(fileName)) {
-					const urls = cloudFileMap.get(fileName) ?? [];
+							if (!fileName) {
+				result.set(img.pure, { exists: false, url: expectedUrl });
+				continue;
+			}
+
+			// 构造完整 object key 作为查表键（OSS/COS 区分大小写，移除 toLowerCase）
+			let lookupKey: string;
+			if (bedType === ImageBedType.Aliyun) {
+				const base = (pathPrefix || this.settings.aliyunPath || "images").replace(/^\/+|\/+$/g, "");
+				lookupKey = base + "/" + fileName;
+			} else if (bedType === ImageBedType.Tencent) {
+				const base = (pathPrefix || this.settings.tencentPath || "images").replace(/^\/+|\/+$/g, "");
+				lookupKey = base + "/" + fileName;
+			} else {
+				// SM.MS 等无目录结构的图床：prefix = filename，直接用文件名匹配
+				lookupKey = fileName;
+			}
+
+			const urls = cloudFileMap.get(lookupKey);
+			if (urls) {
 					// 优先返回与 expectedUrl 同路径的精确匹配；否则返回第一个可用 URL
 					const matched = urls.find((u) => u === expectedUrl) || urls[0] || expectedUrl;
 					result.set(img.pure, { exists: true, url: matched });
-				} else {
-					result.set(img.pure, { exists: false, url: expectedUrl });
-				}
+			} else {
+				result.set(img.pure, { exists: false, url: expectedUrl });
+			}
 			}
 			return result;
 		}
@@ -114,15 +132,35 @@ export class CloudComparator {
 			const settled = await Promise.allSettled(batch);
 			settledResults.push(...settled);
 		}
+		let failedCount = 0;
 		for (const r of settledResults) {
 			if (r.status === "fulfilled") {
 				result.set(r.value.key, r.value.value);
 			} else {
+				// HEAD 请求失败（限流/CORS/网络抖动）时，不再静默判为「不存在」——
+				// 后续按 settledResults 与 localImages 一一对应的顺序回查并标记为 unknown，
+				// 避免把真实存在的云端图误判为断链导致用户误删。
+				failedCount++;
 				console.warn("[PicLinker] compare HEAD request failed:", r.reason);
 			}
 		}
 
-		// 确保所有 localImages 都有结果（HEAD 请求失败的标记为未找到）
+		// tasks 与 localImages 一一对应、且 settledResults 保序，故按索引回查失败项，
+		// 将 HEAD 失败的项标记为 unknown（不覆盖后续成功项）。
+		for (let i = 0; i < localImages.length; i++) {
+			const settled = settledResults[i];
+			if (settled && settled.status === "rejected" && !result.has(localImages[i].pure)) {
+				result.set(localImages[i].pure, { exists: false, unknown: true });
+			}
+		}
+
+		if (failedCount > 0) {
+			new Notice(
+				`PicLinker：云端比对有 ${failedCount} 个图片探测失败（可能为限流/CORS/网络问题），已标记为「状态未知」，请勿据此批量删除。`,
+			);
+		}
+
+		// 确保所有 localImages 都有结果（HEAD 成功确定为不存在的，标记为未找到）
 		for (const img of localImages) {
 			if (!result.has(img.pure)) {
 				result.set(img.pure, { exists: false });
@@ -181,7 +219,7 @@ export class CloudComparator {
 		const fileName = extractFileName(localPure);
 		if (!fileName) return undefined;
 
-		const basePath = pathPrefix ? `${pathPrefix.replace(/^\/+|\/+$/g, "")}/` : "images/";
+		const basePath = pathPrefix ? `${pathPrefix.replace(/^\/+|\/+$/g, "")}/` : (this.settings.aliyunPath || "images").replace(/^\/+|\/+$/g, "") + "/";
 		const ep = aliyunEndpoint.replace(/^https?:\/\//, "");
 		return `https://${aliyunBucket}.${ep}/${basePath}${fileName}`;
 	}
@@ -193,7 +231,7 @@ export class CloudComparator {
 		const fileName = extractFileName(localPure);
 		if (!fileName) return undefined;
 
-		const basePath = pathPrefix ? `${pathPrefix.replace(/^\/+|\/+$/g, "")}/` : "images/";
+		const basePath = pathPrefix ? `${pathPrefix.replace(/^\/+|\/+$/g, "")}/` : (this.settings.tencentPath || "images").replace(/^\/+|\/+$/g, "") + "/";
 		return `https://${tencentBucket}.cos.${tencentRegion}.myqcloud.com/${basePath}${fileName}`;
 	}
 

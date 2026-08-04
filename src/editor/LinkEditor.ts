@@ -122,7 +122,8 @@ export class LinkEditor {
 		const escaped = escapeRegex(oldPath);
 		const escapedNew = newPath.replace(/\$/g, "$$$$");
 		// P1#18: 三个独立正则分别处理 Markdown/Wiki/HTML，替代脆弱的多捕获组合并正则
-		const mdRegex = new RegExp(`(!\\[[^\\]]*\\]\\()${escaped}(\\))`, "g");
+		// md 正则保留可选 title（![alt](x "title")），与 replaceLink 保持一致，去重合并时不丢 title
+		const mdRegex = new RegExp(`(!\\[[^\\]]*\\]\\()${escaped}((?:\\s+"[^"]*"|\\s+'[^']*')?)(\\))`, "g");
 		const wikiRegex = new RegExp(`(!?\\[\\[)${escaped}((?:\\|[^\\]]*)?)(\\]\\])`, "g");
 		const htmlRegex = new RegExp(`(<img[^>]*src=["'])${escaped}(["'][^>]*/?>)`, "g");
 		let count = 0;
@@ -134,7 +135,7 @@ export class LinkEditor {
 			const content = await this.app.vault.cachedRead(mdFile);
 			if (!content.includes(oldPath)) continue;
 			let newContent = content;
-			newContent = newContent.replace(mdRegex, `$1${escapedNew}$2`);
+			newContent = newContent.replace(mdRegex, `$1${escapedNew}$2$3`);
 			newContent = newContent.replace(wikiRegex, (_match, p1: string, p2: string, p3: string) => `${p1}${escapedNew}${p2 || ""}${p3}`);
 			newContent = newContent.replace(htmlRegex, `$1${escapedNew}$2`);
 			if (newContent !== content) {

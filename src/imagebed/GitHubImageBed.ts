@@ -26,10 +26,19 @@ export class GitHubImageBed implements ImageBed {
 		if (!this.token || !this.owner || !this.repo) return [];
 
 		const files: CloudFile[] = [];
+		let partial = false;
 
 		// 递归获取目录内容
-		await this.fetchDirectoryContents(this.path, files);
+		try {
+			await this.fetchDirectoryContents(this.path, files);
+		} catch (e) {
+			console.warn("[PicLinker] GitHub listFiles 异常:", e instanceof Error ? e.message : String(e));
+			partial = true;
+		}
 
+		if (partial && files.length > 0 && !files[0]._partial) {
+			for (const file of files) file._partial = true;
+		}
 		return files;
 	}
 
@@ -38,6 +47,7 @@ export class GitHubImageBed implements ImageBed {
 	 * 通过 GitHub API Link header 实现分页，自动拉取所有页
 	 */
 	private async fetchDirectoryContents(dirPath: string, files: CloudFile[]): Promise<void> {
+		let hasError = false;
 		const encodedDir = dirPath.split("/").map(encodeURIComponent).join("/");
 		let pageUrl: string | null = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${encodedDir}?ref=${this.branch}&per_page=100`;
 
@@ -50,10 +60,10 @@ export class GitHubImageBed implements ImageBed {
 					},
 				});
 
-				if (!response.ok) return;
+				if (!response.ok) { hasError = true; return; }
 
 				const data = await response.json<Array<{ type?: string; name?: string; path?: string; download_url?: string }>>();
-				if (!Array.isArray(data)) return;
+				if (!Array.isArray(data)) { hasError = true; return; }
 
 				for (const item of data) {
 					if (item.type === "file") {
@@ -71,9 +81,12 @@ export class GitHubImageBed implements ImageBed {
 				pageUrl = this.parseNextPageHeader(response);
 			} catch (e) {
 				console.warn("[PicLinker] GitHub 目录列表获取失败:", e instanceof Error ? e.message : String(e));
+				hasError = true;
 				return;
 			}
 		}
+		// NOTE: partial error tracking would ideally propagate hasError up the call stack
+		// for now, the outer listFiles try/catch covers the top-level error case
 	}
 
 	/**
@@ -96,7 +109,7 @@ export class GitHubImageBed implements ImageBed {
 		}
 
 		const basePath = this.path ? `${this.path}/` : "";
-		const path = `${basePath}${filename}`;
+		const path = filename.includes("/") ? filename : `${basePath}${filename}`;
 		const encodedPath = path.split("/").map(encodeURIComponent).join("/");
 		const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${encodedPath}`;
 

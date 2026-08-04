@@ -130,8 +130,10 @@ export class SmmsImageBed implements ImageBed {
 				return { success: false, error: deleteData.message || "删除失败" };
 			}
 
-			// 删除成功后从缓存中移除
+			// 删除成功后从缓存中移除，同时失效文件列表缓存
 			this.hashCache.delete(filename);
+			this.cachedFiles = null;
+			this.lastListFetchAt = 0;
 
 			return { success: true };
 		} catch (e) {

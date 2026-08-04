@@ -85,6 +85,7 @@ async function fallbackRequest(
 		method: options.method || "GET",
 		headers: options.headers || {},
 		body: options.body,
+		throw: false,
 		...(options.timeout !== undefined ? { timeout: options.timeout } : {}),
 	});
 	const buf = resp.arrayBuffer;
@@ -162,15 +163,32 @@ function nodeFetch(
 					reject(new Error(`directFetch: 重定向次数超过上限 (${MAX_REDIRECTS})`));
 					return;
 				}
-				// 相对 Location 基于当前 URL 解析为绝对地址
-				const nextUrl = new urlModule.URL(location, url).toString();
-				// 303 强制改为 GET，并丢弃 body；其余方法保留语义
-				const nextMethod = statusCode === 303 ? "GET" : (options.method || "GET");
-				const nextOptions: DirectFetchOptions = {
-					...options,
-					method: nextMethod,
-					body: nextMethod === "GET" ? undefined : options.body,
-				};
+			// 相对 Location 基于当前 URL 解析为绝对地址
+			const nextUrl = new urlModule.URL(location, url).toString();
+			// 303 强制改为 GET，并丢弃 body；其余方法保留语义
+			const nextMethod = statusCode === 303 ? "GET" : (options.method || "GET");
+
+			// 安全：跨 host 重定向时剥离凭据头，防止 Authorization / Cookie 等敏感头被发往第三方
+			// （某图床 302 到不同域、或请求被劫持时，签名/密码可能泄露）。
+			const nextHeaders: Record<string, string> = { ...(options.headers || {}) };
+			let originalHost: string | undefined;
+			let nextHost: string | undefined;
+			try {
+				originalHost = new urlModule.URL(url).hostname;
+				nextHost = new urlModule.URL(nextUrl).hostname;
+			} catch { /* 解析失败则按同 host 处理，不剥离凭据头 */ }
+			if (originalHost && nextHost && originalHost !== nextHost) {
+				for (const sensitive of ["authorization", "cookie", "proxy-authorization"]) {
+					delete nextHeaders[sensitive];
+					delete nextHeaders[sensitive.charAt(0).toUpperCase() + sensitive.slice(1)];
+				}
+			}
+			const nextOptions: DirectFetchOptions = {
+				...options,
+				method: nextMethod,
+				headers: nextHeaders,
+				body: nextMethod === "GET" ? undefined : options.body,
+			};
 				// 不再需要原响应体，释放连接后跟随重定向
 				res.destroy?.();
 				nodeFetch(nextUrl, nextOptions, urlModule, redirectCount + 1).then(resolve, reject);
