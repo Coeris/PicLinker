@@ -4531,6 +4531,7 @@ var PicLinkerView = class extends import_obsidian10.ItemView {
     this.dedupGroups = [];
     /** 去重执行防重入标志 */
     this.isDedupRunning = false;
+    this.dedupCacheCleared = false;
     /** 同名文件数据：按文件名分组，每组包含本地和/或云端条目 */
     this.sameNameGroups = [];
     /** 空白文件夹缓存（refresh 时清除） */
@@ -5536,7 +5537,7 @@ var PicLinkerView = class extends import_obsidian10.ItemView {
     const totalItems = filteredDedup.reduce((sum, g) => sum + g.items.length, 0);
     const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "duplicates", dedupIcon, "\u91CD\u590D\u56FE\u7247", totalItems, "dedup" /* Dedup */);
     const countEl = header.querySelector(".pic-part-count");
-    if (countEl) countEl.setText(`${groupCount} \u7EC4\uFF0C${totalItems} \u5F20`);
+    if (countEl) countEl.setText(`${groupCount} \u7EC4\uFF0C${totalItems} \u5F20` + (this.dedupCacheCleared ? "\uFF08\u7F13\u5B58\u5DF2\u6E05\uFF0C\u70B9\u53BB\u91CD\u91CD\u7B97\uFF09" : ""));
     const actions = header.querySelector(".pic-part-actions");
     if (actions) {
       if (!expanded) actions.addClass("pic-part-actions--hidden");
@@ -5617,6 +5618,8 @@ var PicLinkerView = class extends import_obsidian10.ItemView {
     this.plugin.hashCache.clear();
     await this.plugin.saveSettings();
     new import_obsidian10.Notice(`\u5DF2\u6E05\u9664 ${localCount + cloudCount} \u6761\u54C8\u5E0C\u7F13\u5B58`);
+    this.dedupCacheCleared = true;
+    this.renderContent(this.collectCheckedPaths());
   }
   // ===== Section 8: 空白文件夹 =====
   renderEmptyFoldersSection(el) {
@@ -5887,7 +5890,7 @@ var PicLinkerView = class extends import_obsidian10.ItemView {
       }
       node.files.push(img);
     }
-    this.treeRenderer.renderTreeNodeGeneric(container, root, 0, {
+    this.treeRenderer.renderTreeNodeGeneric(container, root, 1, {
       getKey: (img) => imgSelectKey(img),
       renderItem: (c, img, sel) => this.itemRenderer.renderCloudReferencedItem(c, img, sel),
       collectFiles: (node) => this.treeRenderer.collectTreeFiles(node)
@@ -6004,6 +6007,7 @@ var PicLinkerView = class extends import_obsidian10.ItemView {
         } else {
           createThumbBrokenPlaceholder(itemEl);
         }
+        this.createSourceBadge(itemEl, item.source);
         itemEl.createSpan({ cls: "pic-path", text: localDisplay, attr: { title: localDisplay } });
         itemEl.dataset.purePath = itemKey;
         const matchedImg = this.localImages.find((i) => (i.resolvedPath || i.pure) === item.path);
@@ -6026,6 +6030,7 @@ var PicLinkerView = class extends import_obsidian10.ItemView {
         } else {
           createThumbBrokenPlaceholder(itemEl);
         }
+        this.createSourceBadge(itemEl, item.source);
         itemEl.createSpan({ cls: "pic-path", text: cloudDisplay, attr: { title: cloudDisplay } });
         itemEl.dataset.purePath = itemKey;
         const matchedCloudImg = this.localImages.find((i) => i.pure === (item.url || item.path));
@@ -6259,7 +6264,7 @@ var PicLinkerView = class extends import_obsidian10.ItemView {
   /** 按文件夹路径分组渲染云端文件（嵌套树） */
   renderCloudGroupedByFolder(el, files, breadcrumb = "") {
     const root = this.treeRenderer.buildTree(files, (f) => f.prefix || f.name);
-    this.treeRenderer.renderTreeNodeGeneric(el, root, 0, {
+    this.treeRenderer.renderTreeNodeGeneric(el, root, 1, {
       getKey: (f) => f.prefix || f.name,
       renderItem: (c, f) => this.itemRenderer.renderCloudItem(c, f),
       collectFiles: (node) => this.treeRenderer.collectTreeFiles(node)
@@ -6282,12 +6287,20 @@ var PicLinkerView = class extends import_obsidian10.ItemView {
   }
   // ==================== 去重功能 ====================
   /** 执行去重扫描 */
+  /** 在容器首部插入源徽章：本地=紫，云端=蓝（去重/同名区一眼区分来源） */
+  createSourceBadge(container, source) {
+    container.createSpan({
+      cls: `pic-src-badge ${source === "local" ? "pic-src-local" : "pic-src-cloud"}`,
+      text: source === "local" ? "\u672C\u5730" : "\u4E91\u7AEF"
+    });
+  }
   async runDedup(selectedOnly) {
     if (this.isDedupRunning) {
       new import_obsidian10.Notice("\u53BB\u91CD\u6B63\u5728\u6267\u884C\u4E2D\uFF0C\u8BF7\u7A0D\u5019...");
       return;
     }
     this.isDedupRunning = true;
+    this.dedupCacheCleared = false;
     try {
       if (this.cloudLoading) {
         new import_obsidian10.Notice("\u6B63\u5728\u7B49\u5F85\u4E91\u7AEF\u6570\u636E\u52A0\u8F7D\u5B8C\u6210...");
@@ -6584,6 +6597,7 @@ var PicLinkerView = class extends import_obsidian10.ItemView {
             });
           }
           const localDisplay = this.plugin.settings.showPath ? withRootPrefix(item.path) : withRootPrefix(item.path.split("/").pop() || item.path);
+          this.createSourceBadge(itemEl, item.source);
           itemEl.createSpan({ cls: "pic-path", text: localDisplay, attr: { title: localDisplay } });
         } else {
           const thumbSrc = item.path;
@@ -6596,6 +6610,7 @@ var PicLinkerView = class extends import_obsidian10.ItemView {
             e.stopPropagation();
             showImagePreview(thumbSrc);
           });
+          this.createSourceBadge(itemEl, item.source);
           itemEl.createSpan({ cls: "pic-path", text: item.path, attr: { title: item.path } });
         }
         const matchedDedupImg = this.localImages.find((i) => (i.resolvedPath || i.pure) === item.path);
@@ -8513,18 +8528,12 @@ var DedupCache = class {
   }
   /**
    * 获取缓存的哈希（LRU：更新访问顺序）。
-   * 云端条目在写入时记录 cachedAt 时间戳，读取时 TTL 超时（24h）返回 null，避免脏缓存。
+   * 注意：云端条目不再做 TTL 自动过期——缓存是否失效完全由用户手动「清除缓存」决定，
+   * 避免图床数据未变时缓存被静默丢弃、已展示的去重组与实际缓存对不上产生歧义。
    */
   get(path) {
     const entry = this.cache.get(path);
     if (entry) {
-      if (entry.source === "cloud" && entry.computedAt) {
-        const age = Date.now() - entry.computedAt;
-        if (age > 24 * 60 * 60 * 1e3) {
-          this.cache.delete(path);
-          return null;
-        }
-      }
       this.cache.delete(path);
       this.cache.set(path, entry);
     }

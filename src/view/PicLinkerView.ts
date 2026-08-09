@@ -88,6 +88,7 @@ export class PicLinkerView extends ItemView {
 	private dedupGroups: DedupGroup[] = [];
 	/** 去重执行防重入标志 */
 	private isDedupRunning = false;
+	private dedupCacheCleared = false;
 	/** 同名文件数据：按文件名分组，每组包含本地和/或云端条目 */
 	private sameNameGroups: Array<{
 		fileName: string;
@@ -1296,7 +1297,7 @@ export class PicLinkerView extends ItemView {
 		const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "duplicates", dedupIcon, "重复图片", totalItems, SelectionSection.Dedup);
 		// 覆盖默认计数为「(N组，M张)」格式
 		const countEl = header.querySelector<HTMLElement>(".pic-part-count");
-		if (countEl) countEl.setText(`${groupCount} 组，${totalItems} 张`);
+		if (countEl) countEl.setText(`${groupCount} 组，${totalItems} 张` + (this.dedupCacheCleared ? "（缓存已清，点去重重算）" : ""));
 		const actions = header.querySelector<HTMLElement>(".pic-part-actions");
 		if (actions) {
 			if (!expanded) actions.addClass("pic-part-actions--hidden");
@@ -1363,6 +1364,10 @@ export class PicLinkerView extends ItemView {
 		this.plugin.hashCache.clear();
 		await this.plugin.saveSettings();
 		new Notice(`已清除 ${localCount + cloudCount} 条哈希缓存`);
+		// 标记缓存已清：去重组标题改为「缓存已清，点去重重算」，提示用户重新计算才会用新缓存
+		this.dedupCacheCleared = true;
+		// 重绘并保留当前勾选，避免误清空跨区选中
+		this.renderContent(this.collectCheckedPaths());
 	}
 
 	// ===== Section 8: 空白文件夹 =====
@@ -1678,7 +1683,7 @@ export class PicLinkerView extends ItemView {
 		}
 
 		// 使用通用渲染
-		this.treeRenderer.renderTreeNodeGeneric(container, root, 0, {
+		this.treeRenderer.renderTreeNodeGeneric(container, root, 1, {
 		getKey: (img) => imgSelectKey(img),
 			renderItem: (c, img, sel) => this.itemRenderer.renderCloudReferencedItem(c, img, sel),
 			collectFiles: (node) => this.treeRenderer.collectTreeFiles(node),
@@ -1808,6 +1813,8 @@ export class PicLinkerView extends ItemView {
 				} else {
 					createThumbBrokenPlaceholder(itemEl);
 				}
+				// 源徽章（本地/云端），置于预览图之后、文件名之前
+				this.createSourceBadge(itemEl, item.source);
 				itemEl.createSpan({ cls: "pic-path", text: localDisplay, attr: { title: localDisplay } });
 				itemEl.dataset.purePath = itemKey;
 				// 引用标签
@@ -1826,6 +1833,8 @@ export class PicLinkerView extends ItemView {
 				} else {
 					createThumbBrokenPlaceholder(itemEl);
 				}
+				// 源徽章（本地/云端），置于预览图之后、文件名之前
+				this.createSourceBadge(itemEl, item.source);
 				itemEl.createSpan({ cls: "pic-path", text: cloudDisplay, attr: { title: cloudDisplay } });
 				itemEl.dataset.purePath = itemKey;
 				// 引用标签
@@ -2104,7 +2113,7 @@ export class PicLinkerView extends ItemView {
 	/** 按文件夹路径分组渲染云端文件（嵌套树） */
 	private renderCloudGroupedByFolder(el: HTMLElement, files: CloudFile[], breadcrumb: string = "") {
 		const root = this.treeRenderer.buildTree(files, (f) => f.prefix || f.name);
-		this.treeRenderer.renderTreeNodeGeneric(el, root, 0, {
+		this.treeRenderer.renderTreeNodeGeneric(el, root, 1, {
 			getKey: (f) => f.prefix || f.name,
 			renderItem: (c, f) => this.itemRenderer.renderCloudItem(c, f),
 			collectFiles: (node) => this.treeRenderer.collectTreeFiles(node),
@@ -2131,12 +2140,21 @@ export class PicLinkerView extends ItemView {
 	// ==================== 去重功能 ====================
 
 	/** 执行去重扫描 */
+	/** 在容器首部插入源徽章：本地=紫，云端=蓝（去重/同名区一眼区分来源） */
+	private createSourceBadge(container: HTMLElement, source: "local" | "cloud"): void {
+		container.createSpan({
+			cls: `pic-src-badge ${source === "local" ? "pic-src-local" : "pic-src-cloud"}`,
+			text: source === "local" ? "本地" : "云端",
+		});
+	}
 	private async runDedup(selectedOnly: boolean) {
 		if (this.isDedupRunning) {
 			new Notice("去重正在执行中，请稍候...");
 			return;
 		}
 		this.isDedupRunning = true;
+		// 开始重新计算前复位「缓存已清」标记，标题恢复正常
+		this.dedupCacheCleared = false;
 
 		try {
 		// 等待云端数据加载完成（如果正在加载中）
@@ -2522,6 +2540,8 @@ export class PicLinkerView extends ItemView {
 						thumb.addEventListener("click", (e) => { e.stopPropagation(); showImagePreview(thumbSrc); });
 					}
 					const localDisplay = this.plugin.settings.showPath ? withRootPrefix(item.path) : withRootPrefix(item.path.split("/").pop() || item.path);
+					// 源徽章（本地/云端），置于预览图之后、文件名之前
+					this.createSourceBadge(itemEl, item.source);
 					itemEl.createSpan({ cls: "pic-path", text: localDisplay, attr: { title: localDisplay } });
 				} else {
 					// 缩略图（云端图片）
@@ -2529,6 +2549,8 @@ export class PicLinkerView extends ItemView {
 					const thumb = itemEl.createEl("img", { cls: "pic-thumb pic-thumb-clickable", attr: { src: thumbSrc, loading: "lazy" } });
 					thumb.addEventListener("error", () => { thumb.setCssStyles({ display: "none" }); createThumbBrokenPlaceholder(itemEl); });
 					thumb.addEventListener("click", (e) => { e.stopPropagation(); showImagePreview(thumbSrc); });
+					// 源徽章（本地/云端），置于预览图之后、文件名之前
+					this.createSourceBadge(itemEl, item.source);
 					itemEl.createSpan({ cls: "pic-path", text: item.path, attr: { title: item.path } });
 				}
 				// 引用标签（始终从 localImages 获取最新引用数据）

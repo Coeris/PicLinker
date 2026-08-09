@@ -54,6 +54,7 @@
 
 	/* ---- 阴影 ---- */
 	--pic-shadow: 0 2px 8px rgba(74, 70, 66, 0.06);
+	--pic-cta-text: #ffffff;
 
 	/* ---- 布局 ---- */
 	--pic-toolbar-h: 42px;
@@ -101,46 +102,7 @@
 	--pic-toggle-knob: #ede9e3;
 
 	--pic-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-/* ---- 浅色模式（显式声明）---- */
-.theme-light {
-	--pic-bg-primary: #f5f3f0;
-	--pic-bg-secondary: #edeae5;
-	--pic-bg-tertiary: #e3dfd9;
-	--pic-bg-hover: #e8e4de;
-	--pic-bg-active: #ddd8d0;
-
-	--pic-border: #d4cfc7;
-	--pic-border-hover: #c4bdb2;
-
-	--pic-text: #4a4642;
-	--pic-text-muted: #8a847d;
-	--pic-text-accent: #6b7f8e;
-
-	--pic-accent: #6b7f8e;
-	--pic-accent-soft: rgba(107, 127, 142, 0.12);
-	--pic-accent-medium: rgba(107, 127, 142, 0.24);
-
-	--pic-success: #7a9b76;
-	--pic-success-bg: rgba(122, 155, 118, 0.15);
-	--pic-error: #a57878;
-	--pic-error-bg: rgba(165, 120, 120, 0.13);
-	--pic-warning: #ab8862;
-	--pic-warning-bg: rgba(171, 136, 98, 0.14);
-	--pic-info: #6b7f8e;
-	--pic-info-bg: rgba(107, 127, 142, 0.15);
-
-	--pic-selected-bg: rgba(107, 127, 142, 0.16);
-	--pic-selected-bar: #6b7f8e;
-
-	--pic-overlay: rgba(40, 38, 35, 0.82);
-
-	--pic-toggle-off: #c4bdb2;
-	--pic-toggle-on: #6b7f8e;
-	--pic-toggle-knob: #f5f3f0;
-
-	--pic-shadow: 0 2px 8px rgba(74, 70, 66, 0.06);
+	--pic-cta-text: #2a2826;
 }
 
 /* ========== 搜索框 ========== */
@@ -995,6 +957,9 @@
 /* 嵌套文件夹：底色再深一档，使父子文件夹也能区分（color-mix 随明暗自适应） */
 .pic-dir-header.pic-dir-nested {
 	background: color-mix(in srgb, var(--pic-bg-secondary) 85%, var(--pic-border));
+	/* 左侧树状引导线：落在目录标题左移出的空白区，与上方父目录竖向对齐 */
+	border-left: 2px solid var(--pic-border);
+	margin-left: 7px;
 }
 
 .pic-dir-header:hover {
@@ -1045,6 +1010,10 @@
 	/* 去掉左缩进：嵌套框与外层框共享同一条左右边线（边框连贯）；
 	   层级仅靠文件夹/文件文字的内缩进（JS 按 depth 设 paddingLeft）体现 */
 	padding: 0;
+}
+/* 嵌套目录内容随引导线左移 16px，使子文件与目录标题左对齐（与 JS depth*16 缩进呼应） */
+.pic-dir-content.pic-dir-nested {
+	padding-left: 16px;
 }
 
 /* 文件夹展开时，其内部首个子项顶边框与父文件夹底边框折叠为单线 */
@@ -1258,6 +1227,7 @@ input.pic-cloud-checkbox {
 .pic-preview-overlay {
 	position: fixed;
 	inset: 0;
+	padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 	z-index: 1000;
 	background: var(--pic-overlay);
 	display: flex;
@@ -1273,6 +1243,7 @@ input.pic-cloud-checkbox {
 	max-height: 90vh;
 	object-fit: contain;
 	border-radius: var(--pic-radius-card);
+	border: 1px solid var(--pic-border);
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 	transition: transform 0.1s ease;
 	cursor: default;
@@ -1309,14 +1280,14 @@ input.pic-cloud-checkbox {
 
 	/* ---- 主视图 ---- */
 	.workspace-leaf-content .pic-container {
-		padding: 0 4px 4px;
+		padding: 0 4px calc(4px + env(safe-area-inset-bottom));
 	}
 
 	/* ---- 顶部工具栏 ---- */
 	.pic-toolbar {
 		flex-wrap: wrap;
 		row-gap: 3px;
-		padding: 4px 6px;
+		padding: calc(4px + env(safe-area-inset-top)) 6px 4px;
 	}
 	.pic-search-box {
 		flex: 1 1 100%;
@@ -1529,7 +1500,7 @@ input.pic-cloud-checkbox {
 .pic-settings button.mod-cta {
 	background: var(--pic-accent);
 	border-color: var(--pic-accent);
-	color: #ffffff;
+	color: var(--pic-cta-text);
 }
 .pic-settings button.mod-cta:hover {
 	background: var(--pic-text-accent);
@@ -1600,4 +1571,36 @@ input.pic-cloud-checkbox {
 
 .pic-notfound-header--collapsed {
 	opacity: 0.7;
+}
+
+/* 源徽章：本地（紫）/ 云端（蓝），用于去重区与同名文件区一眼区分图片来源 */
+.pic-src-badge {
+	font-size: 10px;
+	padding: 1px 7px;
+	border-radius: var(--pic-radius-pill);
+	border: 1px solid transparent;
+	white-space: nowrap;
+	font-weight: 500;
+	flex-shrink: 0;
+	margin-right: 6px;
+}
+.pic-src-local {
+	background: rgba(145, 110, 190, 0.16);
+	color: #8b5cc4;
+	border-color: rgba(145, 110, 190, 0.42);
+}
+.theme-dark .pic-src-local {
+	background: rgba(167, 139, 250, 0.20);
+	color: #c4b5fd;
+	border-color: rgba(167, 139, 250, 0.45);
+}
+.pic-src-cloud {
+	background: var(--pic-info-bg);
+	color: var(--pic-info);
+	border-color: rgba(107, 127, 142, 0.42);
+}
+.theme-dark .pic-src-cloud {
+	background: rgba(107, 127, 142, 0.22);
+	color: #a8bccc;
+	border-color: rgba(107, 127, 142, 0.5);
 }
