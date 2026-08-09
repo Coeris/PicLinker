@@ -184,7 +184,7 @@ export class LinkEditor {
 	removeImageFromLine(line: string, imgPath: string): string {
 		// Markdown 格式: ![alt](url) 或 ![alt](url "title")（alt/title 均可，删除整段图片引用）
 		let result = line.replace(
-			new RegExp(`!\[[^\]]*\]\(${escapeRegex(imgPath)}((?:\s+"[^"]*"|\s+'[^']*')?)\)`, "g"),
+			new RegExp(`!\[[^\]]*\]\(${escapeRegex(imgPath)}((?:\\s+"[^"]*"|\\s+'[^']*')?)\)`, "g"),
 			"",
 		);
 		// Wiki 格式: ![[path]] / [[path]]（! 可选）
@@ -248,7 +248,7 @@ export class LinkEditor {
 			while ((m = mdRe.exec(content)) !== null) {
 				const full = m[0];
 				let pure = m[2];
-				const tm = pure.match(/^(.+?)\s+"([^"]*)"$/);
+				const tm = pure.match(/^(.+?)\\s+"([^"]*)"$/);
 				let title = "";
 				if (tm) {
 					pure = tm[1].trim();
@@ -373,7 +373,7 @@ export class LinkEditor {
 		const idx = line - 1;
 		if (idx < 0 || idx >= lines.length) return;
 		const l = lines[idx];
-		const keyM = l.match(/^\s*([A-Za-z0-9_-]+)\s*:/);
+		const keyM = l.match(/^\\s*([A-Za-z0-9_-]+)\\s*:/);
 		if (!keyM) return;
 		const key = keyM[1];
 		const re = new RegExp(

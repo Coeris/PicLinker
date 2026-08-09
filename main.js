@@ -8706,7 +8706,7 @@ var LinkEditor = class {
   /** 智能移除行中的图片引用，保留行中其他内容 */
   removeImageFromLine(line, imgPath) {
     let result = line.replace(
-      new RegExp(`![[^]]*](${escapeRegex(imgPath)}((?:s+"[^"]*"|s+'[^']*')?))`, "g"),
+      new RegExp(`![[^]]*](${escapeRegex(imgPath)}((?:\\s+"[^"]*"|\\s+'[^']*')?))`, "g"),
       ""
     );
     result = result.replace(
@@ -8759,7 +8759,7 @@ var LinkEditor = class {
       while ((m = mdRe.exec(content)) !== null) {
         const full = m[0];
         let pure = m[2];
-        const tm = pure.match(/^(.+?)\s+"([^"]*)"$/);
+        const tm = pure.match(/^(.+?)\\s+"([^"]*)"$/);
         let title = "";
         if (tm) {
           pure = tm[1].trim();
@@ -8869,7 +8869,7 @@ var LinkEditor = class {
     const idx = line - 1;
     if (idx < 0 || idx >= lines.length) return;
     const l = lines[idx];
-    const keyM = l.match(/^\s*([A-Za-z0-9_-]+)\s*:/);
+    const keyM = l.match(/^\\s*([A-Za-z0-9_-]+)\\s*:/);
     if (!keyM) return;
     const key = keyM[1];
     const re = new RegExp(
@@ -8969,7 +8969,7 @@ var PicLinkerPlugin = class extends import_obsidian13.Plugin {
     this.registerView(VIEW_TYPE_PIC_LINKER, (leaf) => {
       return new PicLinkerView(leaf, this);
     });
-    this.addRibbonIcon("cloud-check", "\u6253\u5F00\u56FE\u5E8A\u7BA1\u5BB6", () => {
+    this.addRibbonIcon("bird", "\u6253\u5F00\u56FE\u5E8A\u7BA1\u5BB6", () => {
       void this.activateView();
     });
     this.addCommand({
@@ -9155,12 +9155,12 @@ var PicLinkerPlugin = class extends import_obsidian13.Plugin {
     if (this.activeDebounceTimer) window.clearTimeout(this.activeDebounceTimer);
     this.activeDebounceTimer = window.setTimeout(() => {
       var _a;
-      (_a = this.getView()) == null ? void 0 : _a.refresh();
+      void ((_a = this.getView()) == null ? void 0 : _a.refresh());
     }, 500);
   }
   refreshView() {
     var _a;
-    (_a = this.getView()) == null ? void 0 : _a.refresh();
+    void ((_a = this.getView()) == null ? void 0 : _a.refresh());
   }
   async loadSettings() {
     const data = await this.loadData() || {};

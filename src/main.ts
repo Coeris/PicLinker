@@ -135,7 +135,7 @@ export default class PicLinkerPlugin extends Plugin {
 		});
 
 		// 添加功能区按钮 - 打开面板
-		this.addRibbonIcon("cloud-check", "打开图床管家", () => {
+		this.addRibbonIcon("bird", "打开图床管家", () => {
 			void this.activateView();
 		});
 
@@ -362,12 +362,12 @@ export default class PicLinkerPlugin extends Plugin {
 	private debounceActiveRefresh() {
 		if (this.activeDebounceTimer) window.clearTimeout(this.activeDebounceTimer);
 		this.activeDebounceTimer = window.setTimeout(() => {
-			this.getView()?.refresh();
+			void this.getView()?.refresh();
 		}, 500);
 	}
 
 	refreshView() {
-		this.getView()?.refresh();
+		void this.getView()?.refresh();
 	}
 
 	async loadSettings() {
