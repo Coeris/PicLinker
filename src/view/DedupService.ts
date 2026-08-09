@@ -4,7 +4,7 @@
  */
 
 import { App } from "obsidian";
-import { DedupGroup, ImageBedType } from "../types";
+import { DedupGroup, ImageBedType, ImageLink, CloudFile } from "../types";
 
 export interface SameNameGroup {
 	fileName: string;
@@ -34,6 +34,7 @@ export class DedupService {
 					bedType: item.bedType,
 					referenced: item.referenced,
 					img: item.img ? { pure: item.img.pure, resolvedPath: item.img.resolvedPath } : undefined,
+					file: item.file ? { url: item.file.url, prefix: item.file.prefix, name: item.file.name, bedType: item.file.bedType } : undefined,
 				})),
 			}));
 			this.app.saveLocalStorage(this.getStorageKey("dedupGroups"), JSON.stringify(serialized));
@@ -57,6 +58,7 @@ export class DedupService {
 						.filter((item) => item.path !== undefined && typeof item.path === "string" && !item.path.endsWith("/"))
 						.map((item) => {
 							const imgStub = item.img as Record<string, unknown> | undefined;
+							const fStub = item.file as Record<string, unknown> | undefined;
 							return {
 								path: item.path as string,
 								source: item.source as "local" | "cloud",
@@ -65,6 +67,9 @@ export class DedupService {
 								img: imgStub && typeof imgStub.pure === "string"
 									? { pure: imgStub.pure as string, resolvedPath: imgStub.resolvedPath as string | undefined } as ImageLink
 									: undefined,
+									file: fStub && typeof fStub.url === "string"
+										? { url: fStub.url as string, prefix: fStub.prefix as string | undefined, name: fStub.name as string | undefined, bedType: fStub.bedType as ImageBedType | undefined } as CloudFile
+										: undefined,
 							};
 						}),
 				})).filter((group) => group.items.length >= 2);

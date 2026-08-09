@@ -4,7 +4,7 @@
  * 支持增量扫描（mtime 缓存）和批量并行读取
  */
 
-import { App, TFile } from "obsidian";
+import { App, normalizePath, TFile } from "obsidian";
 import { LinkParser } from "../parser/LinkParser";
 import { ImageLink } from "../types";
 
@@ -127,7 +127,8 @@ export class VaultScanner {
 					} else {
 						// 元数据缓存未更新时，手动解析路径
 						const srcDir = file.path.substring(0, file.path.lastIndexOf("/"));
-						const tryPath = srcDir ? `${srcDir}/${link.pure}` : link.pure;
+						const rawTryPath = srcDir ? `${srcDir}/${link.pure}` : link.pure;
+						const tryPath = normalizePath(rawTryPath);
 						const tryFile = this.app.vault.getAbstractFileByPath(tryPath);
 						if (tryFile) {
 							resolvedPath = tryPath;
@@ -154,7 +155,8 @@ export class VaultScanner {
 							// 解码 URL 编码的文件名后再尝试解析（如 my%20image.png → my image.png）
 							const decodedPure = this.safeDecode(link.pure);
 							if (decodedPure !== link.pure) {
-								const tryDecodedPath = srcDir ? `${srcDir}/${decodedPure}` : decodedPure;
+								const rawDecodedPath = srcDir ? `${srcDir}/${decodedPure}` : decodedPure;
+								const tryDecodedPath = normalizePath(rawDecodedPath);
 								const decodedFile = this.app.vault.getAbstractFileByPath(tryDecodedPath);
 								if (decodedFile) {
 									resolvedPath = tryDecodedPath;

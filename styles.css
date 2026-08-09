@@ -477,6 +477,19 @@
 	background: var(--pic-error-bg);
 }
 
+.pic-btn-primary {
+	color: var(--pic-accent, var(--interactive-accent));
+}
+
+.pic-btn-primary:hover {
+	background: var(--pic-bg-hover);
+}
+
+.pic-btn-primary:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
 /* 测试连接 */
 .pic-test-connection-row,
 .pic-webdav-test-row {
@@ -1266,6 +1279,22 @@ input.pic-cloud-checkbox {
 	touch-action: none; /* 禁止浏览器原生 pinch 缩放整个页面，让 JS 接管缩放手势 */
 	-webkit-user-drag: none;
 	-webkit-touch-callout: none;
+}
+
+.pic-preview-error {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 1001;
+	padding: 12px 18px;
+	border-radius: 8px;
+	background: rgba(220, 70, 60, 0.92);
+	color: #ffffff;
+	font-size: 15px;
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 /* ==================== 移动端适配 ==================== */

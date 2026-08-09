@@ -18,7 +18,7 @@ import { ImageLink, PicLinkerSettings, ImageBedType, CloudFile } from "./types";
 import { HashCache } from "./utils/HashCache";
 import { DedupCache } from "./utils/DedupCache";
 import { parseFrontmatter } from "./utils/FrontmatterParser";
-import { encryptSensitiveFields, decryptSensitiveFields, migrateLegacyToNewSalt, generateSalt } from "./utils/SecureStorage";
+import { encryptSensitiveFields, decryptSensitiveFields, migrateLegacyToNewSalt, generateSalt, ENC_LEGACY_PREFIX, SENSITIVE_FIELDS } from "./utils/SecureStorage";
 import { LinkEditor } from "./editor/LinkEditor";
 import { WebDAVSync, WebDAVMeta } from "./sync/WebDAVSync";
 import { IMAGE_EXTENSIONS } from "./utils/Common";
@@ -42,6 +42,7 @@ const DEFAULT_SETTINGS: PicLinkerSettings = {
 	showNotFoundImages: true,
 	showEmptyFolders: true,
 	showDuplicates: true,
+	enableQuickReplace: false,
 	showSameNameFiles: true,
 
 	// WebDAV 同步
@@ -257,6 +258,19 @@ export default class PicLinkerPlugin extends Plugin {
 		}
 	}
 
+	/**
+	 * 实时获取面板视图实例。
+	 * 不能用缓存的 this.view：Obsidian 从布局恢复视图时不会走 activateView，
+	 * this.view 会保持 null（常见于重启后仅在设置页操作）。这里从 workspace 实时取。
+	 */
+	getView(): PicLinkerView | null {
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_PIC_LINKER);
+		for (const leaf of leaves) {
+			if (leaf.view instanceof PicLinkerView) return leaf.view;
+		}
+		return this.view;
+	}
+
 	onFileChanged(filePath: string, markDirty: boolean = true) {
 		// markdown 文件变更：标记脏 + 刷新
 		if (filePath.endsWith(".md")) {
@@ -320,19 +334,19 @@ export default class PicLinkerPlugin extends Plugin {
 			// 等待 Obsidian 元数据缓存更新（链接解析需要时间）
 			await new Promise(r => window.setTimeout(r, 300));
 			// 视图打开时刷新视图，未打开时只更新扫描缓存
-			const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_PIC_LINKER);
-			if (leaves.length > 0 && this.view) {
-				await this.view.refresh();
+			const view = this.getView();
+			if (view) {
+				await view.refresh();
 				// 等待云端数据加载完成后，补充一次刷新确保 metadataCache 完全解析后链接路径准确
-				const view = this.view;
+				const v = view;
 				// 先清旧定时器：连续触发会叠加多个 1s 回调，onunload 只能清最后一个
 				if (this.cloudRefreshTimer) window.clearTimeout(this.cloudRefreshTimer);
 				this.cloudRefreshTimer = window.setTimeout(() => {
 					void (async () => {
-						if (view && view.waitForCloudLoad) {
-							await view.waitForCloudLoad();
-							if (view && !(view as unknown as { isClosed?: boolean }).isClosed) {
-								void view.refresh();
+						if (v && v.waitForCloudLoad) {
+							await v.waitForCloudLoad();
+							if (v && !(v as unknown as { isClosed?: boolean }).isClosed) {
+								void v.refresh();
 							}
 						}
 					})();
@@ -348,14 +362,12 @@ export default class PicLinkerPlugin extends Plugin {
 	private debounceActiveRefresh() {
 		if (this.activeDebounceTimer) window.clearTimeout(this.activeDebounceTimer);
 		this.activeDebounceTimer = window.setTimeout(() => {
-			if (this.view) this.refreshView();
+			this.getView()?.refresh();
 		}, 500);
 	}
 
 	refreshView() {
-		if (this.view) {
-			void this.view.refresh();
-		}
+		this.getView()?.refresh();
 	}
 
 	async loadSettings() {
@@ -390,8 +402,37 @@ export default class PicLinkerPlugin extends Plugin {
 		// 是否需要在 loadSettings 末尾把迁移结果写回 data.json
 		let persistMigration = false;
 
-		if (encSaltB64) {
-			// 已是新方案：用持久随机 salt 解密 v2 字段
+		// 失败升级检测：曾经升级过（已写入 _encSalt），但 settings 中仍残留 enc:v1: 旧密文。
+	// 说明是 v1.0.0 → ≥1.1.0 的升级路径（旧密钥材料被改名）解密失败，磁盘密文侥幸保留，
+		// 但内存已置空、迁移窗口被关闭。这里强制恢复：
+		//   - v2 字段用持久 salt 正常解密；
+		//   - v1 残留字段用 legacy（含 v1.0.0 的 -100k 旧密钥材料）解密后覆盖。
+		// 全部解出后重新加密写盘，凭据恢复且不再残留旧密文。
+		const hasLingeringV1 = SENSITIVE_FIELDS.some(
+			(f) => typeof raw[f] === "string" && (raw[f] as string).startsWith(ENC_LEGACY_PREFIX),
+		);
+		if (hasLingeringV1 && encSaltB64) {
+			console.warn("[PicLinker] 检测到 v1.0.0 升级失败的残留密文，强制恢复凭据");
+			const recovered = await decryptSensitiveFields(raw, encSaltB64); // v2 字段正确解密，v1 字段被置空
+			const mig = await migrateLegacyToNewSalt(raw, legacySalt); // v1 字段用 legacy key 解密
+			// 复用磁盘已有的持久 salt（encSaltB64 已成功用于 v2 解密），不要重新生成，避免幂等性破坏与额外熵消耗
+			for (const f of SENSITIVE_FIELDS) {
+				const v = recovered[f];
+				const m = mig.settings[f];
+				// 仅当 v2 解密失败置空、且 v1 迁移解出【真明文】时才覆盖。
+				// 防密文泄漏：mig.settings[f] 对解不开的字段保留原密文字符串，若直接覆盖会把密文当明文传出去。
+				if (typeof v === "string" && v === "" && typeof m === "string" && m.length > 0 && !m.startsWith("enc:v2:") && !m.startsWith(ENC_LEGACY_PREFIX)) {
+					recovered[f] = m;
+				}
+			}
+			working = recovered;
+			// encSaltB64 保持为磁盘已有的持久 salt（已成功用于 v2 解密），无需改写
+			persistMigration = true;
+			new Notice("PicLinker：已从旧版本升级失败的残留数据中恢复图床凭据");
+			// 已直接构造好明文 working 与新 salt，跳过下方常规解密分支
+		} else if (encSaltB64) {
+			// 已是新方案（随机持久 salt）：用新 key 解密 v2 字段。
+			// 若该字段仍是 enc:v1: 旧密文（理论上不会，因为前面已强制重跑迁移），解密失败置空，避免密文当明文。
 			working = await decryptSensitiveFields(raw, encSaltB64);
 		} else {
 			// 老用户（或全新用户）：尝试用旧方案（vault 名 salt）迁移

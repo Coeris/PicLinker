@@ -13,7 +13,8 @@ import { ImageBedType, BedTestResults } from "../types";
 import { safeBtoa, BED_SETTINGS_KEYS } from "../utils/Common";
 import { getBedFaviconSvg } from "../icons";
 import type { RemoteConfigData } from "../sync/WebDAVSync";
-import type { PicLinkerSettings } from "../types";
+import { buildWebdavConfigUrl } from "../sync/WebDAVSync";
+
 
 interface BedConfig {
 	name: string;
@@ -134,10 +135,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 	/** 防抖保存计时器 */
 	private settingsSaveTimer: number | null = null;
 
-	/** WebDAV 状态提示定时器 */
-	private webdavStatusTimeout: number | null = null;
-
-	/** 同步操作进行中标志，防止重复点击 */
+		/** 同步操作进行中标志，防止重复点击 */
 	private syncing = false;
 
 	/** 同步状态元素引用 */
@@ -204,12 +202,8 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 	 */
 	hide(): void {
 		if (this.settingsSaveTimer) {
-			clearTimeout(this.settingsSaveTimer);
+			window.clearTimeout(this.settingsSaveTimer);
 			this.settingsSaveTimer = null;
-		}
-		if (this.webdavStatusTimeout) {
-			clearTimeout(this.webdavStatusTimeout);
-			this.webdavStatusTimeout = null;
 		}
 	}
 
@@ -228,6 +222,19 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 					this.debouncedSaveSettings();
 				})
 			);
+
+		new Setting(card)
+			.setName("一键替换")
+			.setDesc("显示「替换为云端」和「替换为本地」按钮，点击按钮一键去重，自动更新笔记引用")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.enableQuickReplace)
+				.onChange(async (value) => {
+					this.plugin.settings.enableQuickReplace = value;
+					// 即时增删去重区按钮，无需整视图重扫（刷新不一定可靠触发）
+					// 从 workspace 实时取视图：重启后由布局恢复视图时 this.plugin.view 可能为 null
+					this.plugin.getView()?.updateQuickReplaceButtons(value);
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	// ========== 插件通用设置 ==========
@@ -317,6 +324,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.webdavUrl)
 					.onChange((value) => {
 						this.plugin.settings.webdavUrl = value;
+						this.updateWebdavHeaderStatus(syncStatus);
 						this.debouncedSaveSettings();
 					});
 				return text;
@@ -338,6 +346,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.webdavUsername)
 					.onChange((value) => {
 						this.plugin.settings.webdavUsername = value;
+						this.updateWebdavHeaderStatus(syncStatus);
 						this.debouncedSaveSettings();
 					});
 				return text;
@@ -353,6 +362,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 				text.inputEl.value = this.plugin.settings.webdavPassword;
 				text.inputEl.addEventListener("input", () => {
 					this.plugin.settings.webdavPassword = text.inputEl.value;
+					this.updateWebdavHeaderStatus(syncStatus);
 					this.debouncedSaveSettings();
 				});
 				return text;
@@ -434,15 +444,17 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 
 	/** 更新 WebDAV 标题栏状态指示 */
 	private updateWebdavHeaderStatus(statusEl: HTMLElement) {
+		// 防御：若传入节点已被 DOM 重建分离（renderSettings 重建后旧闭包失效），回退到实时查询当前节点
+		const el = statusEl.isConnected ? statusEl : (this.containerEl.querySelector(".pic-webdav-header-status") as HTMLElement | null) ?? statusEl;
 		const { webdavUrl, webdavUsername, webdavPassword } = this.plugin.settings;
 		const isConfigured = webdavUrl && webdavUsername && webdavPassword;
 
 		if (isConfigured) {
-			statusEl.textContent = "已配置";
-			statusEl.className = "pic-webdav-header-status pic-webdav-status-enabled";
+			el.textContent = "已配置";
+			el.className = "pic-webdav-header-status pic-webdav-status-enabled";
 		} else {
-			statusEl.textContent = "未配置";
-			statusEl.className = "pic-webdav-header-status pic-webdav-status-disabled";
+			el.textContent = "未配置";
+			el.className = "pic-webdav-header-status pic-webdav-status-disabled";
 		}
 	}
 
@@ -483,7 +495,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 		}
 
 		try {
-			const url = `${this.plugin.settings.webdavUrl}${this.plugin.settings.webdavRemotePath.replace(/^\//, "")}`;
+			const url = buildWebdavConfigUrl(this.plugin.settings.webdavUrl, this.plugin.settings.webdavRemotePath);
 			const auth = safeBtoa(`${this.plugin.settings.webdavUsername}:${this.plugin.settings.webdavPassword}`);
 
 			const response = await directFetch(url, {

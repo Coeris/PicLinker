@@ -59,6 +59,9 @@ src/
     DedupCache.ts            — 去重哈希缓存
     FrontmatterParser.ts     — YAML Frontmatter 解析
     SecureStorage.ts         — AES-GCM 加密存储（v1/v2 密钥迁移）
+    AsyncHandler.ts          — 异步任务串行/防重入封装
+    DangerConfirmModal.ts    — 删除确认弹窗（显示数量，单次确认）
+    nodeCrypto.ts            — Node.js crypto 适配层（桌面端哈希/签名）
 ```
 
 ## 开发环境
@@ -99,7 +102,7 @@ npm run build
 ### 技术栈
 
 - **语言**：TypeScript（约 35 个模块）
-- **构建**：esbuild（产物约 406KB）
+- **构建**：esbuild（产物约 414KB）
 - **运行时**：Obsidian API（Plugin / ItemView / Notice / requestUrl）
 - **加密**：Web Crypto API（AES-GCM / PBKDF2 / SHA-256）
 - **网络**：Node.js HTTP/HTTPS（桌面端）+ requestUrl（移动端回退）
@@ -113,8 +116,8 @@ npm run build
 
 ### 添加新图床的步骤
 
-1. 在 `src/types.ts` 的 `ImageBedType` 枚举中新增图床类型（如尚无该枚举，可复用 `string` 字面量联合类型并在调用处收敛）
-2. 在 `src/types.ts` 中定义并实现 `ImageBed` 接口（含 `listFiles` / `delete` / `testConnection` 等方法）
+1. 在 `src/types.ts` 的 `ImageBedType` 枚举中新增图床类型（枚举已存在，直接追加）
+2. 在 `src/types.ts` 中实现已有的 `ImageBed` 接口（含 `listFiles` / `delete` / `testConnection` 等方法）
 3. 在 `src/imagebed/` 下创建新的图床文件
 4. 在 `src/imagebed/ImageBedManager.ts` 中注册
 5. 在 `src/settings/SettingTab.ts` 中添加配置项
@@ -128,7 +131,7 @@ npm run build
 
 样式文件为 `styles.css`。插件自建了一套 `--pic-*` CSS 变量层（背景三档、文字、边框、状态色等），所有组件统一引用该层而非直接依赖 Obsidian 原生变量，并通过 `currentColor` / `var(--pic-*)` 让图标、工具栏、设置页原生控件（开关、输入框、按钮）跟随 Obsidian 浅色 / 深色主题自动切换。
 
-已包含移动端适配（768px 断点、触屏 `hover:none + pointer:coarse` 适配）。
+已包含移动端适配（768px 工具栏/操作区断点、600px 设置页断点、触屏 `hover:none + pointer:coarse` 适配）。
 
 ### 触控手势（ImagePreview）
 
@@ -150,6 +153,27 @@ npm run build
 - **`TreeRenderer.renderTreeNodeGeneric`** 新增 `overrideSection` 参数：目录树渲染时需显式传入正确的 section（如云端区传 `CloudImages`/`CloudFiles`、本地未引用传 `LocalUnref`），否则会误用 context 默认 section 导致选中集合串区。
 - **嵌套目录勾选**：父目录 checkbox 勾选时递归选中整棵子树（叶子级 + 子目录分组级），折叠态目录懒渲染需先 `forceRender` 确保 DOM 存在再同步。
 - **未找到图片区** 在 1.3.0 重构为按引用笔记分组：`renderNotFoundGroup`（组头）+ `renderNotFoundRefItem`（单行引用），选中集合独立为 `SelectionSection.NotFoundRefs`（从旧 `NotFound` 拆分）。
+
+## 链接替换与格式转换
+
+在去重合并 / 重命名等流程中，`LinkEditor` 负责把笔记中的旧图片引用替换为新路径。覆盖三种 Obsidian 原生格式：
+
+- **Markdown `![alt](path)`**：直接替换路径部分，保留 alt/title。
+- **Wikilink `![[path]]` / `![[path|alias]]`**：本地路径保留 wikilink 格式；**新路径是远程 URL 时自动转为 Markdown `![alias](url)`**，因为 Obsidian 的 wikilink 解析器无法识别 `http(s)://`。
+- **HTML `<img src="...">`**：替换 `src` 属性。
+
+⚠️ Frontmatter 裸路径（如 `cover: img.png`）在去重合并（`replaceImageInMdFiles`）流程中不参与替换；但重命名流程（`replaceImageReferencesOnRename`）会通过 `replaceFrontmatterImagePath` 改写该形态，需注意区分。
+
+### Wikilink → URL 转换规则
+
+`replaceImageInMdFiles` 和 `replaceLink` 均实现了该规则：
+
+| 旧格式 | 新路径 | 结果 |
+|---|---|---|
+| `![[img.jpg]]` | `https://...` | `![](https://...)` |
+| `![[img.jpg\|alt]]` | `https://...` | `![alt](https://...)` |
+| `![[img.jpg]]` | `new.jpg` | `![[new.jpg]]` |
+| `![[img.jpg\|alt]]` | `new.jpg` | `![[new.jpg\|alt]]` |
 
 ## 设置页实现注意
 

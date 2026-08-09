@@ -111,6 +111,20 @@ export function safeParseObject(app: App, key: string): Record<string, unknown> 
 	}
 }
 
+/** 对 vault 根目录下的文件（路径不含 /）补「根目录/」前缀，子文件夹文件原样返回 */
+export function withRootPrefix(path: string): string {
+	return path.includes("/") ? path : `根目录/${path}`;
+}
+
+/**
+ * 选中/删除用的稳定 key。
+ * 本地图用完整 vault 物理路径（resolvedPath），避免跨目录同名图 pure 碰撞导致“勾 1 删 2”。
+ * 云端图 resolvedPath 为空，退化为 pure（即 URL），行为不变（URL 本身唯一）。
+ */
+export function imgSelectKey(img: { pure: string; resolvedPath?: string }): string {
+	return img.resolvedPath || img.pure;
+}
+
 /** 格式化显示路径（截断过长路径，确保输出不超过 MAX_LEN） */
 export function formatDisplayPath(fullPath: string): string {
 	const MAX_LEN = 60;

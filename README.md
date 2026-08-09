@@ -4,17 +4,15 @@ An Obsidian plugin for managing image assets across your vault — scanning, ded
 
 ## Install
 
-**Community plugin store (recommended)**
-
-Open Obsidian → **Settings → Community plugins → Browse**, search for **PicLinker**, then install and enable.
-
-**Manual install**
+**Manual install (recommended)**
 
 Download `main.js`, `manifest.json`, and `styles.css` from [Releases](https://github.com/Coeris/PicLinker/releases), place them in `.obsidian/plugins/PicLinker/`, and enable the plugin.
 
+> ⚠️ Submission to the community plugin store is in review; until it is listed, please use manual install.
+
 - [中文说明](README.zh.md)
-- [配置指南](CONFIG.md)
-- [开发指南](DEVELOPMENT.md) 
+- [Configuration guide](CONFIG.md)
+- [Development guide](DEVELOPMENT.md)
 
 **插件总览**
 

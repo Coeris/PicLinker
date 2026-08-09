@@ -110,6 +110,7 @@ export class TreeRenderer {
 
 				let arrowEl: HTMLElement | null = null;
 				const allKeys = this.collectTreeFiles(node).map(config.getKey);
+				const allCount = allKeys.length || node.files.length;
 				const selection = this.context.selection;
 				if (selection && section) {
 					createGroupCheckbox({
@@ -216,7 +217,7 @@ export class TreeRenderer {
 				const iconSpan = dirHeader.createSpan({ cls: "pic-dir-icon" });
 				setSafeHTML(iconSpan, `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`);
 				dirHeader.createSpan({ cls: "pic-dir-name", text: "根目录" });
-				dirHeader.createSpan({ cls: "pic-dir-count", text: `(${node.files.length})` });
+				dirHeader.createSpan({ cls: "pic-dir-count", text: `(${allCount})` });
 				const arrow = dirHeader.createSpan({ cls: "pic-dir-arrow", text: expanded ? "▽" : "▶" });
 				arrowEl = arrow;
 

@@ -50,15 +50,16 @@ export class LinkParser {
 		WIKI_IMAGE_REGEX.lastIndex = 0;
 		while ((match = WIKI_IMAGE_REGEX.exec(content)) !== null) {
 			if (this.isInCodeBlock(match.index, codeRanges)) continue;
-			const pure = match[1].trim();
+			let pure = match[1].trim();
 			const params = match[2]?.trim() || "";
 
 			if (!pure) continue;
-			// 跳过笔记链接（无图片扩展名）
-			const ext = pure.split(".").pop()?.toLowerCase() || "";
+			// 跳过笔记链接（无图片扩展名）；先剥查询串再取扩展名，避免 a.png?v=2 被误判跳过
+			const ext = pure.split("?")[0].split(".").pop()?.toLowerCase() || "";
 			if (!IMAGE_EXTENSIONS.has(ext)) continue;
 
 			const type = this.detectLinkType(pure);
+			if (type === "local") pure = pure.split("?")[0];
 			const line = this.getLineNumber(content, match.index);
 
 			links.push({
@@ -92,6 +93,7 @@ export class LinkParser {
 			if (!pure) continue;
 
 			const type = this.detectLinkType(pure);
+			if (type === "local") pure = pure.split("?")[0];
 			const line = this.getLineNumber(content, match.index);
 
 			links.push({
@@ -123,10 +125,12 @@ export class LinkParser {
 			if (!pure) continue;
 			// 不再强制本地：frontmatter 里也可能是远程 https/http 外链（如 banner/cover 字段），
 			// 用 detectLinkType 推断真实类型，否则远程 URL 会被误判为本地文件 → 进「未找到」区。
+			let resolvedPure = pure;
 			const type = this.detectLinkType(pure);
+			if (type === "local") resolvedPure = pure.split("?")[0];
 			links.push({
 				raw: `${ref.key}: ${pure}`,
-				pure,
+				pure: resolvedPure,
 				params: "",
 				type,
 				count: 0,
@@ -226,6 +230,7 @@ export class LinkParser {
 		}
 
 		const type = this.detectLinkType(pure);
+		if (type === "local") pure = pure.split("?")[0];
 
 		return {
 			raw: fullMatch,

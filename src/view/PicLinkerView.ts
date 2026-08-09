@@ -10,7 +10,7 @@ import { extractFileName } from "../comparator/CloudComparator";
 import { IMAGE_EXTENSIONS } from "../parser/LinkParser";
 import { HashCache } from "../utils/HashCache";
 import { detectBedTypeFromUrl, getBedFaviconSvg, LOCAL_ICON_SVG } from "../icons";
-import { formatDisplayPath, getTopBedIcon, buildFileNameRefCount, expandRefs, parseTagKey, resolveImageFromTagKey, setSafeHTML, isHidden, ensureLazyRendered, setLazyRenderFn, syncHeaderStuckClass, bedTypeLabel, createThumbBrokenPlaceholder, type TagRef } from "./utils/ViewUtils";
+import { getTopBedIcon, buildFileNameRefCount, expandRefs, parseTagKey, resolveImageFromTagKey, setSafeHTML, isHidden, ensureLazyRendered, setLazyRenderFn, syncHeaderStuckClass, createThumbBrokenPlaceholder, withRootPrefix, imgSelectKey, type TagRef } from "./utils/ViewUtils";
 
 import { showImagePreview } from "./ImagePreview";
 import { SelectionManager, SelectionSection, SelectionChangeCallback } from "./SelectionManager";
@@ -1014,7 +1014,9 @@ export class PicLinkerView extends ItemView {
 		// 清空所有 onChange 回调，避免 DOM 重建后旧回调累积导致的泄漏和性能劣化
 		// 各 section 渲染时组头会重新注册 onChange
 		this.selection.removeAllListeners();
-		this.selection.onChange(this.selectionChangeCallback);
+		if (this.selectionChangeCallback) {
+			this.selection.onChange(this.selectionChangeCallback);
+		}
 
 		// DOM 重建后，旧 currentItemEl 已失效，清除引用
 		this.currentItemEl = null;
@@ -1113,6 +1115,11 @@ export class PicLinkerView extends ItemView {
 			// 仅当云端数据就绪时，再按 compareResult 判定本地图是否已上传到云端
 			if (this.cloudLoaded) {
 				const result = this.compareResult.get(img.pure);
+			// HEAD 探测失败（unknown）的图片不据此判定分类，避免被静默归入「未找到」或「本地」区
+			if (result?.unknown) {
+				localOnly.push(img);
+				continue;
+			}
 				if (result?.exists) {
 					cloudReferenced.push(img);
 					continue;
@@ -1284,14 +1291,22 @@ export class PicLinkerView extends ItemView {
 		if (!this.plugin.settings.showDuplicates || filteredDedup.length === 0) return;
 
 		const dedupIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--pic-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>`;
+		const groupCount = filteredDedup.length;
 		const totalItems = filteredDedup.reduce((sum, g) => sum + g.items.length, 0);
 		const { header, content, expanded } = this.treeRenderer.createCollapsibleSection(el, "duplicates", dedupIcon, "重复图片", totalItems, SelectionSection.Dedup);
+		// 覆盖默认计数为「(N组，M张)」格式
+		const countEl = header.querySelector<HTMLElement>(".pic-part-count");
+		if (countEl) countEl.setText(`${groupCount} 组，${totalItems} 张`);
 		const actions = header.querySelector<HTMLElement>(".pic-part-actions");
 		if (actions) {
 			if (!expanded) actions.addClass("pic-part-actions--hidden");
 			if (this.selection.getCount(SelectionSection.Dedup) > 0) {
 				const delBtn = actions.createEl("button", { text: `删除 (${this.selection.getCount(SelectionSection.Dedup)})`, cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除选中的重复图片，将引用更新为组内第一项" } });
 				delBtn.addEventListener("click", (e) => { e.stopPropagation(); void this.dedupDeleteSelected(); });
+			}
+			// 一键替换按钮（受设置开关控制）
+			if (this.plugin.settings.enableQuickReplace) {
+				this.renderQuickReplaceButtons(actions, filteredDedup);
 			}
 			this.addClearSelectionButton(actions, SelectionSection.Dedup);
 			// 清除哈希缓存：主动失效，下次去重重新计算（解决脏缓存导致云端/本地重复漏判）
@@ -1300,6 +1315,43 @@ export class PicLinkerView extends ItemView {
 		}
 		const _renderDedup = () => this.renderDedupGroups(content, filteredDedup);
 		if (expanded) _renderDedup(); else setLazyRenderFn(content, _renderDedup);
+	}
+
+	/** 渲染去重区「一键替换」按钮（受设置开关控制），抽成 helper 供重渲染与即时切换复用 */
+	private renderQuickReplaceButtons(actions: HTMLElement, groups: DedupGroup[]) {
+		const hasLocal = groups.some(g => g.items.some(i => i.source === "local"));
+		const hasCloud = groups.some(g => g.items.some(i => i.source === "cloud"));
+		const cloudBtn = actions.createEl("button", { text: "替换为云端", cls: "pic-btn-sm pic-btn-primary pic-btn-quick-replace", attr: { title: hasLocal ? "保留云端图片，删除本地图片并更新笔记引用" : "无本地图片可替换" } });
+		if (!hasLocal) cloudBtn.disabled = true;
+		cloudBtn.addEventListener("click", (e) => { e.stopPropagation(); if (!cloudBtn.disabled) void this.quickReplaceDedup("cloud"); });
+		const localBtn = actions.createEl("button", { text: "替换为本地", cls: "pic-btn-sm pic-btn-primary pic-btn-quick-replace", attr: { title: hasCloud ? "保留本地图片，删除云端图片并更新笔记引用" : "无云端图片可替换" } });
+		if (!hasCloud) localBtn.disabled = true;
+		localBtn.addEventListener("click", (e) => { e.stopPropagation(); if (!localBtn.disabled) void this.quickReplaceDedup("local"); });
+	}
+
+	/** 设置开关即时切换：直接对当前去重区 header 增删一键替换按钮，无需整视图重扫 */
+	public updateQuickReplaceButtons(show: boolean): void {
+		if (this.isClosed) return;
+		const header = this.containerEl.querySelector<HTMLElement>('.pic-part-header[data-selection-section="dedup"]');
+		if (!header) return;
+		const actions = header.querySelector<HTMLElement>(".pic-part-actions");
+		if (!actions) return;
+		// 先移除已有的一键替换按钮
+		actions.querySelectorAll(".pic-btn-quick-replace").forEach(b => b.remove());
+		if (!show) return;
+		// 计算当前去重组是否含本地/云端项，按钮插在「清除缓存」按钮之前
+		const hasLocal = this.dedupGroups.some(g => g.items.some(i => i.source === "local"));
+		const hasCloud = this.dedupGroups.some(g => g.items.some(i => i.source === "cloud"));
+		const clearBtn = actions.querySelector(".pic-part-clear-cache-btn");
+		const frag = document.createDocumentFragment();
+		const cloudBtn = frag.createEl("button", { text: "替换为云端", cls: "pic-btn-sm pic-btn-primary pic-btn-quick-replace", attr: { title: hasLocal ? "保留云端图片，删除本地图片并更新笔记引用" : "无本地图片可替换" } });
+		if (!hasLocal) cloudBtn.disabled = true;
+		cloudBtn.addEventListener("click", (e) => { e.stopPropagation(); if (!cloudBtn.disabled) void this.quickReplaceDedup("cloud"); });
+		const localBtn = frag.createEl("button", { text: "替换为本地", cls: "pic-btn-sm pic-btn-primary pic-btn-quick-replace", attr: { title: hasCloud ? "保留本地图片，删除云端图片并更新笔记引用" : "无云端图片可替换" } });
+		if (!hasCloud) localBtn.disabled = true;
+		localBtn.addEventListener("click", (e) => { e.stopPropagation(); if (!localBtn.disabled) void this.quickReplaceDedup("local"); });
+		if (clearBtn) actions.insertBefore(frag, clearBtn);
+		else actions.appendChild(frag);
 	}
 
 	/** 主动清除去重哈希缓存（dedupCache + hashCache），并持久化，避免重载后恢复旧缓存 */
@@ -1554,7 +1606,7 @@ export class PicLinkerView extends ItemView {
 			// 图床头复选框（云端分组）：全选/全清该图床所有图片
 			createGroupCheckbox({
 				headerEl: dirHeader,
-				itemKeys: imgs.map(img => img.pure),
+				itemKeys: imgs.map(img => imgSelectKey(img)),
 				selection: this.selection,
 				section: SelectionSection.CloudImages,
 				title: "全选/取消该图床所有引用图片",
@@ -1627,7 +1679,7 @@ export class PicLinkerView extends ItemView {
 
 		// 使用通用渲染
 		this.treeRenderer.renderTreeNodeGeneric(container, root, 0, {
-			getKey: (img) => img.pure,
+		getKey: (img) => imgSelectKey(img),
 			renderItem: (c, img, sel) => this.itemRenderer.renderCloudReferencedItem(c, img, sel),
 			collectFiles: (node) => this.treeRenderer.collectTreeFiles(node),
 		}, selectedSet, "", SelectionSection.CloudImages);
@@ -1637,7 +1689,7 @@ export class PicLinkerView extends ItemView {
 	private renderLocalGroupedByFolder(container: HTMLElement, images: ImageLink[], selectedSet?: Set<string>) {
 		const root = this.treeRenderer.buildTree(images, (img) => img.resolvedPath || img.pure);
 		this.treeRenderer.renderTreeNodeGeneric(container, root, 0, {
-			getKey: (img) => img.pure,
+			getKey: (img) => imgSelectKey(img),
 			renderItem: (c, img, sel) => this.itemRenderer.renderLocalItem(c, img, sel),
 			collectFiles: (node) => this.treeRenderer.collectTreeFiles(node),
 		}, selectedSet);
@@ -1747,7 +1799,7 @@ export class PicLinkerView extends ItemView {
 				// 缩略图（与其他区域一致：直接内联，file 找不到时回退 broken 占位符而非静默）
 				const localPath = item.path;
 				const file = this.app.vault.getAbstractFileByPath(localPath);
-				const localDisplay = this.plugin.settings.showPath ? localPath : (localPath.split("/").pop() || localPath);
+				const localDisplay = this.plugin.settings.showPath ? withRootPrefix(localPath) : withRootPrefix(localPath.split("/").pop() || localPath);
 				if (file instanceof TFile) {
 					const thumbSrc = this.app.vault.getResourcePath(file);
 					const thumb = itemEl.createEl("img", { cls: "pic-thumb pic-thumb-clickable", attr: { src: thumbSrc, loading: "lazy" } });
@@ -2147,7 +2199,7 @@ export class PicLinkerView extends ItemView {
 				// 从 tagKey 反查实际图片标识，而非直接用 keyPrefix（SameName/Dedup 的 keyPrefix 带 source 前缀）
 				const img = resolveImageFromTagKey(parsed.keyPrefix, this.localImages);
 				if (img) {
-					selectedLocalPaths.add(img.pure);
+					selectedLocalPaths.add(imgSelectKey(img));
 					// 同时添加 resolvedPath，处理本地未引用图等
 					if (img.resolvedPath) selectedLocalPaths.add(img.resolvedPath);
 				}
@@ -2182,7 +2234,7 @@ export class PicLinkerView extends ItemView {
 		for (const img of this.localImages) {
 			if (img.type !== "local") continue;
 			// 选中模式：有选中本地图片时只处理选中的，否则全量
-			if (selectedOnly && selectedLocalPaths.size > 0 && !selectedLocalPaths.has(img.pure)) continue;
+			if (selectedOnly && selectedLocalPaths.size > 0 && !selectedLocalPaths.has(imgSelectKey(img))) continue;
 			allLocalImages.push(img);
 			addedPaths.add(img.resolvedPath || img.pure);
 		}
@@ -2319,7 +2371,6 @@ export class PicLinkerView extends ItemView {
 			const localImgs = localHashMap.get(hash) || [];
 			const cloudFiles = cloudHashMap.get(hash) || [];
 			const hasLocalDup = localImgs.length > 1;
-			const hasCloudDup = cloudFiles.length > 1;
 			const hasCross = localImgs.length >= 1 && cloudFiles.length >= 1;
 			const total = localImgs.length + cloudFiles.length;
 			if (total < 2) continue;
@@ -2470,7 +2521,7 @@ export class PicLinkerView extends ItemView {
 						thumb.addEventListener("error", () => { thumb.setCssStyles({ display: "none" }); createThumbBrokenPlaceholder(itemEl); });
 						thumb.addEventListener("click", (e) => { e.stopPropagation(); showImagePreview(thumbSrc); });
 					}
-					const localDisplay = this.plugin.settings.showPath ? item.path : (item.path.split("/").pop() || item.path);
+					const localDisplay = this.plugin.settings.showPath ? withRootPrefix(item.path) : withRootPrefix(item.path.split("/").pop() || item.path);
 					itemEl.createSpan({ cls: "pic-path", text: localDisplay, attr: { title: localDisplay } });
 				} else {
 					// 缩略图（云端图片）
@@ -2724,6 +2775,7 @@ export class PicLinkerView extends ItemView {
 							deleteSuccess++;
 						} else {
 							deleteFail++;
+				continue;
 						}
 					} else {
 						// 删除云端文件（先反查对象 key；删除失败则跳过引用替换，避免「引用已改、云端图还在」脏态）
@@ -2755,12 +2807,15 @@ export class PicLinkerView extends ItemView {
 
 		// 从 dedupGroups 中移除已删除的条目，保留仅含 2+ 项的组
 		for (const group of this.dedupGroups) {
-			// 云端优先
-			const keepItem = group.items.reduce((best, item) => {
-				const bestScore = (best.source === "cloud" ? (best.referenced || 0) + 1000 : (best.referenced || 0));
-				const itemScore = (item.source === "cloud" ? (item.referenced || 0) + 1000 : (item.referenced || 0));
-				return itemScore > bestScore ? item : best;
-			}, group.items[0]);
+		// 保留项 = 组内【未被选中删除】的项里评分最高者（与执行阶段一致，避免选到已删项持久化脏数据）
+		const remaining = group.items.filter(item => !this.selection.isSelected(SelectionSection.Dedup, `${item.source}:${item.path}`));
+		// 全选组无剩余项 → 整组移除（无可保留），跳过 reduce 避免 remaining[0] undefined 崩溃
+		if (remaining.length === 0) continue;
+		const keepItem = remaining.reduce((best, item) => {
+			const bestScore = (best.source === "cloud" ? (best.referenced || 0) + 1000 : (best.referenced || 0));
+			const itemScore = (item.source === "cloud" ? (item.referenced || 0) + 1000 : (item.referenced || 0));
+			return itemScore > bestScore ? item : best;
+		}, remaining[0]);
 			group.items = group.items.filter(item =>
 				item === keepItem || !this.selection.isSelected(SelectionSection.Dedup,`${item.source}:${item.path}`)
 			);
@@ -2779,6 +2834,114 @@ export class PicLinkerView extends ItemView {
 		new Notice(`去重完成：${parts.join("，")}`);
 	}
 
+	/**
+	 * 一键替换：遍历所有去重组，保留 keepSide 侧、删除另一侧、替换全库引用。
+	 * @param keepSide "cloud" = 保留云端删本地；"local" = 保留本地删云端
+	 */
+	private async quickReplaceDedup(keepSide: "cloud" | "local"): Promise<void> {
+		const deleteSide: "local" | "cloud" = keepSide === "cloud" ? "local" : "cloud";
+		const sideLabel = keepSide === "cloud" ? "云端" : "本地";
+		// 统计可执行的组和待删除文件数
+		let executableGroups = 0;
+		let totalToDelete = 0;
+		for (const group of this.dedupGroups) {
+			const keepers = group.items.filter(i => i.source === keepSide);
+			const deleters = group.items.filter(i => i.source === deleteSide);
+			if (keepers.length === 0 || deleters.length === 0) continue;
+			executableGroups++;
+			totalToDelete += deleters.length;
+		}
+		if (executableGroups === 0) {
+			new Notice("当前没有同时包含本地和云端图片的重复组");
+			return;
+		}
+
+		const skipCount = this.dedupGroups.length - executableGroups;
+		const skipHint = skipCount > 0 ? `（${skipCount} 组不满足条件已跳过）` : "";
+		const message = keepSide === "cloud"
+			? `将删除 ${totalToDelete} 张本地图片，笔记引用统一替换为云端链接，确定？${skipHint}`
+			: `将删除 ${totalToDelete} 张云端图片，笔记引用统一替换为本地路径，确定？${skipHint}`;
+		if (!(await confirmAsync(this.app, { message, title: `一键替换为${sideLabel}` }))) return;
+
+		let deleteSuccess = 0;
+		let deleteFail = 0;
+		let updateSuccess = 0;
+
+		for (const group of this.dedupGroups) {
+			const keepers = group.items.filter(i => i.source === keepSide);
+			const deleters = group.items.filter(i => i.source === deleteSide);
+			if (keepers.length === 0 || deleters.length === 0) continue;
+
+			// 选评分最高的保留项（复用现有评分逻辑：云端 +1000）
+			const keepItem = keepers.reduce((best, item) => {
+				const bestScore = (best.source === "cloud" ? (best.referenced || 0) + 1000 : (best.referenced || 0));
+				const itemScore = (item.source === "cloud" ? (item.referenced || 0) + 1000 : (item.referenced || 0));
+				return itemScore > bestScore ? item : best;
+			}, keepers[0]);
+
+			// 保留项在笔记中应写成的文本
+			const keepPath = keepItem.source === "local"
+				? (keepItem.img?.pure || keepItem.path)
+				: keepItem.path;
+
+			for (const item of deleters) {
+				try {
+					if (item.source === "local") {
+						const file = this.app.vault.getAbstractFileByPath(item.path);
+						if (file instanceof TFile) {
+							await this.app.fileManager.trashFile(file);
+							this.plugin.dedupCache.remove(item.path);
+							deleteSuccess++;
+						} else {
+							deleteFail++;
+				continue;
+						}
+					} else {
+						// 删除云端文件
+						const bedType = item.bedType || this.selectedBed;
+						const result = await this.plugin.deleteCloudFile(this.resolveCloudFileKey(item.path), bedType);
+						if (result.success) {
+							this.plugin.dedupCache.remove(item.path);
+							deleteSuccess++;
+						} else {
+							deleteFail++;
+							continue; // 云端删除失败则跳过引用替换
+						}
+					}
+
+					// 替换全库引用
+					const freshImg = this.localImages.find(i => (i.resolvedPath || i.pure) === item.path);
+					const oldPath = item.source === "local"
+						? (freshImg?.pure ?? item.img?.pure ?? item.path)
+						: item.path;
+					const replacedCount = await this.plugin.linkEditor.replaceImageInMdFiles(oldPath, keepPath, freshImg?.files);
+					updateSuccess += replacedCount;
+				} catch {
+					deleteFail++;
+				}
+			}
+		}
+
+		// 清理去重组：仅处理实际有删除的组（含 deleteSide 项的组），移除已删项，移除仅剩 1 项的组
+		for (const group of this.dedupGroups) {
+			// 跳过纯同侧组（未参与替换，不碰）
+			if (!group.items.some(i => i.source === deleteSide)) continue;
+			group.items = group.items.filter(i => i.source === keepSide);
+		}
+		this.dedupGroups = this.dedupGroups.filter(g => g.items.length >= 2);
+
+		this.selection.clear(SelectionSection.Dedup);
+		this.selection.clear(SelectionSection.DedupTags);
+		this.saveDedupGroups();
+		await this.refresh();
+
+		const parts: string[] = [];
+		if (deleteSuccess > 0) parts.push(`${deleteSuccess} 个图片已删除`);
+		if (updateSuccess > 0) parts.push(`${updateSuccess} 处引用已更新`);
+		if (deleteFail > 0) parts.push(`${deleteFail} 个失败`);
+		new Notice(`一键替换完成：${parts.join("，")}`);
+	}
+
 	// ==================== 搜索过滤 ====================
 
 	private applyLocalFilter(images: ImageLink[]): ImageLink[] {
@@ -2788,16 +2951,6 @@ export class PicLinkerView extends ItemView {
 			const fileName = (extractFileName(img.resolvedPath || img.pure) || "").toLowerCase();
 			return fileName.includes(kw);
 		});
-	}
-
-	// ==================== 路径显示 ====================
-
-	/** 根据 showPath 设置格式化显示路径；开关关闭时只显示文件名 */
-	private formatDisplayPath(fullPath: string): string {
-		if (!this.plugin.settings.showPath) {
-			return extractFileName(fullPath) || fullPath;
-		}
-		return fullPath;
 	}
 
 	// ==================== 跳转 & 复制功能 ====================

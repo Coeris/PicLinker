@@ -12,6 +12,7 @@ export const DOMAIN_BED_MAP: Record<string, ImageBedType> = {
 	"github.com": ImageBedType.GitHub,
 	"github.io": ImageBedType.GitHub,
 	"raw.githubusercontent.com": ImageBedType.GitHub,
+	"githubusercontent.com": ImageBedType.GitHub, // 覆盖 user-images / objects 等所有子域
 	"aliyuncs.com": ImageBedType.Aliyun,
 	"aliyun.com": ImageBedType.Aliyun,
 	"cloud.tencent.com": ImageBedType.Tencent,

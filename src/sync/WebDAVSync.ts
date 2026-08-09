@@ -31,6 +31,16 @@ export interface ConflictResult {
 	localNewer?: boolean;
 }
 
+/**
+ * 拼接 WebDAV 配置文件的完整 URL。
+ * 保证 base 以 / 结尾、remotePath 去掉前导 /，避免「…/dav」+「PicLinker/…」拼出「davPicLinker/…」的 404。
+ */
+export function buildWebdavConfigUrl(baseUrl: string, remotePath: string): string {
+	const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+	const path = remotePath.replace(/^\/+/, "");
+	return `${base}${path}`;
+}
+
 export class WebDAVSync {
 	meta: WebDAVMeta | null = null;
 	/** 标记位：syncFromRemote 下载后禁止自动上传回远程，防止循环 */
@@ -77,6 +87,30 @@ export class WebDAVSync {
 	 * 同时被 SettingTab.syncToRemote() 和本类的 syncToRemote() 调用
 	 * @returns { ok: boolean, status?: number, message?: string }
 	 */
+	/**
+	 * 逐级递归创建远程目录（RFC 4918 MKCOL 不递归，需自己逐级建）。
+	 * 失败仅告警（目录已存在视为成功），不影响上传。
+	 */
+	private async ensureRemoteDir(dirUrl: string, auth: string): Promise<void> {
+		// 分离 origin（协议+主机）和路径，避免 split("/") 切碎 https://
+		const protoEnd = dirUrl.indexOf("://");
+		if (protoEnd < 0) return;
+		const hostStart = protoEnd + 3;
+		const pathStart = dirUrl.indexOf("/", hostStart);
+		const origin = pathStart >= 0 ? dirUrl.substring(0, pathStart) : dirUrl;
+		const pathPart = pathStart >= 0 ? dirUrl.substring(pathStart) : "";
+		const segments = pathPart.split("/").filter(Boolean);
+		let acc = origin;
+		for (const seg of segments) {
+			acc += "/" + seg;
+			try {
+				await directFetch(acc + "/", { method: "MKCOL", headers: { Authorization: `Basic ${auth}` } });
+			} catch (e) {
+				console.warn(`[PicLinker] 创建远程目录 ${acc} 失败（可能已存在）`, e);
+			}
+		}
+	}
+
 	async uploadToWebdav(): Promise<{ ok: boolean; status?: number; message?: string }> {
 		if (!this.settings.webdavUrl || !this.settings.webdavUsername || !this.settings.webdavPassword) {
 			return { ok: false, message: "WebDAV 配置不完整" };
@@ -87,15 +121,13 @@ export class WebDAVSync {
 		}
 
 		try {
-			const url = `${this.settings.webdavUrl}${this.settings.webdavRemotePath.replace(/^\//, "")}`;
+			// 拼接 URL：base 补尾斜杠、remotePath 去前导斜杠，避免缺斜杠导致的 404
+			const url = buildWebdavConfigUrl(this.settings.webdavUrl, this.settings.webdavRemotePath);
 			const auth = safeBtoa(`${this.settings.webdavUsername}:${this.settings.webdavPassword}`);
 
-			// 先创建目录（MKCOL），忽略已存在的错误
+			// 先创建目录（MKCOL），忽略已存在的错误；多级目录逐级递归创建
 			const dirUrl = url.substring(0, url.lastIndexOf("/"));
-			await directFetch(dirUrl + "/", {
-				method: "MKCOL",
-				headers: { Authorization: `Basic ${auth}` },
-			});
+			await this.ensureRemoteDir(dirUrl, auth);
 
 			const bedData = await this.getDecryptedBedSettings();
 			bedData._syncedAt = new Date().toISOString();
@@ -144,7 +176,7 @@ export class WebDAVSync {
 		let remoteSyncedAt: string | undefined;
 
 		try {
-			const url = `${this.settings.webdavUrl}${this.settings.webdavRemotePath.replace(/^\//, "")}`;
+			const url = buildWebdavConfigUrl(this.settings.webdavUrl, this.settings.webdavRemotePath);
 			const auth = safeBtoa(`${this.settings.webdavUsername}:${this.settings.webdavPassword}`);
 
 			// 获取远程数据

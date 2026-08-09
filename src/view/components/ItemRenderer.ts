@@ -11,7 +11,7 @@ import { IMAGE_EXTENSIONS } from "../../parser/LinkParser";
 import { detectBedTypeFromUrl } from "../../icons";
 import { showImagePreview } from "../ImagePreview";
 import { SelectionManager, SelectionSection } from "../SelectionManager";
-import { formatDisplayPath, getFileExtension, expandRefs, setSafeHTML, createThumbBrokenPlaceholder, type TagRef } from "../utils/ViewUtils";
+import { formatDisplayPath, getFileExtension, expandRefs, setSafeHTML, createThumbBrokenPlaceholder, withRootPrefix, imgSelectKey, type TagRef } from "../utils/ViewUtils";
 import { confirmAsync } from "../../utils/DangerConfirmModal";
 import { onAsyncClick } from "../../utils/AsyncHandler";
 
@@ -107,20 +107,21 @@ export class ItemRenderer {
 		});
 
 		if (selectedSet) {
+			const imgKey = imgSelectKey(img);
 			const checkbox = item.createEl("input", {
 				type: "checkbox",
 				cls: "pic-cloud-checkbox",
 			});
-			checkbox.checked = selectedSet.has(img.pure);
+			checkbox.checked = selectedSet.has(imgKey);
 			checkbox.addEventListener("click", (e) => e.stopPropagation());
 			checkbox.addEventListener("change", (e) => {
 				e.stopPropagation();
 				if (checkbox.checked) {
-					selectedSet.add(img.pure);
-					selection.select(SelectionSection.LocalImages, [img.pure]);
+					selectedSet.add(imgKey);
+					selection.select(SelectionSection.LocalImages, [imgKey]);
 				} else {
-					selectedSet.delete(img.pure);
-					selection.deselect(SelectionSection.LocalImages, img.pure);
+					selectedSet.delete(imgKey);
+					selection.deselect(SelectionSection.LocalImages, imgKey);
 				}
 				item.toggleClass("pic-item--selected", checkbox.checked);
 				updateLocalActions();
@@ -158,36 +159,37 @@ export class ItemRenderer {
 		if (img.type !== "local") {
 			try { displayPath = new URL(img.pure).pathname.slice(1); } catch { /* keep original */ }
 		}
-		// showPath 关 = 仅文件名，开 = 完整相对路径（去截断后的 showText）
-		const showText = showPath ? formatDisplayPath(displayPath) : (extractFileName(displayPath) || displayPath);
+		// showPath 关 = 仅文件名，开 = 完整相对路径；根目录文件补「根目录/」前缀
+		const showText = showPath ? withRootPrefix(formatDisplayPath(displayPath)) : withRootPrefix(extractFileName(displayPath) || displayPath);
 		const pathSpan = item.createSpan({ cls: "pic-path", text: showText, title: showText });
 		pathSpan.classList.add("clickable");
-		item.dataset.purePath = img.pure;
+		item.dataset.purePath = imgSelectKey(img);
 
 		pathSpan.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
 			copyImagePath(img);
 		});
 
-		this.renderTags(item, img, SelectionSection.LocalTags, img.pure);
+		this.renderTags(item, img, SelectionSection.LocalTags, imgSelectKey(img));
 
 		const actions = item.createDiv({ cls: "pic-actions" });
 		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除图片并清理引用行" } });
 		deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
 			e.stopPropagation();
-			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除「${img.pure}」吗？\n将同时清理笔记中的引用行。`, title: "删除图片" }))) return;
+			const delKey = imgSelectKey(img);
+			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除「${delKey}」吗？\n将同时清理笔记中的引用行。`, title: "删除图片" }))) return;
 			for (const fp of img.files) {
 				await this.ctx.removeImageFromMdFile(fp, [img.pure]);
 			}
-			const filePath = img.resolvedPath || img.pure;
+			const filePath = delKey;
 			const file = app.vault.getAbstractFileByPath(filePath);
 			if (file instanceof TFile) {
 				await app.fileManager.trashFile(file);
 				new Notice(`已删除「${extractFileName(filePath) || filePath}」`);
 			}
-			selection.deselect(SelectionSection.LocalImages, img.pure);
+			selection.deselect(SelectionSection.LocalImages, delKey);
 			for (const tagKey of selection.getSelected(SelectionSection.LocalTags)) {
-				if (tagKey.startsWith(img.pure + "::")) selection.deselect(SelectionSection.LocalTags, tagKey);
+				if (tagKey.startsWith(delKey + "::")) selection.deselect(SelectionSection.LocalTags, tagKey);
 			}
 			await this.ctx.refresh();
 		}));
@@ -261,20 +263,21 @@ export class ItemRenderer {
 		});
 
 		if (selectedSet) {
+			const imgKey = imgSelectKey(img);
 			const checkbox = item.createEl("input", {
 				type: "checkbox",
 				cls: "pic-cloud-checkbox",
 			});
-			checkbox.checked = selectedSet.has(img.pure);
+			checkbox.checked = selectedSet.has(imgKey);
 			checkbox.addEventListener("click", (e) => e.stopPropagation());
 			checkbox.addEventListener("change", (e) => {
 				e.stopPropagation();
 				if (checkbox.checked) {
-					selectedSet.add(img.pure);
-					selection.select(SelectionSection.CloudImages, [img.pure]);
+					selectedSet.add(imgKey);
+					selection.select(SelectionSection.CloudImages, [imgKey]);
 				} else {
-					selectedSet.delete(img.pure);
-					selection.deselect(SelectionSection.CloudImages, img.pure);
+					selectedSet.delete(imgKey);
+					selection.deselect(SelectionSection.CloudImages, imgKey);
 				}
 				item.toggleClass("pic-item--selected", checkbox.checked);
 				updateLocalActions();
@@ -304,20 +307,21 @@ export class ItemRenderer {
 		const shortPath = formatDisplayPath(displayPath);
 		const pathSpan = item.createSpan({ cls: "pic-path", text: shortPath, title: "双击复制完整路径" });
 		pathSpan.classList.add("clickable");
-		item.dataset.purePath = img.pure;
+		item.dataset.purePath = imgSelectKey(img);
 
 		pathSpan.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
 			copyImagePath(img);
 		});
 
-		this.renderTags(item, img, SelectionSection.CloudTags, img.pure);
+		this.renderTags(item, img, SelectionSection.CloudTags, imgSelectKey(img));
 
 		const actions = item.createDiv({ cls: "pic-actions" });
 		const deleteBtn = actions.createEl("button", { text: "删除", cls: "pic-btn-sm pic-btn-danger", attr: { title: "删除云端图片并清理引用行" } });
 		deleteBtn.addEventListener("click", onAsyncClick(async (e) => {
 			e.stopPropagation();
-			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除「${img.pure}」吗？\n将同时清理笔记中的引用行。`, title: "删除图片" }))) return;
+			const delKey = imgSelectKey(img);
+			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除「${delKey}」吗？\n将同时清理笔记中的引用行。`, title: "删除图片" }))) return;
 
 			// 先识别图床类型：识别不出则直接取消，避免「引用已清理但云端图还在」的脏态
 			const bedType: ImageBedType | undefined = detectBedTypeFromUrl(img.pure) ?? undefined;
@@ -337,8 +341,8 @@ export class ItemRenderer {
 			for (const fp of img.files) {
 				await removeImageFromMdFile(fp, [img.pure]);
 			}
-			new Notice(`已删除「${extractFileName(img.pure) || img.pure}」`);
-			selection.deselect(SelectionSection.CloudImages, img.pure);
+			new Notice(`已删除「${extractFileName(delKey) || delKey}」`);
+			selection.deselect(SelectionSection.CloudImages, delKey);
 			await this.ctx.refresh();
 		}));
 	}
@@ -356,7 +360,7 @@ export class ItemRenderer {
 		// 通过 expandRefs 找到当前 ref 的索引（按 fileLines 顺序）
 		const expandedRefs = expandRefs(img);
 		const refIndex = expandedRefs.findIndex(r => r.file === ref.file && r.line === ref.line);
-		const itemKey = refIndex >= 0 ? `${img.pure}::${refIndex}` : `${img.pure}::0`;
+		const itemKey = refIndex >= 0 ? `${img.pure}::${refIndex}` : `${img.pure}::${ref.file}::${ref.line}`;
 		const isChecked = selection.isSelected(SelectionSection.NotFoundRefs, itemKey);
 		const checkbox = item.createEl("input", { type: "checkbox", cls: "pic-cloud-checkbox" });
 		checkbox.checked = isChecked;
@@ -400,10 +404,10 @@ export class ItemRenderer {
 		setSafeHTML(iconWrapper, notFoundIcon);
 
 		const rawPath = img.resolvedPath || img.pure;
-		const fileName = extractFileName(rawPath) || rawPath;
+		const fileName = withRootPrefix(extractFileName(rawPath) || rawPath);
 		// 未找到区路径显示：
-		//   showPath 关 = 仅文件名
-		//   showPath 开 = 引用该图的笔记名(基名) + "/" + 文件名（如「欢迎.md/20230918_114616.bmp」）
+		//   showPath 关 = 仅文件名（根目录文件补「根目录/」）
+		//   showPath 开 = 引用该图的笔记名(基名) + "/" + 文件名（如「欢迎.md/根目录/20230918_114616.bmp」）
 		const refNoteName = ref.file.split("/").pop() || ref.file;
 		const showText = showPath ? `${refNoteName}/${fileName}` : fileName;
 		// title：完整 vault 路径 + 引用笔记 + 行号，方便 hover 时看清物理位置和上下文

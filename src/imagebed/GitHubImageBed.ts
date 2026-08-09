@@ -47,7 +47,6 @@ export class GitHubImageBed implements ImageBed {
 	 * 通过 GitHub API Link header 实现分页，自动拉取所有页
 	 */
 	private async fetchDirectoryContents(dirPath: string, files: CloudFile[]): Promise<void> {
-		let hasError = false;
 		const encodedDir = dirPath.split("/").map(encodeURIComponent).join("/");
 		let pageUrl: string | null = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${encodedDir}?ref=${this.branch}&per_page=100`;
 
@@ -60,10 +59,10 @@ export class GitHubImageBed implements ImageBed {
 					},
 				});
 
-				if (!response.ok) { hasError = true; return; }
+				if (!response.ok) { throw new Error(`HTTP ${response.status}`); }
 
 				const data = await response.json<Array<{ type?: string; name?: string; path?: string; download_url?: string }>>();
-				if (!Array.isArray(data)) { hasError = true; return; }
+				if (!Array.isArray(data)) { throw new Error("response is not an array"); }
 
 				for (const item of data) {
 					if (item.type === "file") {
@@ -81,12 +80,9 @@ export class GitHubImageBed implements ImageBed {
 				pageUrl = this.parseNextPageHeader(response);
 			} catch (e) {
 				console.warn("[PicLinker] GitHub 目录列表获取失败:", e instanceof Error ? e.message : String(e));
-				hasError = true;
-				return;
+				throw e;
 			}
 		}
-		// NOTE: partial error tracking would ideally propagate hasError up the call stack
-		// for now, the outer listFiles try/catch covers the top-level error case
 	}
 
 	/**

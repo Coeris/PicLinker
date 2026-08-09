@@ -13,6 +13,7 @@ import { ImageLink, ImageBedType, CloudFile } from "../../types";
 import { extractFileName } from "../../comparator/CloudComparator";
 import { detectBedTypeFromUrl } from "../../icons";
 import { SelectionManager, SelectionSection } from "../SelectionManager";
+import { imgSelectKey } from "../utils/ViewUtils";
 import { expandRefs, parseTagKey, resolveImageFromTagKey } from "../utils/ViewUtils";
 import { confirmAsync } from "../../utils/DangerConfirmModal";
 
@@ -28,7 +29,7 @@ export interface DeleteOperationsContext {
 	app: App;
 	localImages: () => ImageLink[];
 	cloudFiles: () => CloudFile[];
-	compareResult: () => Map<string, { exists: boolean; url?: string; bedType?: ImageBedType }>;
+	compareResult: () => Map<string, { exists: boolean; url?: string; bedType?: ImageBedType; unknown?: boolean }>;
 	selectedBed: () => ImageBedType;
 	removeImageFromMdFile: (filePath: string, urls: string[]) => Promise<number>;
 	removeImageFromLine: (line: string, url: string) => string;
@@ -128,7 +129,7 @@ export class DeleteOperations {
 				// 否则回退到 key（旧调用方 key 即 img.pure）。
 				// 再回退到用 vault 路径 path 反查（resolvedPath 或 pure 匹配），保障本地项也能命中。
 				const refText = item.refText;
-				const img = localImages().find(i => i.pure === (refText ?? item.key))
+				const img = localImages().find(i => imgSelectKey(i) === (refText ?? item.key))
 					?? localImages().find(i => (i.resolvedPath || i.pure) === item.path);
 				if (img) {
 					for (const fp of img.files) {
@@ -184,9 +185,6 @@ export class DeleteOperations {
 
 	/** 批量删除选中的本地未引用图片 */
 	async batchDeleteLocalUnref(localUnreferenced: TFile[]) {
-		if (this.isDeleting) return;
-		this.isDeleting = true;
-		try {
 		const { selection, app } = this.ctx;
 		if (selection.getCount(SelectionSection.LocalUnref) === 0) { new Notice("请先选择要删除的图片"); return; }
 		const toDelete = localUnreferenced.filter(f => selection.isSelected(SelectionSection.LocalUnref, f.path));
@@ -203,26 +201,20 @@ export class DeleteOperations {
 				return false;
 			},
 		});
-		} finally {
-			this.isDeleting = false;
-		}
 	}
 
 	/** 批量删除选中的本地图片文件 */
 	async batchDeleteLocalFiles(localImages: ImageLink[]) {
-		if (this.isDeleting) return;
-		this.isDeleting = true;
-		try {
 		const { selection, app } = this.ctx;
 		if (selection.getCount(SelectionSection.LocalImages) === 0) { new Notice("请先选择要删除的图片"); return; }
-		const toDelete = localImages.filter(img => selection.isSelected(SelectionSection.LocalImages, img.pure));
+		const toDelete = localImages.filter(img => selection.isSelected(SelectionSection.LocalImages, img.resolvedPath || img.pure));
 		if (toDelete.length === 0) { new Notice("没有可删除的图片"); return; }
 
 		await this.batchDeleteWithCleanup({
 			section: SelectionSection.LocalImages,
 			confirmMessage: `确定要删除选中的 ${toDelete.length} 个图片吗？\n将移入系统回收站并清理笔记中的引用行。`,
 			items: toDelete.map(img => ({
-				key: img.pure,
+				key: img.resolvedPath || img.pure,
 				type: 'local' as const,
 				path: img.resolvedPath || img.pure,
 			})),
@@ -233,9 +225,6 @@ export class DeleteOperations {
 				return false;
 			},
 		});
-		} finally {
-			this.isDeleting = false;
-		}
 	}
 
 	/** 批量删除引用行（删除笔记中引用选中图片的行） */
@@ -408,11 +397,14 @@ export class DeleteOperations {
 
 	/** 批量删除选中的云端图片（删除引用行 + 删除云端文件） */
 	async batchDeleteCloudImages() {
-		if (this.isDeleting) return;
-		this.isDeleting = true;
-		try {
 		const { selection, localImages, cloudFiles, compareResult, selectedBed, deleteCloudFile } = this.ctx;
 		if (selection.getCount(SelectionSection.CloudImages) === 0) { new Notice("请先选择要删除的图片"); return; }
+		const allCloudFiles = cloudFiles();
+		// 分页拉取中断（_partial）时，云端文件列表不完整，批量删除可能误删未列出的文件
+		if (allCloudFiles.some(f => f._partial)) {
+			new Notice("云端文件列表不完整（分页拉取被中断），已暂停删除以防误删。请刷新云端数据后重试");
+			return;
+		}
 		const selected = localImages().filter(img => selection.isSelected(SelectionSection.CloudImages, img.pure));
 		if (selected.length === 0) { new Notice("没有可删除的图片"); return; }
 
@@ -440,9 +432,6 @@ export class DeleteOperations {
 				return deleteResult.success;
 			},
 		});
-		} finally {
-			this.isDeleting = false;
-		}
 	}
 
 	/** 批量删除空白文件夹 */

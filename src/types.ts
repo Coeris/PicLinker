@@ -45,6 +45,8 @@ export interface PicLinkerSettings {
 	showEmptyFolders: boolean;
 	/** 显示重复图片区域 */
 	showDuplicates: boolean;
+	/** 启用一键替换（去重区显示「替换为云端/本地」按钮，默认关闭） */
+	enableQuickReplace: boolean;
 	/** 显示同名文件区域 */
 	showSameNameFiles: boolean;
 

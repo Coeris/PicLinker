@@ -47,12 +47,21 @@ export class LinkEditor {
 			let newContent: string = content;
 
 			if (img.raw.startsWith("![[")) {
-				// Wiki 链接格式: ![[pure|params]] -> ![[newPure|params]]
-				const newWikiLink = img.params
-					? `![[${newPure}|${img.params}]]`
-					: `![[${newPure}]]`;
+				// Wiki 链接格式; 新路径是 URL 时转 Markdown，Obsidian 的 wikilink 不支持 `http(s)://`
+				const isUrl = /^https?:\/\//i.test(newPure);
+				let newLink: string;
+				if (isUrl) {
+					const safeUrl = newPure.replace(/\$/g, "$$$$");
+					newLink = img.params
+						? `![${img.params}](${safeUrl})`
+						: `![](${safeUrl})`;
+				} else {
+					newLink = img.params
+						? `![[${newPure}|${img.params}]]`
+						: `![[${newPure}]]`;
+				}
 				const escaped = escapeRegex(img.raw);
-				newContent = content.replace(new RegExp(escaped, "g"), newWikiLink);
+				newContent = content.replace(new RegExp(escaped, "g"), newLink);
 			} else if (img.raw.startsWith("<img")) {
 				// HTML img 标签: <img src="pure"> -> <img src="newPure">
 				const escapedPure = escapeRegex(img.pure);
@@ -136,7 +145,19 @@ export class LinkEditor {
 			if (!content.includes(oldPath)) continue;
 			let newContent = content;
 			newContent = newContent.replace(mdRegex, `$1${escapedNew}$2$3`);
-			newContent = newContent.replace(wikiRegex, (_match, p1: string, p2: string, p3: string) => `${p1}${escapedNew}${p2 || ""}${p3}`);
+			newContent = newContent.replace(wikiRegex, (_match, p1: string, p2: string, p3: string) => {
+				// 新路径是 URL 时：wikilink 不支持 URL。图片 wikilink（![[）转 Markdown；非嵌入 [[ 不是图片引用，跳过不改
+				const isUrl = /^https?:\/\//i.test(newPath);
+				if (isUrl) {
+					if (p1.startsWith("!")) {
+						const alias = p2 ? p2.slice(1) : "";
+						return alias ? `![${alias}](${newPath})` : `![](${newPath})`;
+					}
+					return _match;
+				}
+				// 本地路径：直接拼接（回调返回值不做 $ 解释，用原始 newPath 避免双重转义）
+				return `${p1}${newPath}${p2 || ""}${p3}`;
+			});
 			newContent = newContent.replace(htmlRegex, `$1${escapedNew}$2`);
 			if (newContent !== content) {
 				await this.app.vault.modify(mdFile, newContent);
@@ -161,9 +182,9 @@ export class LinkEditor {
 
 	/** 智能移除行中的图片引用，保留行中其他内容 */
 	removeImageFromLine(line: string, imgPath: string): string {
-		// Markdown 格式: ![alt](url)
+		// Markdown 格式: ![alt](url) 或 ![alt](url "title")（alt/title 均可，删除整段图片引用）
 		let result = line.replace(
-			new RegExp(`!\\[[^\\]]*\\]\\(${escapeRegex(imgPath)}\\)`, "g"),
+			new RegExp(`!\[[^\]]*\]\(${escapeRegex(imgPath)}((?:\s+"[^"]*"|\s+'[^']*')?)\)`, "g"),
 			"",
 		);
 		// Wiki 格式: ![[path]] / [[path]]（! 可选）
@@ -295,13 +316,15 @@ export class LinkEditor {
 	 * 同时支持：vault 相对（默认）、文件相对（./ ../）、绝对（/ 开头）。
 	 */
 	private resolveMdOrFmNewRef(pure: string, noteDir: string, oldPath: string, newPath: string): string | null {
+		// 百分号解码后再归一化比对（如 my%20image.png → my image.png），与扫描侧 safeDecode 对齐
 		let cand: string;
+		try { pure = decodeURIComponent(pure); } catch { /* 解码失败保持原串 */ }
 		if (pure.startsWith("/")) {
 			cand = normalizePath(pure.slice(1));
 		} else if (pure.startsWith("./") || pure.startsWith("../")) {
 			cand = normalizePath((noteDir ? noteDir + "/" : "") + pure);
 		} else {
-			cand = normalizePath(pure);
+			cand = normalizePath((noteDir ? noteDir + "/" : "") + pure);
 		}
 		if (cand === oldPath) {
 			return (pure.startsWith("/") ? "/" : "") + newPath;
@@ -325,7 +348,10 @@ export class LinkEditor {
 		ambiguous: Set<string>,
 	): string | null {
 		if (name.includes("/")) {
-			const cand = normalizePath(name.startsWith("/") ? name.slice(1) : name);
+			// 百分号解码后再归一化比对（如 my%20image.png → my image.png），与扫描侧 safeDecode 对齐
+			let decName = name;
+			try { decName = decodeURIComponent(name); } catch { /* 解码失败保持原串 */ }
+			const cand = normalizePath(decName.startsWith("/") ? decName.slice(1) : decName);
 			if (cand === oldPath) return (name.startsWith("/") ? "/" : "") + newPath;
 			return null;
 		}

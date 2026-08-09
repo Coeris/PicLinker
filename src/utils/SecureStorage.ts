@@ -16,7 +16,7 @@
 // 新方案前缀（v2）
 const ENC_PREFIX = "enc:v2:";
 // 旧方案前缀（v1，历史数据），用于迁移
-const ENC_LEGACY_PREFIX = "enc:v1:";
+export const ENC_LEGACY_PREFIX = "enc:v1:";
 
 // 随机 salt 字节长度（CSPRNG）
 const SALT_BYTES = 32;
@@ -26,10 +26,14 @@ export const PBKDF2_ITERS = 600000;
 // 旧方案迭代次数（兼容老密文）
 const PBKDF2_ITERS_LEGACY = 100000;
 
+// 旧方案前缀（v1，历史数据），用于迁移检测与解密
+// 注意：必须以 export 暴露，main.ts 需要用它检测「已升级但仍残留 v1 密文」的失败升级用户
 // 应用级 pepper（源码常量，仅作额外熵，真正的机密性来自随机持久 salt）
 const KEY_MATERIAL_V2 = "PicLinker-v2:aes-gcm-pbkdf2";
 // 更早版本的密钥材料（向后兼容解密）
 const KEY_MATERIAL_V1 = "PicLinker-v1";
+// v1.0.0 实际加密所用的密钥材料（含 -100k 后缀）；v1.1.0 起常量去掉后缀，解密旧密文必须兼容
+const KEY_MATERIAL_V1_0_0 = "PicLinker-v2:aes-gcm-pbkdf2-100k";
 
 // 需要加密的敏感字段
 export const SENSITIVE_FIELDS = [
@@ -192,6 +196,8 @@ export async function decryptLegacyFields(
 ): Promise<{ settings: Record<string, unknown>; allOk: boolean }> {
 	const keyV2 = await deriveKey(legacySalt, KEY_MATERIAL_V2, PBKDF2_ITERS_LEGACY);
 	const keyV1 = await deriveKey(legacySalt, KEY_MATERIAL_V1, PBKDF2_ITERS_LEGACY);
+	// v1.0.0 实际所用（含 -100k 后缀），必须作为第三把 key 尝试，否则 1.0.0 用户升级后凭据无法恢复
+	const keyV1_0_0 = await deriveKey(legacySalt, KEY_MATERIAL_V1_0_0, PBKDF2_ITERS_LEGACY);
 	const result = { ...settings };
 	let allOk = true;
 
@@ -206,7 +212,12 @@ export async function decryptLegacyFields(
 				try {
 					plain = await decryptValue(cipher, keyV1);
 				} catch {
-					plain = null;
+					try {
+						// 兜底：v1.0.0 实际加密密钥材料（带 -100k 后缀）
+						plain = await decryptValue(cipher, keyV1_0_0);
+					} catch {
+						plain = null;
+					}
 				}
 			}
 			if (plain !== null) {
