@@ -128,13 +128,18 @@ export class LinkEditor {
 	 * @returns 被修改的文件数
 	 */
 	async replaceImageInMdFiles(oldPath: string, newPath: string, candidates?: string[]): Promise<number> {
-		const escaped = escapeRegex(oldPath);
+		// P1: oldPath 可能已被剥离查询串（如 VaultScanner 存储的 pure），
+		// 但正文中实际链接可能仍带 ?w=100 等查询串。
+		// 正则匹配 oldPath + 可选的查询串/锚点（贪婪匹配到闭合符号为止）
+		const escapedOld = escapeRegex(oldPath);
 		const escapedNew = newPath.replace(/\$/g, "$$$$");
 		// P1#18: 三个独立正则分别处理 Markdown/Wiki/HTML，替代脆弱的多捕获组合并正则
 		// md 正则保留可选 title（![alt](x "title")），与 replaceLink 保持一致，去重合并时不丢 title
-		const mdRegex = new RegExp(`(!\\[[^\\]]*\\]\\()${escaped}((?:\\s+"[^"]*"|\\s+'[^']*')?)(\\))`, "g");
-		const wikiRegex = new RegExp(`(!?\\[\\[)${escaped}((?:\\|[^\\]]*)?)(\\]\\])`, "g");
-		const htmlRegex = new RegExp(`(<img[^>]*src=["'])${escaped}(["'][^>]*/?>)`, "g");
+		// 同时允许匹配带查询串/锚点的链接：a.png?v=2, a.png#section
+		// 捕获组：$1=前缀, $2=oldPath+查询串, $3=title, $4=后缀
+		const mdRegex = new RegExp(`(![^\\]]*\\]\\()(${escapedOld}(?:[?#][^)]*)?)((?:\\s+"[^"]*"|\\s+'[^']*')?)(\\))`, "g");
+		const wikiRegex = new RegExp(`(!?\\[\\[)(${escapedOld}(?:[?#][^\\]]*)?)((?:\\|[^\\]]*)?)(\\]\\])`, "g");
+		const htmlRegex = new RegExp(`(<img[^>]*src=["'\\])(${escapedOld}(?:[?#][^"'\\s>]*)?)(["'\\][^>]*/?>)`, "g");
 		let count = 0;
 		// 优先使用候选文件列表，避免全库遍历
 		const filesToScan = candidates && candidates.length > 0
@@ -144,7 +149,12 @@ export class LinkEditor {
 			const content = await this.app.vault.cachedRead(mdFile);
 			if (!content.includes(oldPath)) continue;
 			let newContent = content;
-			newContent = newContent.replace(mdRegex, `$1${escapedNew}$2$3`);
+			// P1: 替换时保留查询串/锚点（$2 包含 oldPath+查询串，用 newPath 替换 oldPath 部分）
+			newContent = newContent.replace(mdRegex, (_match, p1, p2, p3, p4) => {
+				// p2 = oldPath + 可选查询串/锚点
+				const suffix = p2.substring(oldPath.length); // 提取 ?v=2 或 #section
+				return `${p1}${newPath}${suffix}${p3}${p4}`;
+			});
 			newContent = newContent.replace(wikiRegex, (_match, p1: string, p2: string, p3: string) => {
 				// 新路径是 URL 时：wikilink 不支持 URL。图片 wikilink（![[）转 Markdown；非嵌入 [[ 不是图片引用，跳过不改
 				const isUrl = /^https?:\/\//i.test(newPath);
@@ -158,7 +168,10 @@ export class LinkEditor {
 				// 本地路径：直接拼接（回调返回值不做 $ 解释，用原始 newPath 避免双重转义）
 				return `${p1}${newPath}${p2 || ""}${p3}`;
 			});
-			newContent = newContent.replace(htmlRegex, `$1${escapedNew}$2`);
+			newContent = newContent.replace(htmlRegex, (_match, p1, p2, p3) => {
+				const suffix = p2.substring(oldPath.length);
+				return `${p1}${newPath}${suffix}${p3}`;
+			});
 			if (newContent !== content) {
 				await this.app.vault.modify(mdFile, newContent);
 				count++;

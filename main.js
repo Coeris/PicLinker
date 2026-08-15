@@ -2043,7 +2043,7 @@ var LinkParser = class {
       const ext = ((_b = pure.split("?")[0].split(".").pop()) == null ? void 0 : _b.toLowerCase()) || "";
       if (!IMAGE_EXTENSIONS.has(ext)) continue;
       const type = this.detectLinkType(pure);
-      if (type === "local") pure = pure.split("?")[0];
+      if (type === "local") pure = pure.split(/[?#]/)[0];
       const line = this.getLineNumber(content, match.index);
       links.push({
         raw: match[0],
@@ -2071,7 +2071,7 @@ var LinkParser = class {
       }
       if (!pure) continue;
       const type = this.detectLinkType(pure);
-      if (type === "local") pure = pure.split("?")[0];
+      if (type === "local") pure = pure.split(/[?#]/)[0];
       const line = this.getLineNumber(content, match.index);
       links.push({
         raw: match[0],
@@ -2100,7 +2100,7 @@ var LinkParser = class {
       if (!pure) continue;
       let resolvedPure = pure;
       const type = this.detectLinkType(pure);
-      if (type === "local") resolvedPure = pure.split("?")[0];
+      if (type === "local") resolvedPure = pure.split(/[?#]/)[0];
       links.push({
         raw: `${ref.key}: ${pure}`,
         pure: resolvedPure,
@@ -2168,12 +2168,12 @@ var LinkParser = class {
       params = "";
     } else {
       const pipeIndex = linkContent.indexOf("|");
-      if (pipeIndex === -1) {
-        pure = linkContent;
-        params = "";
-      } else {
+      if (pipeIndex !== -1 && !/^https?:\/\//i.test(linkContent)) {
         pure = linkContent.substring(0, pipeIndex).trim();
         params = linkContent.substring(pipeIndex + 1).trim();
+      } else {
+        pure = linkContent;
+        params = "";
       }
     }
     if (!pure) return null;
@@ -2181,7 +2181,7 @@ var LinkParser = class {
       pure = pure.slice(1, -1);
     }
     const type = this.detectLinkType(pure);
-    if (type === "local") pure = pure.split("?")[0];
+    if (type === "local") pure = pure.split(/[?#]/)[0];
     return {
       raw: fullMatch,
       pure,
@@ -2198,7 +2198,8 @@ var LinkParser = class {
   detectLinkType(pure) {
     if (pure.startsWith("https://")) return "https";
     if (pure.startsWith("http://")) return "http";
-    if (pure.startsWith("//")) return "http";
+    if (pure.startsWith("//")) return "https";
+    if (pure.startsWith("file://")) return "local";
     if (pure.startsWith("data:")) return "data";
     return "local";
   }
@@ -8669,18 +8670,21 @@ var LinkEditor = class {
    * @returns 被修改的文件数
    */
   async replaceImageInMdFiles(oldPath, newPath, candidates) {
-    const escaped = escapeRegex(oldPath);
+    const escapedOld = escapeRegex(oldPath);
     const escapedNew = newPath.replace(/\$/g, "$$$$");
-    const mdRegex = new RegExp(`(!\\[[^\\]]*\\]\\()${escaped}((?:\\s+"[^"]*"|\\s+'[^']*')?)(\\))`, "g");
-    const wikiRegex = new RegExp(`(!?\\[\\[)${escaped}((?:\\|[^\\]]*)?)(\\]\\])`, "g");
-    const htmlRegex = new RegExp(`(<img[^>]*src=["'])${escaped}(["'][^>]*/?>)`, "g");
+    const mdRegex = new RegExp(`(![^\\]]*\\]\\()(${escapedOld}(?:[?#][^)]*)?)((?:\\s+"[^"]*"|\\s+'[^']*')?)(\\))`, "g");
+    const wikiRegex = new RegExp(`(!?\\[\\[)(${escapedOld}(?:[?#][^\\]]*)?)((?:\\|[^\\]]*)?)(\\]\\])`, "g");
+    const htmlRegex = new RegExp(`(<img[^>]*src=["'\\])(${escapedOld}(?:[?#][^"'\\s>]*)?)(["'\\][^>]*/?>)`, "g");
     let count = 0;
     const filesToScan = candidates && candidates.length > 0 ? candidates.map((p) => this.app.vault.getAbstractFileByPath(p)).filter((f) => f instanceof import_obsidian12.TFile) : this.app.vault.getMarkdownFiles();
     for (const mdFile of filesToScan) {
       const content = await this.app.vault.cachedRead(mdFile);
       if (!content.includes(oldPath)) continue;
       let newContent = content;
-      newContent = newContent.replace(mdRegex, `$1${escapedNew}$2$3`);
+      newContent = newContent.replace(mdRegex, (_match, p1, p2, p3, p4) => {
+        const suffix = p2.substring(oldPath.length);
+        return `${p1}${newPath}${suffix}${p3}${p4}`;
+      });
       newContent = newContent.replace(wikiRegex, (_match, p1, p2, p3) => {
         const isUrl = /^https?:\/\//i.test(newPath);
         if (isUrl) {
@@ -8692,7 +8696,10 @@ var LinkEditor = class {
         }
         return `${p1}${newPath}${p2 || ""}${p3}`;
       });
-      newContent = newContent.replace(htmlRegex, `$1${escapedNew}$2`);
+      newContent = newContent.replace(htmlRegex, (_match, p1, p2, p3) => {
+        const suffix = p2.substring(oldPath.length);
+        return `${p1}${newPath}${suffix}${p3}`;
+      });
       if (newContent !== content) {
         await this.app.vault.modify(mdFile, newContent);
         count++;

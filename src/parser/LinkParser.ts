@@ -59,7 +59,7 @@ export class LinkParser {
 			if (!IMAGE_EXTENSIONS.has(ext)) continue;
 
 			const type = this.detectLinkType(pure);
-			if (type === "local") pure = pure.split("?")[0];
+			if (type === "local") pure = pure.split(/[?#]/)[0];
 			const line = this.getLineNumber(content, match.index);
 
 			links.push({
@@ -93,7 +93,7 @@ export class LinkParser {
 			if (!pure) continue;
 
 			const type = this.detectLinkType(pure);
-			if (type === "local") pure = pure.split("?")[0];
+			if (type === "local") pure = pure.split(/[?#]/)[0];
 			const line = this.getLineNumber(content, match.index);
 
 			links.push({
@@ -127,7 +127,7 @@ export class LinkParser {
 			// 用 detectLinkType 推断真实类型，否则远程 URL 会被误判为本地文件 → 进「未找到」区。
 			let resolvedPure = pure;
 			const type = this.detectLinkType(pure);
-			if (type === "local") resolvedPure = pure.split("?")[0];
+			if (type === "local") resolvedPure = pure.split(/[?#]/)[0];
 			links.push({
 				raw: `${ref.key}: ${pure}`,
 				pure: resolvedPure,
@@ -210,15 +210,18 @@ export class LinkParser {
 			pure = titleMatch[1].trim();
 			params = "";
 		} else {
-			// 处理 | 分隔的参数: url|params
-			const pipeIndex = linkContent.indexOf("|");
-			if (pipeIndex === -1) {
-				pure = linkContent;
-				params = "";
-			} else {
-				pure = linkContent.substring(0, pipeIndex).trim();
-				params = linkContent.substring(pipeIndex + 1).trim();
-			}
+		// 处理 | 分隔的参数: url|params
+		// 但需排除 URL 中合法的 |（如 SM.MS 图床 URL 可能含 |）。
+		// 启发式：如果 | 前是 http(s):// 协议开头的 URL，则整个都是 URL（非参数）；
+		// 否则按 | 分隔参数处理。
+		const pipeIndex = linkContent.indexOf("|");
+		if (pipeIndex !== -1 && !/^https?:\/\//i.test(linkContent)) {
+			pure = linkContent.substring(0, pipeIndex).trim();
+			params = linkContent.substring(pipeIndex + 1).trim();
+		} else {
+			pure = linkContent;
+			params = "";
+		}
 		}
 
 		if (!pure) return null;
@@ -230,7 +233,7 @@ export class LinkParser {
 		}
 
 		const type = this.detectLinkType(pure);
-		if (type === "local") pure = pure.split("?")[0];
+		if (type === "local") pure = pure.split(/[?#]/)[0];
 
 		return {
 			raw: fullMatch,
@@ -250,7 +253,9 @@ export class LinkParser {
 		if (pure.startsWith("https://")) return "https";
 		if (pure.startsWith("http://")) return "http";
 		// 协议相对 URL: //cdn.example.com/img.png
-		if (pure.startsWith("//")) return "http";
+		if (pure.startsWith("//")) return "https";
+		// file:// 协议（本地文件协议，非 vault 内文件）
+		if (pure.startsWith("file://")) return "local";
 		// 内联 data: URI（base64 / svg），非外部文件引用，不应判为本地图片
 		if (pure.startsWith("data:")) return "data";
 		return "local";
