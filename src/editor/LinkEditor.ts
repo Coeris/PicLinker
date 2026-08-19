@@ -132,7 +132,6 @@ export class LinkEditor {
 		// 但正文中实际链接可能仍带 ?w=100 等查询串。
 		// 正则匹配 oldPath + 可选的查询串/锚点（贪婪匹配到闭合符号为止）
 		const escapedOld = escapeRegex(oldPath);
-		const escapedNew = newPath.replace(/\$/g, "$$$$");
 		// P1#18: 三个独立正则分别处理 Markdown/Wiki/HTML，替代脆弱的多捕获组合并正则
 		// md 正则保留可选 title（![alt](x "title")），与 replaceLink 保持一致，去重合并时不丢 title
 		// 同时允许匹配带查询串/锚点的链接：a.png?v=2, a.png#section
@@ -150,7 +149,7 @@ export class LinkEditor {
 			if (!content.includes(oldPath)) continue;
 			let newContent = content;
 			// P1: 替换时保留查询串/锚点（$2 包含 oldPath+查询串，用 newPath 替换 oldPath 部分）
-			newContent = newContent.replace(mdRegex, (_match, p1, p2, p3, p4) => {
+			newContent = newContent.replace(mdRegex, (_match: string, p1: string, p2: string, p3: string, p4: string) => {
 				// p2 = oldPath + 可选查询串/锚点
 				const suffix = p2.substring(oldPath.length); // 提取 ?v=2 或 #section
 				return `${p1}${newPath}${suffix}${p3}${p4}`;
@@ -168,7 +167,7 @@ export class LinkEditor {
 				// 本地路径：直接拼接（回调返回值不做 $ 解释，用原始 newPath 避免双重转义）
 				return `${p1}${newPath}${p2 || ""}${p3}`;
 			});
-			newContent = newContent.replace(htmlRegex, (_match, p1, p2, p3) => {
+			newContent = newContent.replace(htmlRegex, (_match: string, p1: string, p2: string, p3: string) => {
 				const suffix = p2.substring(oldPath.length);
 				return `${p1}${newPath}${suffix}${p3}`;
 			});
@@ -197,7 +196,7 @@ export class LinkEditor {
 	removeImageFromLine(line: string, imgPath: string): string {
 		// Markdown 格式: ![alt](url) 或 ![alt](url "title")（alt/title 均可，删除整段图片引用）
 		let result = line.replace(
-			new RegExp(`!\[[^\]]*\]\(${escapeRegex(imgPath)}((?:\\s+"[^"]*"|\\s+'[^']*')?)\)`, "g"),
+			new RegExp(`!\\[[^\\]]*\\]\\(${escapeRegex(imgPath)}((?:\\s+"[^"]*"|\\s+'[^']*')?)\\)`, "g"),
 			"",
 		);
 		// Wiki 格式: ![[path]] / [[path]]（! 可选）

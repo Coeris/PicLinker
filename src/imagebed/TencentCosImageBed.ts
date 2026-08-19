@@ -64,14 +64,14 @@ export class TencentCosImageBed implements ImageBed {
 			let marker = "";
 
 			do {
-			const queryParams: Record<string, string> = {
-				"max-keys": "1000",
-				"prefix": "",
-				"encoding-type": "url",
-			};
-			if (marker) {
-				queryParams["marker"] = marker;
-			}
+				const queryParams: Record<string, string> = {
+					"max-keys": "1000",
+					"prefix": "",
+					"encoding-type": "url",
+				};
+				if (marker) {
+					queryParams["marker"] = marker;
+				}
 
 				const { url, authHeader } = await this.signRequest("GET", "/", {}, queryParams);
 

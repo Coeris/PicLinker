@@ -73,32 +73,32 @@ export class CloudComparator {
 				const fileName = extractFileName(img.pure);
 				const expectedUrl = this.generateExpectedUrl(img.pure, bedType, pathPrefix);
 
-							if (!fileName) {
-				result.set(img.pure, { exists: false, url: expectedUrl });
-				continue;
-			}
+				if (!fileName) {
+					result.set(img.pure, { exists: false, url: expectedUrl });
+					continue;
+				}
 
-			// 构造完整 object key 作为查表键（OSS/COS 区分大小写，移除 toLowerCase）
-			let lookupKey: string;
-			if (bedType === ImageBedType.Aliyun) {
-				const base = (pathPrefix || this.settings.aliyunPath || "images").replace(/^\/+|\/+$/g, "");
-				lookupKey = base + "/" + fileName;
-			} else if (bedType === ImageBedType.Tencent) {
-				const base = (pathPrefix || this.settings.tencentPath || "images").replace(/^\/+|\/+$/g, "");
-				lookupKey = base + "/" + fileName;
-			} else {
-				// SM.MS 等无目录结构的图床：prefix = filename，直接用文件名匹配
-				lookupKey = fileName;
-			}
+				// 构造完整 object key 作为查表键（OSS/COS 区分大小写，移除 toLowerCase）
+				let lookupKey: string;
+				if (bedType === ImageBedType.Aliyun) {
+					const base = (pathPrefix || this.settings.aliyunPath || "images").replace(/^\/+|\/+$/g, "");
+					lookupKey = base + "/" + fileName;
+				} else if (bedType === ImageBedType.Tencent) {
+					const base = (pathPrefix || this.settings.tencentPath || "images").replace(/^\/+|\/+$/g, "");
+					lookupKey = base + "/" + fileName;
+				} else {
+					// SM.MS 等无目录结构的图床：prefix = filename，直接用文件名匹配
+					lookupKey = fileName;
+				}
 
-			const urls = cloudFileMap.get(lookupKey);
-			if (urls) {
+				const urls = cloudFileMap.get(lookupKey);
+				if (urls) {
 					// 优先返回与 expectedUrl 同路径的精确匹配；否则返回第一个可用 URL
 					const matched = urls.find((u) => u === expectedUrl) || urls[0] || expectedUrl;
 					result.set(img.pure, { exists: true, url: matched });
-			} else {
-				result.set(img.pure, { exists: false, url: expectedUrl });
-			}
+				} else {
+					result.set(img.pure, { exists: false, url: expectedUrl });
+				}
 			}
 			return result;
 		}

@@ -8671,7 +8671,6 @@ var LinkEditor = class {
    */
   async replaceImageInMdFiles(oldPath, newPath, candidates) {
     const escapedOld = escapeRegex(oldPath);
-    const escapedNew = newPath.replace(/\$/g, "$$$$");
     const mdRegex = new RegExp(`(![^\\]]*\\]\\()(${escapedOld}(?:[?#][^)]*)?)((?:\\s+"[^"]*"|\\s+'[^']*')?)(\\))`, "g");
     const wikiRegex = new RegExp(`(!?\\[\\[)(${escapedOld}(?:[?#][^\\]]*)?)((?:\\|[^\\]]*)?)(\\]\\])`, "g");
     const htmlRegex = new RegExp(`(<img[^>]*src=["'\\])(${escapedOld}(?:[?#][^"'\\s>]*)?)(["'\\][^>]*/?>)`, "g");
@@ -8722,7 +8721,7 @@ var LinkEditor = class {
   /** 智能移除行中的图片引用，保留行中其他内容 */
   removeImageFromLine(line, imgPath) {
     let result = line.replace(
-      new RegExp(`![[^]]*](${escapeRegex(imgPath)}((?:\\s+"[^"]*"|\\s+'[^']*')?))`, "g"),
+      new RegExp(`!\\[[^\\]]*\\]\\(${escapeRegex(imgPath)}((?:\\s+"[^"]*"|\\s+'[^']*')?)\\)`, "g"),
       ""
     );
     result = result.replace(

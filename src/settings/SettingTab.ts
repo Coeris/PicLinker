@@ -389,8 +389,8 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.webdavAutoSync)
 					.onChange((value) => {
 						// webdavEnable 已移除，开关由 webdavAutoSync 单一承担
-					this.plugin.settings.webdavAutoSync = value;
-												void this.plugin.saveSettings();
+						this.plugin.settings.webdavAutoSync = value;
+						void this.plugin.saveSettings();
 					});
 			});
 
@@ -445,7 +445,7 @@ export class PicLinkerSettingTab extends PluginSettingTab {
 	/** 更新 WebDAV 标题栏状态指示 */
 	private updateWebdavHeaderStatus(statusEl: HTMLElement) {
 		// 防御：若传入节点已被 DOM 重建分离（renderSettings 重建后旧闭包失效），回退到实时查询当前节点
-		const el = statusEl.isConnected ? statusEl : (this.containerEl.querySelector(".pic-webdav-header-status") as HTMLElement | null) ?? statusEl;
+		const el = statusEl.isConnected ? statusEl : (this.containerEl.querySelector(".pic-webdav-header-status") ?? statusEl);
 		const { webdavUrl, webdavUsername, webdavPassword } = this.plugin.settings;
 		const isConfigured = webdavUrl && webdavUsername && webdavPassword;
 

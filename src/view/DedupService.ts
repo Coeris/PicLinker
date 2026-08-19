@@ -65,10 +65,10 @@ export class DedupService {
 								bedType: item.bedType as ImageBedType | undefined,
 								referenced: item.referenced as number | undefined,
 								img: imgStub && typeof imgStub.pure === "string"
-									? { pure: imgStub.pure as string, resolvedPath: imgStub.resolvedPath as string | undefined } as ImageLink
+									? { pure: imgStub.pure, resolvedPath: imgStub.resolvedPath as string | undefined } as ImageLink
 									: undefined,
 									file: fStub && typeof fStub.url === "string"
-										? { url: fStub.url as string, prefix: fStub.prefix as string | undefined, name: fStub.name as string | undefined, bedType: fStub.bedType as ImageBedType | undefined } as CloudFile
+										? { url: fStub.url, prefix: fStub.prefix as string | undefined, name: fStub.name as string | undefined, bedType: fStub.bedType as ImageBedType | undefined } as CloudFile
 										: undefined,
 							};
 						}),

@@ -1,6 +1,11 @@
 # PicLinker — 图床管家
 
-> 🧭 **文档导航：** **中文说明** · [English](README.md) · [配置指南](CONFIG.md) · [开发指南](DEVELOPMENT.md)
+> 🧭 **文档导航：** **中文说明** · [English](README.md) · [配置指南](CONFIG.md) · [开发指南](DEVELOPMENT.md) · [变更日志](CHANGELOG.md) · [安全](SECURITY.md) · [贡献](CONTRIBUTING.md)
+
+[![release](https://img.shields.io/github/v/release/Coeris/PicLinker?sort=semver&style=flat-square)](https://github.com/Coeris/PicLinker/releases)
+[![downloads](https://img.shields.io/github/downloads/Coeris/PicLinker/total?style=flat-square)](https://github.com/Coeris/PicLinker/releases)
+[![license](https://img.shields.io/github/license/Coeris/PicLinker?style=flat-square)](LICENSE)
+[![stars](https://img.shields.io/github/stars/Coeris/PicLinker?style=flat-square)](https://github.com/Coeris/PicLinker/stargazers)
 
 一款面向 Obsidian 的全库图片资产管理插件，覆盖扫描、去重、比对与批量操作等核心能力。
 
@@ -10,11 +15,13 @@
 
 ## 快速开始
 
-**手动安装（推荐）**
+**社区插件市场（推荐）**
+
+打开 Obsidian → 设置 → 第三方插件 → 浏览 → 搜索「PicLinker」→ 安装 → 启用。
+
+**手动安装**
 
 前往 [Releases](https://github.com/Coeris/PicLinker/releases) 下载 `main.js` + `manifest.json` + `styles.css`，放入 vault 的 `.obsidian/plugins/PicLinker/` 目录，重启启用即可。
-
-> ⚠️ 社区插件市场提交审核中，暂未在官方商店上架；上架前请使用手动安装。
 
 ## 核心功能
 
@@ -129,6 +136,10 @@ SHA-256 完全相同（不依赖文件名）。去重需手动触发：点击工
 
 不含任何图片的目录。一键清理。
 
+**空白文件夹区**
+
+![空白文件夹区](screenshots/04-empty-folders.jpg)
+
 ## 配置
 
 **设置面板：显示选项与图床管理**
@@ -142,8 +153,8 @@ SHA-256 完全相同（不依赖文件名）。去重需手动触发：点击工
 ```markdown
 ![](image.png)              <!-- Markdown 标准 -->
 ![[image.png|500]]          <!-- Wiki 链接带尺寸（仅 wikilink 支持 `|尺寸`，Markdown `![](...)` 不支持） -->
-![[image.png]]               <!-- Wiki 链接 -->
-<img src="image.png">        <!-- HTML -->
+![[image.png]]              <!-- Wiki 链接 -->
+<img src="image.png">       <!-- HTML -->
 ```
 
 远程 URL 也会被识别。插件自动跳过代码块。
@@ -170,3 +181,7 @@ image-path: blog/2026/  # 云端路径前缀
 ## 开发
 
 请参阅 **[`DEVELOPMENT.md`](DEVELOPMENT.md)**。
+
+## 许可证
+
+[MIT](LICENSE) © PicLinker

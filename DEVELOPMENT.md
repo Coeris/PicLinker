@@ -1,6 +1,6 @@
 # PicLinker 开发指南
 
-> 🧭 **文档导航：** [中文说明](README.zh.md) · [English](README.md) · [配置指南](CONFIG.md) · **开发指南**
+> 🧭 **文档导航：** [中文说明](README.zh.md) · [English](README.md) · [配置指南](CONFIG.md) · **开发指南** · [变更日志](CHANGELOG.md) · [安全](SECURITY.md) · [贡献](CONTRIBUTING.md)
 
 ## 项目结构
 
@@ -102,7 +102,7 @@ npm run build
 ### 技术栈
 
 - **语言**：TypeScript（约 35 个模块）
-- **构建**：esbuild（产物约 414KB）
+- **构建**：esbuild（产物约 400KB+）
 - **运行时**：Obsidian API（Plugin / ItemView / Notice / requestUrl）
 - **加密**：Web Crypto API（AES-GCM / PBKDF2 / SHA-256）
 - **网络**：Node.js HTTP/HTTPS（桌面端）+ requestUrl（移动端回退）

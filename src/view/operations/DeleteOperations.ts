@@ -82,102 +82,102 @@ export class DeleteOperations {
 		if (this.isDeleting) return { referencesDeleted: 0, referencesFailed: 0, filesDeleted: 0, filesFailed: 0 };
 		this.isDeleting = true;
 		try {
-		const result: BatchDeleteResult = { referencesDeleted: 0, referencesFailed: 0, filesDeleted: 0, filesFailed: 0 };
-		const { selection, localImages, removeImageFromMdFile, refresh } = this.ctx;
+			const result: BatchDeleteResult = { referencesDeleted: 0, referencesFailed: 0, filesDeleted: 0, filesFailed: 0 };
+			const { selection, localImages, removeImageFromMdFile, refresh } = this.ctx;
 
-		if (options.items.length === 0) {
-			new Notice("没有可删除的图片");
-			return result;
-		}
+			if (options.items.length === 0) {
+				new Notice("没有可删除的图片");
+				return result;
+			}
 
-		if (!(await confirmAsync(this.ctx.app, { message: options.confirmMessage, title: "删除图片" }))) return result;
+			if (!(await confirmAsync(this.ctx.app, { message: options.confirmMessage, title: "删除图片" }))) return result;
 
-		// 第一步：删除文件（先删文件，成功后再清引用，避免「引用已删、文件还在」的不一致态）
-		const deletedKeys = new Set<string>(); // 记录成功删除的项 key
-		const total = options.items.length;
-		// 进度反馈：仅在批量较大时提示，避免单条删除刷屏
-		const showProgress = total > 5;
-		if (showProgress) new Notice(`正在删除（图片阶段）：${result.filesDeleted}/${total}`);
-		for (let idx = 0; idx < options.items.length; idx++) {
-			const item = options.items[idx];
-			try {
-				if (item.type === 'local' && options.onDeleteLocal) {
-					const success = await options.onDeleteLocal(item.path);
-					if (success) { result.filesDeleted++; deletedKeys.add(item.key); }
-					else result.filesFailed++;
-				} else if (item.type === 'cloud' && options.onDeleteCloud) {
-					const success = await options.onDeleteCloud(item.path, item.bedType || ImageBedType.Other);
-					if (success) { result.filesDeleted++; deletedKeys.add(item.key); }
-					else result.filesFailed++;
+			// 第一步：删除文件（先删文件，成功后再清引用，避免「引用已删、文件还在」的不一致态）
+			const deletedKeys = new Set<string>(); // 记录成功删除的项 key
+			const total = options.items.length;
+			// 进度反馈：仅在批量较大时提示，避免单条删除刷屏
+			const showProgress = total > 5;
+			if (showProgress) new Notice(`正在删除（图片阶段）：${result.filesDeleted}/${total}`);
+			for (let idx = 0; idx < options.items.length; idx++) {
+				const item = options.items[idx];
+				try {
+					if (item.type === 'local' && options.onDeleteLocal) {
+						const success = await options.onDeleteLocal(item.path);
+						if (success) { result.filesDeleted++; deletedKeys.add(item.key); }
+						else result.filesFailed++;
+					} else if (item.type === 'cloud' && options.onDeleteCloud) {
+						const success = await options.onDeleteCloud(item.path, item.bedType || ImageBedType.Other);
+						if (success) { result.filesDeleted++; deletedKeys.add(item.key); }
+						else result.filesFailed++;
+					}
+				} catch {
+					result.filesFailed++;
 				}
-			} catch {
-				result.filesFailed++;
+				// 每 10 个或最后一项更新一次进度（避免频繁刷新 Notice）
+				if (showProgress && ((idx + 1) % 10 === 0 || idx + 1 === total)) {
+					new Notice(`正在删除（图片阶段）：${result.filesDeleted}/${total}`);
+				}
 			}
-			// 每 10 个或最后一项更新一次进度（避免频繁刷新 Notice）
-			if (showProgress && ((idx + 1) % 10 === 0 || idx + 1 === total)) {
-				new Notice(`正在删除（图片阶段）：${result.filesDeleted}/${total}`);
-			}
-		}
 
-		// 第二步：仅对「成功删除文件」的项清理笔记引用
-		// 目的：若文件删除失败，保留笔记引用，避免「引用已删、文件还在」的脏态
-		if (options.deleteReferences) {
-			const fileImageMap = new Map<string, string[]>();
-			for (const item of options.items) {
-				if (!deletedKeys.has(item.key)) continue; // 仅清理已成功删除的项
-				// 优先用显式传入的正文链接文本 refText 定位图片；
-				// 否则回退到 key（旧调用方 key 即 img.pure）。
-				// 再回退到用 vault 路径 path 反查（resolvedPath 或 pure 匹配），保障本地项也能命中。
-				const refText = item.refText;
-				const img = localImages().find(i => imgSelectKey(i) === (refText ?? item.key))
-					?? localImages().find(i => (i.resolvedPath || i.pure) === item.path);
-				if (img) {
-					for (const fp of img.files) {
-						if (!fileImageMap.has(fp)) fileImageMap.set(fp, []);
-						fileImageMap.get(fp)!.push(img.pure);
+			// 第二步：仅对「成功删除文件」的项清理笔记引用
+			// 目的：若文件删除失败，保留笔记引用，避免「引用已删、文件还在」的脏态
+			if (options.deleteReferences) {
+				const fileImageMap = new Map<string, string[]>();
+				for (const item of options.items) {
+					if (!deletedKeys.has(item.key)) continue; // 仅清理已成功删除的项
+					// 优先用显式传入的正文链接文本 refText 定位图片；
+					// 否则回退到 key（旧调用方 key 即 img.pure）。
+					// 再回退到用 vault 路径 path 反查（resolvedPath 或 pure 匹配），保障本地项也能命中。
+					const refText = item.refText;
+					const img = localImages().find(i => imgSelectKey(i) === (refText ?? item.key))
+						?? localImages().find(i => (i.resolvedPath || i.pure) === item.path);
+					if (img) {
+						for (const fp of img.files) {
+							if (!fileImageMap.has(fp)) fileImageMap.set(fp, []);
+							fileImageMap.get(fp)!.push(img.pure);
+						}
+					}
+				}
+				for (const [fp, imagePaths] of fileImageMap) {
+					try {
+						const count = await removeImageFromMdFile(fp, imagePaths);
+						if (count > 0) result.referencesDeleted += count;
+						else result.referencesFailed++;
+					} catch {
+						result.referencesFailed++;
 					}
 				}
 			}
-			for (const [fp, imagePaths] of fileImageMap) {
-				try {
-					const count = await removeImageFromMdFile(fp, imagePaths);
-					if (count > 0) result.referencesDeleted += count;
-					else result.referencesFailed++;
-				} catch {
-					result.referencesFailed++;
-				}
+
+			// 第三步：清理选中状态
+			selection.clear(options.section);
+			if (options.section === SelectionSection.LocalImages) {
+				selection.clear(SelectionSection.LocalTags);
+			} else if (options.section === SelectionSection.CloudImages) {
+				selection.clear(SelectionSection.CloudTags);
+			} else if (options.section === SelectionSection.SameName) {
+				selection.clear(SelectionSection.SameNameTags);
+			} else if (options.section === SelectionSection.Dedup) {
+				selection.clear(SelectionSection.DedupTags);
 			}
-		}
 
-		// 第三步：清理选中状态
-		selection.clear(options.section);
-		if (options.section === SelectionSection.LocalImages) {
-			selection.clear(SelectionSection.LocalTags);
-		} else if (options.section === SelectionSection.CloudImages) {
-			selection.clear(SelectionSection.CloudTags);
-		} else if (options.section === SelectionSection.SameName) {
-			selection.clear(SelectionSection.SameNameTags);
-		} else if (options.section === SelectionSection.Dedup) {
-			selection.clear(SelectionSection.DedupTags);
-		}
+			// 第四步：删除后回调
+			if (options.onAfterDelete) {
+				await options.onAfterDelete(deletedKeys);
+			}
 
-		// 第四步：删除后回调
-		if (options.onAfterDelete) {
-			await options.onAfterDelete(deletedKeys);
-		}
+			// 第五步：刷新视图
+			await refresh();
 
-		// 第五步：刷新视图
-		await refresh();
+			// 第六步：显示通知
+			const parts: string[] = [];
+			if (result.referencesDeleted > 0) parts.push(`${result.referencesDeleted} 行引用已清理`);
+			if (result.filesDeleted > 0) parts.push(`${result.filesDeleted} 个图片已删除`);
+			if (result.referencesFailed > 0) parts.push(`${result.referencesFailed} 行引用清理失败`);
+			if (result.filesFailed > 0) parts.push(`${result.filesFailed} 个文件删除失败`);
+			if (parts.length > 0) new Notice(`批量删除完成：${parts.join("，")}`);
 
-		// 第六步：显示通知
-		const parts: string[] = [];
-		if (result.referencesDeleted > 0) parts.push(`${result.referencesDeleted} 行引用已清理`);
-		if (result.filesDeleted > 0) parts.push(`${result.filesDeleted} 个图片已删除`);
-		if (result.referencesFailed > 0) parts.push(`${result.referencesFailed} 行引用清理失败`);
-		if (result.filesFailed > 0) parts.push(`${result.filesFailed} 个文件删除失败`);
-		if (parts.length > 0) new Notice(`批量删除完成：${parts.join("，")}`);
-
-		return result;
+			return result;
 		} finally {
 			this.isDeleting = false;
 		}
@@ -243,83 +243,83 @@ export class DeleteOperations {
 		if (this.isDeleting) return;
 		this.isDeleting = true;
 		try {
-		const { selection, localImages, app, removeImageFromLine, refresh } = this.ctx;
+			const { selection, localImages, app, removeImageFromLine, refresh } = this.ctx;
 
-		const refsToDelete: { img: ImageLink; file: string; line: number }[] = [];
-		const allTagKeys: string[] = [];
-		for (const section of tagSections) {
-			allTagKeys.push(...selection.getSelected(section));
-		}
-		for (const tagKey of allTagKeys) {
-			const parsed = parseTagKey(tagKey);
-			if (!parsed) continue;
-			const img = resolveImageFromTagKey(parsed.keyPrefix, localImages());
-			if (!img) continue;
-
-			const expandedRefs = expandRefs(img);
-			if (parsed.index < expandedRefs.length) {
-				refsToDelete.push({ img, file: expandedRefs[parsed.index].file, line: expandedRefs[parsed.index].line });
+			const refsToDelete: { img: ImageLink; file: string; line: number }[] = [];
+			const allTagKeys: string[] = [];
+			for (const section of tagSections) {
+				allTagKeys.push(...selection.getSelected(section));
 			}
-		}
+			for (const tagKey of allTagKeys) {
+				const parsed = parseTagKey(tagKey);
+				if (!parsed) continue;
+				const img = resolveImageFromTagKey(parsed.keyPrefix, localImages());
+				if (!img) continue;
 
-		if (refsToDelete.length === 0) { new Notice("请先选择要删除的引用行"); return; }
-		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除 ${refsToDelete.length} 个引用行吗？`, title: "删除引用行" }))) return;
+				const expandedRefs = expandRefs(img);
+				if (parsed.index < expandedRefs.length) {
+					refsToDelete.push({ img, file: expandedRefs[parsed.index].file, line: expandedRefs[parsed.index].line });
+				}
+			}
 
-		const fileGroups = new Map<string, typeof refsToDelete>();
-		for (const ref of refsToDelete) {
-			if (!fileGroups.has(ref.file)) fileGroups.set(ref.file, []);
-			fileGroups.get(ref.file)!.push(ref);
-		}
+			if (refsToDelete.length === 0) { new Notice("请先选择要删除的引用行"); return; }
+			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除 ${refsToDelete.length} 个引用行吗？`, title: "删除引用行" }))) return;
 
-		let successCount = 0;
-		let failCount = 0;
+			const fileGroups = new Map<string, typeof refsToDelete>();
+			for (const ref of refsToDelete) {
+				if (!fileGroups.has(ref.file)) fileGroups.set(ref.file, []);
+				fileGroups.get(ref.file)!.push(ref);
+			}
 
-		for (const [filePath, refs] of fileGroups) {
-			const abstractFile = app.vault.getAbstractFileByPath(filePath);
-			if (!(abstractFile instanceof TFile)) { failCount += refs.length; continue; }
+			let successCount = 0;
+			let failCount = 0;
 
-			try {
-				const content = await app.vault.read(abstractFile);
-				const lines = content.split("\n");
-				const linesToModify = new Map<number, string>();
-				const linesToDelete = new Set<number>();
-				for (const ref of refs) {
-					if (ref.line > 0) {
-						const lineIdx = ref.line - 1;
-						if (lineIdx >= lines.length) continue;
-						const originalLine = lines[lineIdx];
-						if (originalLine !== undefined) {
-							const cleaned = removeImageFromLine(originalLine, ref.img.pure);
-							if (!cleaned.trim()) linesToDelete.add(lineIdx);
-							else if (cleaned !== originalLine) linesToModify.set(lineIdx, cleaned);
-						}
-					} else {
-						for (let i = 0; i < lines.length; i++) {
-							if (lines[i].includes(ref.img.pure)) {
-								const cleaned = removeImageFromLine(lines[i], ref.img.pure);
-								if (!cleaned.trim()) linesToDelete.add(i);
-								else if (cleaned !== lines[i]) linesToModify.set(i, cleaned);
-								break;
+			for (const [filePath, refs] of fileGroups) {
+				const abstractFile = app.vault.getAbstractFileByPath(filePath);
+				if (!(abstractFile instanceof TFile)) { failCount += refs.length; continue; }
+
+				try {
+					const content = await app.vault.read(abstractFile);
+					const lines = content.split("\n");
+					const linesToModify = new Map<number, string>();
+					const linesToDelete = new Set<number>();
+					for (const ref of refs) {
+						if (ref.line > 0) {
+							const lineIdx = ref.line - 1;
+							if (lineIdx >= lines.length) continue;
+							const originalLine = lines[lineIdx];
+							if (originalLine !== undefined) {
+								const cleaned = removeImageFromLine(originalLine, ref.img.pure);
+								if (!cleaned.trim()) linesToDelete.add(lineIdx);
+								else if (cleaned !== originalLine) linesToModify.set(lineIdx, cleaned);
+							}
+						} else {
+							for (let i = 0; i < lines.length; i++) {
+								if (lines[i].includes(ref.img.pure)) {
+									const cleaned = removeImageFromLine(lines[i], ref.img.pure);
+									if (!cleaned.trim()) linesToDelete.add(i);
+									else if (cleaned !== lines[i]) linesToModify.set(i, cleaned);
+									break;
+								}
 							}
 						}
 					}
+					const newLines = lines.map((line, idx) => linesToModify.has(idx) ? linesToModify.get(idx)! : line)
+						.filter((_, idx) => !linesToDelete.has(idx));
+					if (newLines.length < lines.length || linesToModify.size > 0) {
+						await app.vault.modify(abstractFile, newLines.join("\n"));
+						successCount += linesToModify.size + linesToDelete.size;
+					}
+				} catch {
+					failCount += refs.length;
 				}
-				const newLines = lines.map((line, idx) => linesToModify.has(idx) ? linesToModify.get(idx)! : line)
-					.filter((_, idx) => !linesToDelete.has(idx));
-				if (newLines.length < lines.length || linesToModify.size > 0) {
-					await app.vault.modify(abstractFile, newLines.join("\n"));
-					successCount += linesToModify.size + linesToDelete.size;
-				}
-			} catch {
-				failCount += refs.length;
 			}
-		}
 
-		for (const section of tagSections) {
-			selection.clear(section);
-		}
-		await refresh();
-		this.showDeleteSummary("行", successCount, failCount);
+			for (const section of tagSections) {
+				selection.clear(section);
+			}
+			await refresh();
+			this.showDeleteSummary("行", successCount, failCount);
 		} finally {
 			this.isDeleting = false;
 		}
@@ -330,66 +330,66 @@ export class DeleteOperations {
 		if (this.isDeleting) return;
 		this.isDeleting = true;
 		try {
-		const { selection, localImages, app, removeImageFromLine, refresh } = this.ctx;
-		const selectedKeys = selection.getSelected(SelectionSection.NotFoundRefs);
-		const tagKeys = selectedKeys.filter(k => k.includes("::"));
-		if (tagKeys.length === 0) { new Notice("请先选择要删除的引用标签"); return; }
-		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${tagKeys.length} 个引用行吗？`, title: "删除引用行" }))) return;
+			const { selection, localImages, app, removeImageFromLine, refresh } = this.ctx;
+			const selectedKeys = selection.getSelected(SelectionSection.NotFoundRefs);
+			const tagKeys = selectedKeys.filter(k => k.includes("::"));
+			if (tagKeys.length === 0) { new Notice("请先选择要删除的引用标签"); return; }
+			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${tagKeys.length} 个引用行吗？`, title: "删除引用行" }))) return;
 
-		const images = localImages().filter(img => img.found === false);
+			const images = localImages().filter(img => img.found === false);
 
-		// 收集按文件分组的行号（每张图独立 pure，同文件多图存为数组）
-		const perFile = new Map<string, { pure: string; lines: Set<number> }[]>();
-		for (const tagKey of tagKeys) {
-			const parsed = parseTagKey(tagKey);
-			if (!parsed) continue;
-			const img = resolveImageFromTagKey(parsed.keyPrefix, images);
-			if (!img) continue;
-			const expandedRefs = expandRefs(img);
-			if (parsed.index < expandedRefs.length) {
-				const ref = expandedRefs[parsed.index];
-				if (!perFile.has(ref.file)) perFile.set(ref.file, []);
-				perFile.get(ref.file)!.push({ pure: img.pure, lines: new Set([ref.line]) });
+			// 收集按文件分组的行号（每张图独立 pure，同文件多图存为数组）
+			const perFile = new Map<string, { pure: string; lines: Set<number> }[]>();
+			for (const tagKey of tagKeys) {
+				const parsed = parseTagKey(tagKey);
+				if (!parsed) continue;
+				const img = resolveImageFromTagKey(parsed.keyPrefix, images);
+				if (!img) continue;
+				const expandedRefs = expandRefs(img);
+				if (parsed.index < expandedRefs.length) {
+					const ref = expandedRefs[parsed.index];
+					if (!perFile.has(ref.file)) perFile.set(ref.file, []);
+					perFile.get(ref.file)!.push({ pure: img.pure, lines: new Set([ref.line]) });
+				}
 			}
-		}
 
-		let successCount = 0;
-		let failCount = 0;
-		for (const [filePath, imgInfoList] of perFile) {
-			const abstractFile = app.vault.getAbstractFileByPath(filePath);
-			const totalRefs = imgInfoList.reduce((s, x) => s + x.lines.size, 0);
-			if (!(abstractFile instanceof TFile)) { failCount += totalRefs; continue; }
-			try {
-				const content = await app.vault.read(abstractFile);
-				const contentLines = content.split("\n");
-				const linesToDelete = new Set<number>();
-				const linesToModify = new Map<number, string>();
-				// 逐张图片用各自的 pure 清理对应行，合并到同一文件的一次 modify
-				for (const imgInfo of imgInfoList) {
-					for (const lineNum of imgInfo.lines) {
-						if (lineNum > 0) {
-							const idx = lineNum - 1;
-							const orig = contentLines[idx];
-							if (orig !== undefined) {
-								const cleaned = removeImageFromLine(orig, imgInfo.pure);
-								if (!cleaned.trim()) linesToDelete.add(idx);
-								else if (cleaned !== orig) linesToModify.set(idx, cleaned);
+			let successCount = 0;
+			let failCount = 0;
+			for (const [filePath, imgInfoList] of perFile) {
+				const abstractFile = app.vault.getAbstractFileByPath(filePath);
+				const totalRefs = imgInfoList.reduce((s, x) => s + x.lines.size, 0);
+				if (!(abstractFile instanceof TFile)) { failCount += totalRefs; continue; }
+				try {
+					const content = await app.vault.read(abstractFile);
+					const contentLines = content.split("\n");
+					const linesToDelete = new Set<number>();
+					const linesToModify = new Map<number, string>();
+					// 逐张图片用各自的 pure 清理对应行，合并到同一文件的一次 modify
+					for (const imgInfo of imgInfoList) {
+						for (const lineNum of imgInfo.lines) {
+							if (lineNum > 0) {
+								const idx = lineNum - 1;
+								const orig = contentLines[idx];
+								if (orig !== undefined) {
+									const cleaned = removeImageFromLine(orig, imgInfo.pure);
+									if (!cleaned.trim()) linesToDelete.add(idx);
+									else if (cleaned !== orig) linesToModify.set(idx, cleaned);
+								}
 							}
 						}
 					}
-				}
-				const newLines = contentLines.map((l, i) => linesToModify.has(i) ? linesToModify.get(i)! : l)
-					.filter((_, i) => !linesToDelete.has(i));
-				if (newLines.length !== contentLines.length || linesToModify.size > 0) {
-					await app.vault.modify(abstractFile, newLines.join("\n"));
-					successCount += linesToModify.size + linesToDelete.size;
-				}
-			} catch { failCount += totalRefs; }
-		}
+					const newLines = contentLines.map((l, i) => linesToModify.has(i) ? linesToModify.get(i)! : l)
+						.filter((_, i) => !linesToDelete.has(i));
+					if (newLines.length !== contentLines.length || linesToModify.size > 0) {
+						await app.vault.modify(abstractFile, newLines.join("\n"));
+						successCount += linesToModify.size + linesToDelete.size;
+					}
+				} catch { failCount += totalRefs; }
+			}
 
-		selection.clear(SelectionSection.NotFoundRefs);
-		await refresh();
-		this.showDeleteSummary("行", successCount, failCount);
+			selection.clear(SelectionSection.NotFoundRefs);
+			await refresh();
+			this.showDeleteSummary("行", successCount, failCount);
 		} finally {
 			this.isDeleting = false;
 		}
@@ -441,45 +441,45 @@ export class DeleteOperations {
 		if (this.isDeleting) return;
 		this.isDeleting = true;
 		try {
-		const { selection, app, deleteCloudFile, refresh } = this.ctx;
-		if (selection.getCount(SelectionSection.EmptyFolders) === 0) { new Notice("请先选择要删除的文件夹"); return; }
-		if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${selection.getCount(SelectionSection.EmptyFolders)} 个空白文件夹吗？`, title: "删除文件夹" }))) return;
+			const { selection, app, deleteCloudFile, refresh } = this.ctx;
+			if (selection.getCount(SelectionSection.EmptyFolders) === 0) { new Notice("请先选择要删除的文件夹"); return; }
+			if (!(await confirmAsync(this.ctx.app, { message: `确定要删除选中的 ${selection.getCount(SelectionSection.EmptyFolders)} 个空白文件夹吗？`, title: "删除文件夹" }))) return;
 
-		let successCount = 0;
-		let failCount = 0;
-		const failedFolders: string[] = [];
-		for (const folderPath of selection.getSelected(SelectionSection.EmptyFolders)) {
-			try {
-				const info = parseEmptyFolder(folderPath);
-				if (info.isCloud && info.bedType) {
-					const result = await deleteCloudFile(info.path, info.bedType);
-					if (result.success) successCount++;
-					else { failCount++; failedFolders.push(folderPath); }
-				} else {
-					try {
-						await app.vault.adapter.rmdir(folderPath, false);
-						successCount++;
-					} catch {
-						failCount++; failedFolders.push(folderPath);
+			let successCount = 0;
+			let failCount = 0;
+			const failedFolders: string[] = [];
+			for (const folderPath of selection.getSelected(SelectionSection.EmptyFolders)) {
+				try {
+					const info = parseEmptyFolder(folderPath);
+					if (info.isCloud && info.bedType) {
+						const result = await deleteCloudFile(info.path, info.bedType);
+						if (result.success) successCount++;
+						else { failCount++; failedFolders.push(folderPath); }
+					} else {
+						try {
+							await app.vault.adapter.rmdir(folderPath, false);
+							successCount++;
+						} catch {
+							failCount++; failedFolders.push(folderPath);
+						}
 					}
+				} catch {
+					failCount++; failedFolders.push(folderPath);
 				}
-			} catch {
-				failCount++; failedFolders.push(folderPath);
 			}
-		}
 
-		selection.clear(SelectionSection.EmptyFolders);
-		await refresh();
-		const parts: string[] = [];
-		if (successCount > 0) parts.push(`${successCount} 个文件夹已删除`);
-		if (failCount > 0) parts.push(`${failCount} 个文件夹删除失败`);
-		new Notice(`批量删除完成：${parts.join("，")}`);
-		// 汇总失败信息，避免循环内逐个 Notice 刷屏
-		if (failedFolders.length > 0) {
-			const names = failedFolders.map(f => f.split("/").pop() || f);
-			console.warn(`[PicLinker] ${failCount} 个文件夹删除失败:`, failedFolders);
-			new Notice(`${failCount} 个文件夹删除失败（如非空文件夹）：${names.join("、")}`, 8000);
-		}
+			selection.clear(SelectionSection.EmptyFolders);
+			await refresh();
+			const parts: string[] = [];
+			if (successCount > 0) parts.push(`${successCount} 个文件夹已删除`);
+			if (failCount > 0) parts.push(`${failCount} 个文件夹删除失败`);
+			new Notice(`批量删除完成：${parts.join("，")}`);
+			// 汇总失败信息，避免循环内逐个 Notice 刷屏
+			if (failedFolders.length > 0) {
+				const names = failedFolders.map(f => f.split("/").pop() || f);
+				console.warn(`[PicLinker] ${failCount} 个文件夹删除失败:`, failedFolders);
+				new Notice(`${failCount} 个文件夹删除失败（如非空文件夹）：${names.join("、")}`, 8000);
+			}
 		} finally {
 			this.isDeleting = false;
 		}

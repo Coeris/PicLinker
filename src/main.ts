@@ -403,13 +403,13 @@ export default class PicLinkerPlugin extends Plugin {
 		let persistMigration = false;
 
 		// 失败升级检测：曾经升级过（已写入 _encSalt），但 settings 中仍残留 enc:v1: 旧密文。
-	// 说明是 v1.0.0 → ≥1.1.0 的升级路径（旧密钥材料被改名）解密失败，磁盘密文侥幸保留，
+		// 说明是 v1.0.0 → ≥1.1.0 的升级路径（旧密钥材料被改名）解密失败，磁盘密文侥幸保留，
 		// 但内存已置空、迁移窗口被关闭。这里强制恢复：
 		//   - v2 字段用持久 salt 正常解密；
 		//   - v1 残留字段用 legacy（含 v1.0.0 的 -100k 旧密钥材料）解密后覆盖。
 		// 全部解出后重新加密写盘，凭据恢复且不再残留旧密文。
 		const hasLingeringV1 = SENSITIVE_FIELDS.some(
-			(f) => typeof raw[f] === "string" && (raw[f] as string).startsWith(ENC_LEGACY_PREFIX),
+			(f) => typeof raw[f] === "string" && raw[f].startsWith(ENC_LEGACY_PREFIX),
 		);
 		if (hasLingeringV1 && encSaltB64) {
 			console.warn("[PicLinker] 检测到 v1.0.0 升级失败的残留密文，强制恢复凭据");

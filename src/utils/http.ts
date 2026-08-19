@@ -189,10 +189,10 @@ function nodeFetch(
 				headers: nextHeaders,
 				body: nextMethod === "GET" ? undefined : options.body,
 			};
-				// 不再需要原响应体，释放连接后跟随重定向
-				res.destroy?.();
-				nodeFetch(nextUrl, nextOptions, urlModule, redirectCount + 1).then(resolve, reject);
-				return;
+			// 不再需要原响应体，释放连接后跟随重定向
+			res.destroy?.();
+			nodeFetch(nextUrl, nextOptions, urlModule, redirectCount + 1).then(resolve, reject);
+			return;
 			}
 
 			const chunks: Buffer[] = [];

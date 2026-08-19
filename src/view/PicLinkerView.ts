@@ -2797,7 +2797,7 @@ export class PicLinkerView extends ItemView {
 							deleteSuccess++;
 						} else {
 							deleteFail++;
-				continue;
+							continue;
 						}
 					} else {
 						// 删除云端文件（先反查对象 key；删除失败则跳过引用替换，避免「引用已改、云端图还在」脏态）
@@ -2916,7 +2916,7 @@ export class PicLinkerView extends ItemView {
 							deleteSuccess++;
 						} else {
 							deleteFail++;
-				continue;
+							continue;
 						}
 					} else {
 						// 删除云端文件

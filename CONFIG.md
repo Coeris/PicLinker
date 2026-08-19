@@ -1,6 +1,6 @@
 # PicLinker 配置指南
 
-> 🧭 **文档导航：** [中文说明](README.zh.md) · [English](README.md) · **配置指南** · [开发指南](DEVELOPMENT.md)
+> 🧭 **文档导航：** [中文说明](README.zh.md) · [English](README.md) · **配置指南** · [开发指南](DEVELOPMENT.md) · [变更日志](CHANGELOG.md) · [安全](SECURITY.md) · [贡献](CONTRIBUTING.md)
 
 > 插件运行不需要配置图床，扫库功能直接可用。上传和管理云端文件才需要配置。
 

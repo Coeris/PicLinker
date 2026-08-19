@@ -33,6 +33,9 @@ npm-debug.log*
 !README.zh.md
 !CONFIG.md
 !DEVELOPMENT.md
+!CHANGELOG.md
+!SECURITY.md
+!CONTRIBUTING.md
 
 # 本地 lint 工具（不随发布提交）
 # 注意：eslint.config.mjs 与 tsconfig.lint.json 已纳入跟踪，便于跨机器运行 lint
